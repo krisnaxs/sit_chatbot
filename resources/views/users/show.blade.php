@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Detail User — {{ $user->name }}</title>
+    <title>
+        {{ auth()->id() === $user->id ? 'Profil Saya' : 'Detail User — ' . $user->name }}
+    </title>
 
     <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -14,7 +16,7 @@
 
 <body class="bg-slate-100 font-sans">
 
-    <x-header title="Detail User" />
+    <x-header :title="auth()->id() === $user->id ? 'Profil Saya' : 'Detail User'" />
     <x-sidebar />
 
     <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
@@ -22,11 +24,14 @@
 
         <div class="space-y-6">
 
-            {{-- HEADER --}}
-            <div>
-                <a href="{{ route('users.index') }}" class="text-sm text-indigo-600 hover:underline">← Kembali ke daftar
-                    user</a>
-            </div>
+            {{-- HEADER (hanya admin yang bisa kembali ke daftar user) --}}
+            @if (auth()->user()->isAdmin())
+                <div>
+                    <a href="{{ route('users.index') }}" class="text-sm text-indigo-600 hover:underline">
+                        ← Kembali ke daftar user
+                    </a>
+                </div>
+            @endif
 
             {{-- KARTU PROFIL --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -76,12 +81,15 @@
                             </p>
                         </div>
 
-                        <div class="flex gap-2 pb-1">
-                            <a href="{{ route('users.edit', $user) }}"
-                                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
-                                ✏️ Edit
-                            </a>
-                        </div>
+                        {{-- Tombol Edit — hanya admin --}}
+                        @if (auth()->user()->isAdmin())
+                            <div class="flex gap-2 pb-1">
+                                <a href="{{ route('users.edit', $user) }}"
+                                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+                                    ✏️ Edit
+                                </a>
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Info grid --}}
@@ -179,6 +187,14 @@
                                     <div class="text-xs text-gray-500 font-mono">
                                         SN: {{ $asset->serial_number }}
                                     </div>
+
+                                    {{-- 🆕 Hostname --}}
+                                    @if ($asset->hostname)
+                                        <div class="text-xs text-gray-600 font-mono mt-0.5">
+                                            🖥️ {{ $asset->hostname }}
+                                        </div>
+                                    @endif
+
                                     <div class="text-xs text-gray-500 mt-1">
                                         {{ $asset->category?->name }}
                                         @if ($asset->currentLocation)
@@ -265,6 +281,18 @@
                                     <div class="text-xs text-gray-500 font-mono mt-0.5">
                                         SN: {{ $a->asset?->serial_number }}
                                     </div>
+
+                                    {{-- 🆕 Hostname snapshot (dari assignment) --}}
+                                    @if ($a->hostname)
+                                        <div class="text-xs text-gray-600 font-mono mt-0.5">
+                                            🖥️ Hostname: <span class="font-medium">{{ $a->hostname }}</span>
+                                        </div>
+                                    @elseif ($a->asset?->hostname)
+                                        <div class="text-xs text-gray-400 font-mono mt-0.5">
+                                            🖥️ Hostname (terkini): {{ $a->asset->hostname }}
+                                        </div>
+                                    @endif
+
                                     <div class="text-xs text-gray-600 mt-1">
                                         📅 {{ $a->assigned_at?->format('d M Y') ?? '-' }}
                                         →

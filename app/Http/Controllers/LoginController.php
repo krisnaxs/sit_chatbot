@@ -9,25 +9,41 @@ class LoginController extends Controller
 {
     public function login(Request $request)
     {
-        // Validasi: field 'email' bisa diisi email ATAU username
         $credentials = $request->validate([
-            'email' => ['required', 'string'],   // string (bukan email) biar bisa username
+            'email' => ['required', 'string'],
             'password' => ['required'],
         ]);
 
-        // 🔥 Deteksi: input berupa email atau username?
-        $loginField = filter_var($credentials['email'], FILTER_VALIDATE_EMAIL)
-            ? 'email'
-            : 'username';
+        // 🔥 Trim input
+        $login = trim($credentials['email']);
 
-        // 🔥 Coba login
-        if (
-            Auth::attempt([
-                $loginField => $credentials['email'],
-                'password' => $credentials['password'],
-            ], $request->boolean('remember'))
-        ) {
+        // 🔥 Deteksi field login
+        $loginField = match (true) {
+            filter_var($login, FILTER_VALIDATE_EMAIL) => 'email',
+            is_numeric($login) => 'nip',
+            default => 'username',
+        };
 
+        // 🔥 Coba login dengan field yang terdeteksi
+        $attempted = Auth::attempt([
+            $loginField => $login,
+            'password' => $credentials['password'],
+        ], $request->boolean('remember'));
+
+        // 🔥 Fallback: kalau gagal, coba cari di semua field (email, username, nip)
+        if (!$attempted) {
+            $user = \App\Models\User::where('email', $login)
+                ->orWhere('username', $login)
+                ->orWhere('nip', $login)
+                ->first();
+
+            if ($user && \Hash::check($credentials['password'], $user->password)) {
+                Auth::login($user, $request->boolean('remember'));
+                $attempted = true;
+            }
+        }
+
+        if ($attempted) {
             $request->session()->regenerate();
 
             // Cek user aktif
@@ -38,7 +54,7 @@ class LoginController extends Controller
 
                 activity('auth')
                     ->withProperties([
-                        'login' => $credentials['email'],
+                        'login' => $login,
                         'ip' => $request->ip(),
                     ])
                     ->log('Login gagal - akun tidak aktif');
@@ -49,11 +65,12 @@ class LoginController extends Controller
                 ], 403);
             }
 
-            // 🔥 LOG: Login berhasil
+            // LOG: Login berhasil
             activity('auth')
                 ->causedBy(Auth::user())
                 ->withProperties([
                     'login_via' => $loginField,
+                    'login' => $login,
                     'ip' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                 ])
@@ -65,10 +82,10 @@ class LoginController extends Controller
             ]);
         }
 
-        // 🔥 LOG: Login gagal
+        // LOG: Login gagal
         activity('auth')
             ->withProperties([
-                'login' => $credentials['email'],
+                'login' => $login,
                 'login_via' => $loginField,
                 'ip' => $request->ip(),
             ])
@@ -76,7 +93,7 @@ class LoginController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'Username/email atau password salah',
+            'message' => 'Email/username/NIP atau password salah',
         ], 401);
     }
 

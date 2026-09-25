@@ -61,7 +61,7 @@ class AppController extends Controller
 
         $isActive = $request->has('is_active');
 
-        $app = App::create([
+        App::create([
             'nama' => $request->nama,
             'url' => $request->url,
             'gambar' => $gambarPath,
@@ -70,15 +70,7 @@ class AppController extends Controller
             'is_active' => $isActive,
         ]);
 
-        activity('app')
-            ->performedOn($app)
-            ->causedBy($request->user())
-            ->withProperties([
-                'nama' => $app->nama,
-                'slide' => $app->slide,
-                'ip' => $request->ip(),
-            ])
-            ->log("Menambahkan aplikasi: {$app->nama}");
+        // ✅ Log otomatis dari middleware LogUserActivity
 
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil ditambahkan!');
     }
@@ -113,10 +105,7 @@ class AppController extends Controller
             'is_active' => 'nullable'
         ]);
 
-        $oldNama = $app->nama;
-
         $file = $request->file('gambar');
-        $gambarDiganti = false;
 
         if (
             $file instanceof \Illuminate\Http\UploadedFile
@@ -129,7 +118,6 @@ class AppController extends Controller
             }
 
             $app->gambar = $file->store('apps', 'public');
-            $gambarDiganti = true;
         }
 
         $app->nama = $request->nama;
@@ -139,16 +127,7 @@ class AppController extends Controller
         $app->is_active = $request->has('is_active');
         $app->save();
 
-        activity('app')
-            ->performedOn($app)
-            ->causedBy($request->user())
-            ->withProperties([
-                'nama_lama' => $oldNama,
-                'nama_baru' => $app->nama,
-                'gambar_diganti' => $gambarDiganti,
-                'ip' => $request->ip(),
-            ])
-            ->log("Memperbarui aplikasi: {$app->nama}");
+        // ✅ Log otomatis dari middleware LogUserActivity
 
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil diperbarui!');
     }
@@ -156,11 +135,9 @@ class AppController extends Controller
     /**
      * Hapus aplikasi — HANYA ADMIN.
      */
-    public function destroy(Request $request, App $app)
+    public function destroy(App $app)
     {
         $this->authorizeAdmin();  // 🔒 admin saja
-
-        $namaApp = $app->nama;
 
         if ($app->gambar) {
             Storage::disk('public')->delete($app->gambar);
@@ -168,13 +145,7 @@ class AppController extends Controller
 
         $app->delete();
 
-        activity('app')
-            ->causedBy($request->user())
-            ->withProperties([
-                'nama' => $namaApp,
-                'ip' => $request->ip(),
-            ])
-            ->log("Menghapus aplikasi: {$namaApp}");
+        // ✅ Log otomatis dari middleware LogUserActivity
 
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil dihapus!');
     }

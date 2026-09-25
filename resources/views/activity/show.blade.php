@@ -58,6 +58,9 @@
                                  @case('app') bg-emerald-100 text-emerald-700 @break
                                  @case('app_click') bg-violet-100 text-violet-700 @break
                                  @case('knowledge') bg-amber-100 text-amber-700 @break
+                                 @case('siam') bg-cyan-100 text-cyan-700 @break
+                                 @case('user') bg-indigo-100 text-indigo-700 @break
+                                 @case('activity') bg-rose-100 text-rose-700 @break
                                  @default bg-gray-100 text-gray-700
                              @endswitch">
                     {{ $activity->log_name ?? 'general' }}
@@ -127,9 +130,130 @@
 
         </div>
 
-        <!-- PROPERTIES -->
+        {{-- ============================================================ --}}
+        {{-- 🆕 PERUBAHAN DATA — HIGHLIGHT OLD → NEW --}}
+        {{-- ============================================================ --}}
         @php
-            $props = $activity->properties ?? collect();
+            $allProps = $activity->properties ?? collect();
+            $old = $allProps['old'] ?? null;
+            $new = $allProps['new'] ?? null;
+            $event = $activity->event;
+        @endphp
+
+        @if (($event === 'updated' && $old && $new) || ($event === 'created' && $new) || ($event === 'deleted' && $old))
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+                <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+                    <div
+                        class="w-10 h-10 rounded-lg
+                        @if ($event === 'created') bg-emerald-100
+                        @elseif ($event === 'updated') bg-amber-100
+                        @elseif ($event === 'deleted') bg-red-100 @endif
+                        flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5
+                            @if ($event === 'created') text-emerald-600
+                            @elseif ($event === 'updated') text-amber-600
+                            @elseif ($event === 'deleted') text-red-600 @endif"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-900">Perubahan Data</h2>
+                        <p class="text-xs text-gray-500">
+                            @if ($event === 'created')
+                                Data baru dibuat
+                            @elseif ($event === 'updated')
+                                Highlight field yang berubah
+                            @elseif ($event === 'deleted')
+                                Data dihapus
+                            @endif
+                        </p>
+                    </div>
+                </div>
+
+                {{-- CREATED: tampilkan semua field baru --}}
+                @if ($event === 'created')
+                    <div class="space-y-2">
+                        @foreach ($new as $key => $value)
+                            @if (!in_array($key, ['id', 'created_at', 'updated_at']))
+                                <div class="flex gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                                    <span
+                                        class="text-xs font-bold text-emerald-700 shrink-0 min-w-[130px] font-mono pt-0.5">
+                                        {{ $key }}
+                                    </span>
+                                    <span class="text-xs text-emerald-800 font-mono flex-1 break-all">
+                                        {{ is_array($value) ? json_encode($value) : $value ?? '-' }}
+                                    </span>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- UPDATED: diff old → new dengan highlight --}}
+                @if ($event === 'updated')
+                    <div class="space-y-2">
+                        @foreach ($new as $key => $newVal)
+                            @php
+                                $oldVal = $old[$key] ?? null;
+                                $isChanged = (string) $oldVal !== (string) $newVal;
+                            @endphp
+                            @if ($isChanged && !in_array($key, ['updated_at']))
+                                <div class="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                                    <span
+                                        class="text-xs font-bold text-amber-800 shrink-0 min-w-[130px] font-mono pt-0.5">
+                                        {{ $key }}
+                                    </span>
+                                    <div class="flex-1 flex flex-wrap items-center gap-2 text-xs font-mono">
+                                        {{-- Nilai lama (merah, coret) --}}
+                                        <span class="px-2 py-1 rounded bg-red-100 text-red-700 line-through">
+                                            {{ is_array($oldVal) ? json_encode($oldVal) : $oldVal ?? '(kosong)' }}
+                                        </span>
+
+                                        {{-- Arrow --}}
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+
+                                        {{-- Nilai baru (hijau, bold) --}}
+                                        <span class="px-2 py-1 rounded bg-green-100 text-green-700 font-bold">
+                                            {{ is_array($newVal) ? json_encode($newVal) : $newVal ?? '(kosong)' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- DELETED: tampilkan semua field yang dihapus --}}
+                @if ($event === 'deleted')
+                    <div class="space-y-2">
+                        @foreach ($old as $key => $value)
+                            @if (!in_array($key, ['id', 'created_at', 'updated_at']))
+                                <div class="flex gap-3 p-3 rounded-lg bg-red-50 border border-red-100">
+                                    <span
+                                        class="text-xs font-bold text-red-700 shrink-0 min-w-[130px] font-mono pt-0.5">
+                                        {{ $key }}
+                                    </span>
+                                    <span class="text-xs text-red-800 font-mono flex-1 break-all line-through">
+                                        {{ is_array($value) ? json_encode($value) : $value ?? '-' }}
+                                    </span>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        <!-- PROPERTIES (skip old & new karena sudah ditampilkan di diff) -->
+        @php
+            $props = $allProps->except(['old', 'new']);
         @endphp
 
         @if ($props->count() > 0)

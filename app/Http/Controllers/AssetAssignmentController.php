@@ -26,16 +26,19 @@ class AssetAssignmentController extends Controller
         ]);
 
         // ============================================================
-        // SEARCH: SN / brand / model / nama user
+        // SEARCH: SN / brand / model / hostname / nama user
         // ============================================================
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->whereHas('asset', function ($qa) use ($search) {
-                    $qa->where('serial_number', 'like', "%{$search}%")
-                        ->orWhere('brand', 'like', "%{$search}%")
-                        ->orWhere('model', 'like', "%{$search}%");
-                })
+                // 🆕 Cari di assignment hostname
+                $q->where('hostname', 'like', "%{$search}%")
+                    ->orWhereHas('asset', function ($qa) use ($search) {
+                        $qa->where('serial_number', 'like', "%{$search}%")
+                            ->orWhere('brand', 'like', "%{$search}%")
+                            ->orWhere('model', 'like', "%{$search}%")
+                            ->orWhere('hostname', 'like', "%{$search}%");   // 🆕
+                    })
                     ->orWhereHas('user', function ($qu) use ($search) {
                         $qu->where('name', 'like', "%{$search}%");
                     });
@@ -86,7 +89,8 @@ class AssetAssignmentController extends Controller
             $assetSummaryQuery->where(function ($q) use ($request) {
                 $q->where('serial_number', 'like', "%{$request->search}%")
                     ->orWhere('brand', 'like', "%{$request->search}%")
-                    ->orWhere('model', 'like', "%{$request->search}%");
+                    ->orWhere('model', 'like', "%{$request->search}%")
+                    ->orWhere('hostname', 'like', "%{$request->search}%");   // 🆕
             });
         }
 
@@ -194,6 +198,7 @@ class AssetAssignmentController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'assigned_at' => 'required|date',
             'condition_on_assign' => 'nullable|integer|min:0|max:100',
+            'hostname' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
         ]);
 
@@ -202,12 +207,18 @@ class AssetAssignmentController extends Controller
 
         $assignment = AssetAssignment::create($validated);
 
-        // Update asset current state
-        $assignment->asset->update([
+        // Update asset — termasuk hostname
+        $updateData = [
             'status' => 'in_use',
             'current_user_id' => $assignment->user_id,
             'current_location_id' => $assignment->location_id,
-        ]);
+        ];
+
+        if ($request->filled('hostname')) {
+            $updateData['hostname'] = $request->hostname;
+        }
+
+        $assignment->asset->update($updateData);
 
         return redirect()
             ->route('siam.assets.show', $assignment->asset_id)
@@ -222,17 +233,25 @@ class AssetAssignmentController extends Controller
         $validated = $request->validate([
             'returned_at' => 'required|date',
             'condition_on_return' => 'nullable|integer|min:0|max:100',
+            'hostname' => 'nullable|string|max:100',   // 🆕
             'notes' => 'nullable|string',
         ]);
 
         $assignment->update($validated);
 
         // Update asset → available
-        $assignment->asset->update([
+        $assetUpdateData = [
             'status' => 'available',
             'current_user_id' => null,
             'current_location_id' => null,
-        ]);
+        ];
+
+        // 🆕 Update hostname kalau diisi
+        if ($request->filled('hostname')) {
+            $assetUpdateData['hostname'] = $request->hostname;
+        }
+
+        $assignment->asset->update($assetUpdateData);
 
         return redirect()
             ->route('siam.assets.show', $assignment->asset_id)

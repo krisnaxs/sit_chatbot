@@ -219,4 +219,5 @@ class UserController extends Controller
             ->route('users.index')
             ->with('success', 'User berhasil dihapus.');
     }
+
 }

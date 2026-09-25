@@ -1,6 +1,6 @@
 @props(['title' => 'Portal Aplikasi', 'placeholder' => 'Cari aplikasi...'])
 
-<div class="sticky top-0 z-50 bg-white shadow-md px-6 py-3 flex items-center relative" x-data="adminLogin()">
+<div class="sticky top-0 z-50 bg-white shadow-md px-6 py-3 flex items-center relative" x-data="headerApp()">
 
     {{-- LEFT: Hamburger + Logo --}}
     <div class="flex items-center gap-3 shrink-0">
@@ -19,7 +19,7 @@
         </a>
     </div>
 
-    {{-- CENTER: Tab Navigasi (khusus user login) --}}
+    {{-- CENTER: Tab Navigasi --}}
     @auth
         @php
             $currentTab = match (true) {
@@ -27,8 +27,9 @@
                 request()->routeIs('siam.departments.*') => 'master',
                 request()->routeIs('siam.locations.*') => 'master',
                 request()->routeIs('siam.vendors.*') => 'master',
-                request()->routeIs('siam.categories.*') => 'master',
+                request()->routeIs('activity.*') => 'master',
                 request()->routeIs('siam.*') => 'siam',
+                request()->routeIs('dashboard') => 'chatbot', // 🆕 khusus dashboard chatbot
                 request()->routeIs('knowledge.*', 'chat.*') => 'chatbot',
                 default => 'portal',
             };
@@ -85,7 +86,7 @@
         </nav>
     @endauth
 
-    {{-- CENTER: Search (guest only, di portal) — posisi tengah absolute --}}
+    {{-- Search (guest only, portal) --}}
     @guest
         @if (request()->routeIs('portal'))
             <div class="absolute left-1/2 -translate-x-1/2 w-auto text-center px-4">
@@ -97,10 +98,10 @@
         @endif
     @endguest
 
-    {{-- RIGHT: Search + User / Login --}}
+    {{-- RIGHT: Search + User Menu / Login --}}
     <div class="flex-1 flex justify-end items-center gap-3">
 
-        {{-- Search (untuk user login, di portal) --}}
+        {{-- Search (auth, portal) --}}
         @auth
             @if (request()->routeIs('portal'))
                 <div class="hidden sm:block">
@@ -112,21 +113,151 @@
             @endif
         @endauth
 
+        {{-- USER DROPDOWN (auth only) --}}
         @auth
-            {{-- Info user --}}
-            <div class="hidden lg:flex items-center gap-2">
-                <div class="text-right">
-                    <p class="text-sm font-semibold text-gray-800 leading-tight">{{ auth()->user()->name }}</p>
-                    <p class="text-[11px] text-gray-500 leading-tight">{{ auth()->user()->role_label }}</p>
-                </div>
-                <div
-                    class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-violet-600
-                            flex items-center justify-center text-white font-bold text-sm">
-                    {{ auth()->user()->initial }}
+            <div class="relative" x-data="{ userMenuOpen: false }">
+                <button type="button" @click="userMenuOpen = !userMenuOpen"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-gray-100 transition">
+                    <div class="text-right hidden lg:block">
+                        <p class="text-sm font-semibold text-gray-800 leading-tight">{{ auth()->user()->name }}</p>
+                        <p class="text-[11px] text-gray-500 leading-tight">{{ auth()->user()->role_label }}</p>
+                    </div>
+                    <div
+                        class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-violet-600
+                                flex items-center justify-center text-white font-bold text-sm">
+                        {{ auth()->user()->initial }}
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="hidden lg:block h-3 w-3 text-gray-400 transition-transform duration-200"
+                        :class="userMenuOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                {{-- Dropdown Menu --}}
+                <div x-show="userMenuOpen" x-cloak @click.away="userMenuOpen = false"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                    class="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[80]">
+
+                    {{-- User Info (klik untuk buka profil) --}}
+                    <a href="{{ route('users.show', auth()->user()) }}"
+                        class="block px-4 py-4 bg-gradient-to-br from-blue-50 to-violet-50 border-b border-gray-100
+                               hover:from-blue-100 hover:to-violet-100 transition group">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-600
+                                        flex items-center justify-center text-white font-bold text-lg shrink-0">
+                                {{ auth()->user()->initial }}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="font-semibold text-gray-800 truncate group-hover:text-blue-700 transition">
+                                    {{ auth()->user()->name }}
+                                </div>
+                                <div class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</div>
+                                <div class="mt-1 flex items-center gap-1.5">
+                                    <span
+                                        class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
+                                        @if (auth()->user()->isAdmin()) bg-violet-100 text-violet-700 border border-violet-200
+                                        @elseif(auth()->user()->isSupport()) bg-blue-100 text-blue-700 border border-blue-200
+                                        @else bg-gray-100 text-gray-600 border border-gray-200 @endif">
+                                        {{ auth()->user()->role }}
+                                    </span>
+                                    @if (auth()->user()->nip)
+                                        <span class="text-[10px] text-gray-400">NIP: {{ auth()->user()->nip }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition shrink-0" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                    </a>
+
+                    {{-- Menu --}}
+                    <div class="p-2">
+                        {{-- Info Detail --}}
+                        @if (auth()->user()->department || auth()->user()->position)
+                            <div class="px-3 py-2 text-xs text-gray-500 border-b border-gray-100 mb-1">
+                                @if (auth()->user()->position)
+                                    <div class="flex items-center gap-1.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                        {{ auth()->user()->position }}
+                                    </div>
+                                @endif
+                                @if (auth()->user()->department)
+                                    <div class="flex items-center gap-1.5 mt-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                        {{ auth()->user()->department->name }}
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+
+                        {{-- 🆕 Profil Saya (semua user) --}}
+                        <a href="{{ route('users.show', auth()->user()) }}"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold
+                                  text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <span>Profil Saya</span>
+                        </a>
+
+                        {{-- Kelola User (admin only) --}}
+                        @if (auth()->user()->isAdmin())
+                            <a href="{{ route('users.index') }}"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold
+                                      text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                                <span>Kelola User</span>
+                            </a>
+                        @endif
+
+                        {{-- Logout --}}
+                        <button type="button" @click="userMenuOpen = false; showLogoutConfirm = true"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold
+                                   text-red-600 hover:bg-red-50 transition">
+                            <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </div>
+                            <span>Logout</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         @endauth
 
+        {{-- Login Button (guest only) --}}
         @guest
             <button @click="showLogin = true"
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
@@ -185,11 +316,16 @@
                 <form id="adminLoginForm" method="POST" action="{{ route('admin.login') }}">
                     @csrf
                     <div class="mb-3">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Username atau Email</label>
-                        <input type="text" name="email" required placeholder="admin atau admin@admin.com"
-                            autocomplete="username"
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                            Email / Username / NIP
+                        </label>
+                        <input type="text" name="email" required
+                            placeholder="admin atau admin@admin.com atau 10000001" autocomplete="username"
                             class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5
                                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        <p class="text-[11px] text-gray-400 mt-1">
+                            Bisa pakai email, username, atau NIP.
+                        </p>
                     </div>
                     <div class="mb-5">
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
@@ -215,19 +351,63 @@
         </div>
     @endguest
 
+    {{-- MODAL KONFIRMASI LOGOUT --}}
+    @auth
+        <div x-show="showLogoutConfirm"
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showLogoutConfirm = false">
+                <div class="flex justify-center mb-4">
+                    <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Konfirmasi Logout</h3>
+                <p class="text-sm text-gray-500 text-center mb-6">Yakin ingin keluar dari akun ini?</p>
+                <div class="flex gap-2">
+                    <button type="button" @click="showLogoutConfirm = false"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="button" @click="confirmLogout()"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
+                        Ya, Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endauth
+
 </div>
 
 {{-- Chat Widget --}}
 <x-chat-widget />
 
+{{-- Form Logout (hidden) --}}
+@auth
+    <form id="headerLogoutForm" method="POST" action="{{ route('admin.logout') }}" class="hidden">
+        @csrf
+    </form>
+@endauth
+
 <script>
-    function adminLogin() {
+    function headerApp() {
         return {
+            // Login modal (guest)
             showLogin: false,
             toast: {
                 show: false,
                 message: ''
             },
+
+            // Logout confirm modal (auth)
+            showLogoutConfirm: false,
 
             showToast(message) {
                 this.toast.message = message;
@@ -236,6 +416,11 @@
                 this._toastTimer = setTimeout(() => {
                     this.toast.show = false;
                 }, 3000);
+            },
+
+            confirmLogout() {
+                this.showLogoutConfirm = false;
+                document.getElementById('headerLogoutForm').submit();
             },
 
             init() {
@@ -272,3 +457,9 @@
         }
     }
 </script>
+
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+</style>

@@ -13,7 +13,7 @@ return new class extends Migration {
             // Identitas
             $table->string('asset_code')->unique();        // AST-2025-0001
             $table->string('serial_number')->unique();     // SN 123
-            $table->string('hostname')->nullable();        // NB-IT-001
+            $table->string('hostname')->nullable()->unique();  // 🆕 NB-IT-001 (unique)
             $table->string('brand')->nullable();           // Lenovo
             $table->string('model')->nullable();           // ThinkPad T14
 

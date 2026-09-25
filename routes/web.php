@@ -23,6 +23,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ConsumableController;
 use App\Http\Controllers\ConsumableTransactionController;
+use App\Http\Controllers\SiamDashboardController;
 
 // ============================================================
 // AUTH ADMIN
@@ -73,8 +74,19 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/activity/{activity}', [ActivityLogController::class, 'destroy'])->name('activity.destroy');
 
     // ---- Manajemen User (Admin Only) ----
+    // ✅ Semua user login boleh lihat profil (termasuk dirinya sendiri)
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+    });
+
+    // ✅ Hanya admin yang boleh kelola user
     Route::middleware(['role:admin'])->group(function () {
-        Route::resource('users', UserController::class);
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 
     // ============================================================
@@ -84,6 +96,9 @@ Route::middleware(['auth'])->group(function () {
         ->name('siam.')
         ->middleware(['role:admin,support'])
         ->group(function () {
+
+            //dashboard SIAM
+            Route::get('/dashboard', [SiamDashboardController::class, 'index'])->name('dashboard');
 
             // ---- Master Data ----
             Route::resource('categories', AssetCategoryController::class);
@@ -108,13 +123,16 @@ Route::middleware(['auth'])->group(function () {
 
             // ---- Maintenance ----
             Route::resource('maintenances', AssetMaintenanceController::class);
+            Route::post('maintenances/{maintenance}/complete', [AssetMaintenanceController::class, 'complete'])
+                ->name('maintenances.complete');
 
             // ---- Consumable ----
             Route::resource('consumables', ConsumableController::class);
 
             // ---- Consumable Transactions ----
             Route::resource('consumable-transactions', ConsumableTransactionController::class)
-                ->except(['edit', 'update']);
+                ->except(['edit', 'update'])
+                ->parameters(['consumable-transactions' => 'transaction']);
             // ---- Asset Types ----
             Route::resource('asset-types', AssetTypeController::class);
         });

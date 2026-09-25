@@ -11,6 +11,7 @@ class AssetAssignment extends Model
 
     protected $fillable = [
         'asset_id',
+        'hostname',
         'user_id',
         'location_id',
         'department_id',

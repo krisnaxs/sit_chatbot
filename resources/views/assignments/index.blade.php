@@ -20,17 +20,6 @@
     <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
         class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
 
-        @if (session('success'))
-            <div class="mb-4 p-3 rounded-lg bg-green-100 text-green-800 border border-green-200">
-                {{ session('success') }}
-            </div>
-        @endif
-        @if (session('error'))
-            <div class="mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200">
-                {{ session('error') }}
-            </div>
-        @endif
-
         <div class="space-y-6">
 
             {{-- HEADER --}}
@@ -55,17 +44,15 @@
                 <form method="GET" action="{{ route('siam.assignments.index') }}"
                     class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3">
 
-                    {{-- SEARCH --}}
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1">
-                            Cari (SN / Brand / Model / User)
+                            Cari (SN / Brand / Model / Hostname / User)
                         </label>
                         <input type="text" name="search" value="{{ request('search') }}"
-                            placeholder="Contoh: T14-SN-0001 atau Budi"
+                            placeholder="Contoh: T14-SN-0001 atau Budi atau NB-IT-001"
                             class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
                     </div>
 
-                    {{-- ASET --}}
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1">Aset (SN)</label>
                         <select name="asset_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -78,7 +65,6 @@
                         </select>
                     </div>
 
-                    {{-- BRAND --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Brand</label>
                         <select name="brand" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -90,7 +76,6 @@
                         </select>
                     </div>
 
-                    {{-- MODEL --}}
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1 flex items-center gap-1">
                             Model
@@ -112,7 +97,6 @@
                         </select>
                     </div>
 
-                    {{-- USER --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Pemakai</label>
                         <select name="user_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -125,7 +109,6 @@
                         </select>
                     </div>
 
-                    {{-- LOKASI --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Lokasi</label>
                         <select name="location_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -138,7 +121,6 @@
                         </select>
                     </div>
 
-                    {{-- STATUS --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Status</label>
                         <select name="status" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -148,7 +130,6 @@
                         </select>
                     </div>
 
-                    {{-- TOMBOL --}}
                     <div class="flex items-end gap-2 lg:col-span-2">
                         <button type="submit"
                             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
@@ -162,7 +143,7 @@
                 </form>
             </div>
 
-            {{-- 🆕 SUMMARY STATISTIK (muncul kalau ada filter aktif) --}}
+            {{-- SUMMARY STATISTIK --}}
             @if ($hasFilter && $summary['total'] > 0)
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                     <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
@@ -189,7 +170,6 @@
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-                        {{-- Total --}}
                         <div class="rounded-xl p-3 bg-gray-50 border border-gray-200">
                             <div class="text-[10px] text-gray-500 uppercase font-semibold tracking-wide">Total Aset
                             </div>
@@ -197,7 +177,6 @@
                             <div class="text-[10px] text-gray-400">unit</div>
                         </div>
 
-                        {{-- Tersedia --}}
                         <div class="rounded-xl p-3 bg-emerald-50 border border-emerald-200">
                             <div class="text-[10px] text-emerald-600 uppercase font-semibold tracking-wide">Tersedia
                             </div>
@@ -205,14 +184,12 @@
                             <div class="text-[10px] text-emerald-500">siap dipakai</div>
                         </div>
 
-                        {{-- Dipakai --}}
                         <div class="rounded-xl p-3 bg-blue-50 border border-blue-200">
                             <div class="text-[10px] text-blue-600 uppercase font-semibold tracking-wide">Dipakai</div>
                             <div class="text-2xl font-bold text-blue-700">{{ $summary['in_use'] }}</div>
                             <div class="text-[10px] text-blue-500">user pegang</div>
                         </div>
 
-                        {{-- Dipinjam --}}
                         <div class="rounded-xl p-3 bg-amber-50 border border-amber-200">
                             <div class="text-[10px] text-amber-600 uppercase font-semibold tracking-wide">Dipinjam
                             </div>
@@ -220,7 +197,6 @@
                             <div class="text-[10px] text-amber-500">sementara</div>
                         </div>
 
-                        {{-- Perbaikan --}}
                         <div class="rounded-xl p-3 bg-orange-50 border border-orange-200">
                             <div class="text-[10px] text-orange-600 uppercase font-semibold tracking-wide">Perbaikan
                             </div>
@@ -228,14 +204,12 @@
                             <div class="text-[10px] text-orange-500">maintenance</div>
                         </div>
 
-                        {{-- Pensiun --}}
                         <div class="rounded-xl p-3 bg-gray-100 border border-gray-300">
                             <div class="text-[10px] text-gray-600 uppercase font-semibold tracking-wide">Pensiun</div>
                             <div class="text-2xl font-bold text-gray-700">{{ $summary['retired'] }}</div>
                             <div class="text-[10px] text-gray-500">tidak dipakai</div>
                         </div>
 
-                        {{-- Hilang --}}
                         <div class="rounded-xl p-3 bg-red-50 border border-red-200">
                             <div class="text-[10px] text-red-600 uppercase font-semibold tracking-wide">Hilang</div>
                             <div class="text-2xl font-bold text-red-700">{{ $summary['lost'] }}</div>
@@ -252,6 +226,7 @@
                         <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                             <tr>
                                 <th class="px-3 py-2 text-left">Aset</th>
+                                <th class="px-3 py-2 text-left">Hostname</th>
                                 <th class="px-3 py-2 text-left">Pemakai</th>
                                 <th class="px-3 py-2 text-left">Lokasi</th>
                                 <th class="px-3 py-2 text-left">Diserahkan</th>
@@ -268,6 +243,7 @@
                                         'asset_brand' => $a->asset?->brand,
                                         'asset_model' => $a->asset?->model,
                                         'asset_sn' => $a->asset?->serial_number,
+                                        'hostname' => $a->hostname ?? $a->asset?->hostname,
                                         'user_name' => $a->user?->name,
                                         'user_position' => $a->user?->position,
                                         'location_name' => $a->location?->full_name,
@@ -287,7 +263,6 @@
                                 @endphp
                                 <tr class="hover:bg-indigo-50 cursor-pointer transition-colors"
                                     @click='openModal({{ json_encode($assignData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
-                                    {{-- ASET --}}
                                     <td class="px-3 py-2">
                                         <div class="font-medium text-gray-800">
                                             {{ $a->asset?->brand }} {{ $a->asset?->model }}
@@ -297,13 +272,22 @@
                                         </div>
                                     </td>
 
-                                    {{-- PEMAKAI --}}
+                                    {{-- 🆕 HOSTNAME --}}
+                                    <td class="px-3 py-2 text-xs font-mono">
+                                        @if ($a->hostname)
+                                            <span class="text-gray-800 font-medium">{{ $a->hostname }}</span>
+                                        @elseif ($a->asset?->hostname)
+                                            <span class="text-gray-400 italic">{{ $a->asset->hostname }}</span>
+                                        @else
+                                            <span class="text-gray-400 italic">-</span>
+                                        @endif
+                                    </td>
+
                                     <td class="px-3 py-2">
                                         <div class="text-gray-800">{{ $a->user?->name }}</div>
                                         <div class="text-xs text-gray-500">{{ $a->user?->position }}</div>
                                     </td>
 
-                                    {{-- LOKASI --}}
                                     <td class="px-3 py-2 text-xs">
                                         @if ($a->location)
                                             <div>{{ $a->location->building }}</div>
@@ -318,7 +302,6 @@
                                         @endif
                                     </td>
 
-                                    {{-- TANGGAL --}}
                                     <td class="px-3 py-2 text-xs">
                                         {{ $a->assigned_at?->format('d M Y') ?? '-' }}
                                     </td>
@@ -326,7 +309,6 @@
                                         {{ $a->returned_at?->format('d M Y') ?? '-' }}
                                     </td>
 
-                                    {{-- DURASI --}}
                                     <td class="px-3 py-2 text-xs">
                                         @if ($a->duration_days !== null)
                                             {{ $a->duration_days }} hari
@@ -335,7 +317,6 @@
                                         @endif
                                     </td>
 
-                                    {{-- STATUS --}}
                                     <td class="px-3 py-2">
                                         @if ($a->is_active)
                                             <span
@@ -351,7 +332,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-3 py-8 text-center text-gray-400">
+                                    <td colspan="8" class="px-3 py-8 text-center text-gray-400">
                                         Belum ada serah terima aset.
                                     </td>
                                 </tr>
@@ -380,7 +361,6 @@
             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
             x-transition:enter-end="opacity-100 scale-100" @click.away="closeModal()">
 
-            {{-- HEADER --}}
             <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white">
                 <div class="flex items-start justify-between">
                     <div class="flex-1 min-w-0">
@@ -405,9 +385,13 @@
                 </div>
             </div>
 
-            {{-- INFO --}}
             <div class="px-6 py-4 bg-gray-50 border-b">
                 <div class="grid grid-cols-2 gap-3 text-sm">
+                    {{-- 🆕 HOSTNAME --}}
+                    <div>
+                        <div class="text-xs text-gray-500">Hostname</div>
+                        <div class="text-xs font-mono font-medium" x-text="selected?.hostname ?? '-'"></div>
+                    </div>
                     <div>
                         <div class="text-xs text-gray-500">Pemakai</div>
                         <div class="text-xs font-medium" x-text="selected?.user_name ?? '-'"></div>
@@ -440,12 +424,10 @@
                 </div>
             </div>
 
-            {{-- AKSI --}}
             <div class="p-6">
                 <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pilih Aksi</h4>
                 <div class="space-y-2">
 
-                    {{-- LIHAT ASET --}}
                     <a :href="selected?.routes.asset"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
                               hover:border-indigo-300 hover:bg-indigo-50 transition">
@@ -464,64 +446,45 @@
                         </div>
                     </a>
 
-                    {{-- KEMBALIKAN --}}
                     <template x-if="selected?.is_active">
-                        <form :action="selected?.routes.return" method="POST"
-                            onsubmit="return confirm('Kembalikan aset ini?')" class="contents">
-                            @csrf
-                            <input type="hidden" name="returned_at" value="{{ now()->format('Y-m-d H:i:s') }}">
-                            <input type="hidden" name="condition_on_return" value="100">
-                            <button type="submit"
-                                class="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                                       hover:border-emerald-300 hover:bg-emerald-50 transition text-left">
-                                <div
-                                    class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600"
-                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-sm text-gray-800">Kembalikan Aset</div>
-                                    <div class="text-xs text-gray-500">Set aset jadi tersedia</div>
-                                </div>
-                            </button>
-                        </form>
+                        <button type="button" @click="showReturnConfirm = true"
+                            class="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200
+                                   hover:border-emerald-300 hover:bg-emerald-50 transition text-left">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-sm text-gray-800">Kembalikan Aset</div>
+                                <div class="text-xs text-gray-500">Set aset jadi tersedia</div>
+                            </div>
+                        </button>
                     </template>
 
-                    {{-- HAPUS --}}
                     @if (auth()->user()->isAdmin())
-                        <template x-if="true">
-                            <form :action="selected?.routes.delete" method="POST"
-                                onsubmit="return confirm('Hapus record assignment ini?')" class="contents">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                    class="w-full flex items-center gap-3 p-3 rounded-xl border border-red-200
-                                           bg-red-50 hover:bg-red-100 hover:border-red-300 transition text-left">
-                                    <div
-                                        class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                            stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold text-sm text-red-700">Hapus Record</div>
-                                        <div class="text-xs text-red-500">Khusus admin — tidak bisa dibatalkan</div>
-                                    </div>
-                                </button>
-                            </form>
-                        </template>
+                        <button type="button" @click="showDeleteConfirm = true"
+                            class="w-full flex items-center gap-3 p-3 rounded-xl border border-red-200
+                                   bg-red-50 hover:bg-red-100 hover:border-red-300 transition text-left">
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-sm text-red-700">Hapus Record</div>
+                                <div class="text-xs text-red-500">Khusus admin — tidak bisa dibatalkan</div>
+                            </div>
+                        </button>
                     @endif
 
                 </div>
             </div>
 
-            {{-- FOOTER --}}
             <div class="px-6 py-3 bg-gray-50 border-t flex justify-end">
                 <button @click="closeModal()"
                     class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
@@ -532,11 +495,150 @@
         </div>
     </div>
 
+    {{-- MODAL KONFIRMASI RETURN --}}
+    <div x-show="showReturnConfirm" x-cloak
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center"
+        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showReturnConfirm = false">
+            <div class="flex justify-center mb-4">
+                <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-emerald-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                </div>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Kembalikan Aset?</h3>
+            <p class="text-sm text-gray-500 text-center mb-6">
+                Aset <strong class="text-gray-800"
+                    x-text="selected ? selected.asset_brand + ' ' + selected.asset_model : ''"></strong>
+                akan dikembalikan dan berstatus <strong>tersedia</strong>.
+            </p>
+            <div class="flex gap-2">
+                <button type="button" @click="showReturnConfirm = false"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
+                           text-gray-700 font-semibold transition">
+                    Batal
+                </button>
+                <button type="button" @click="submitReturn()"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700
+                           text-white font-semibold transition shadow-lg shadow-emerald-500/30">
+                    Ya, Kembalikan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL KONFIRMASI DELETE --}}
+    <div x-show="showDeleteConfirm" x-cloak
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center"
+        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showDeleteConfirm = false">
+            <div class="flex justify-center mb-4">
+                <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Hapus Record?</h3>
+            <p class="text-sm text-gray-500 text-center mb-6">
+                Yakin ingin menghapus record serah terima untuk
+                <strong class="text-gray-800"
+                    x-text="selected ? selected.asset_brand + ' ' + selected.asset_model : ''"></strong>?
+                <br>
+                <span class="text-xs text-red-500">Tindakan ini tidak bisa dibatalkan.</span>
+            </p>
+            <div class="flex gap-2">
+                <button type="button" @click="showDeleteConfirm = false"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
+                           text-gray-700 font-semibold transition">
+                    Batal
+                </button>
+                <button type="button" @click="submitDelete()"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700
+                           text-white font-semibold transition shadow-lg shadow-red-500/30">
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- HIDDEN FORMS --}}
+    <form x-ref="returnForm" method="POST" class="hidden">
+        @csrf
+        <input type="hidden" name="returned_at" :value="new Date().toISOString().slice(0, 19).replace('T', ' ')">
+        <input type="hidden" name="condition_on_return" value="100">
+    </form>
+
+    <form x-ref="deleteForm" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+
+    {{-- TOAST --}}
+    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+        x-transition:leave-end="opacity-0 translate-x-8"
+        :class="{
+            'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+            'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+            'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+        }"
+        class="fixed top-24 right-6 z-[130] flex items-center gap-3
+               min-w-[280px] max-w-sm
+               px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
+        style="display: none;">
+
+        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+
+        <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+
+        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+
     <script>
         function assignmentManager() {
             return {
                 showModal: false,
+                showReturnConfirm: false,
+                showDeleteConfirm: false,
                 selected: null,
+
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success'
+                },
 
                 openModal(data) {
                     this.selected = data;
@@ -548,10 +650,64 @@
                     this.selected = null;
                 },
 
+                submitReturn() {
+                    this.showReturnConfirm = false;
+                    this.showModal = false;
+
+                    localStorage.setItem('flash_message', 'Aset berhasil dikembalikan.');
+                    localStorage.setItem('flash_type', 'success');
+
+                    const form = this.$refs.returnForm;
+                    form.action = this.selected.routes.return;
+                    form.submit();
+                },
+
+                submitDelete() {
+                    this.showDeleteConfirm = false;
+                    this.showModal = false;
+
+                    localStorage.setItem('flash_message', 'Record serah terima berhasil dihapus.');
+                    localStorage.setItem('flash_type', 'success');
+
+                    const form = this.$refs.deleteForm;
+                    form.action = this.selected.routes.delete;
+                    form.submit();
+                },
+
+                showToast(message, type = 'success') {
+                    this.toast.message = message;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    clearTimeout(this._toastTimer);
+                    this._toastTimer = setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3500);
+                },
+
                 init() {
+                    this.$nextTick(() => {
+                        const flashMsg = localStorage.getItem('flash_message');
+                        const flashType = localStorage.getItem('flash_type') || 'success';
+
+                        if (flashMsg) {
+                            this.showToast(flashMsg, flashType);
+                            localStorage.removeItem('flash_message');
+                            localStorage.removeItem('flash_type');
+                        }
+
+                        @if (session('success'))
+                            this.showToast(@json(session('success')), 'success');
+                        @endif
+                        @if (session('error'))
+                            this.showToast(@json(session('error')), 'error');
+                        @endif
+                    });
+
                     document.addEventListener('keydown', (e) => {
-                        if (e.key === 'Escape' && this.showModal) {
-                            this.closeModal();
+                        if (e.key === 'Escape') {
+                            if (this.showReturnConfirm) this.showReturnConfirm = false;
+                            else if (this.showDeleteConfirm) this.showDeleteConfirm = false;
+                            else if (this.showModal) this.closeModal();
                         }
                     });
                 }

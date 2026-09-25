@@ -6,7 +6,9 @@
             request()->routeIs('siam.departments.*') => 'master',
             request()->routeIs('siam.locations.*') => 'master',
             request()->routeIs('siam.vendors.*') => 'master',
+            request()->routeIs('activity.*') => 'master',
             request()->routeIs('siam.*') => 'siam',
+            request()->routeIs('dashboard') => 'chatbot', // 🆕
             request()->routeIs('knowledge.*', 'chat.*') => 'chatbot',
             default => 'portal',
         };
@@ -142,6 +144,22 @@
                         Chatbot
                     </p>
 
+                    {{-- Dashboard --}}
+                    <a href="{{ route('dashboard') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                              {{ request()->routeIs('dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                    {{ request()->routeIs('dashboard') ? 'bg-indigo-100' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                        </span>
+                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Dashboard</span>
+                    </a>
+
                     {{-- Knowledge --}}
                     <a href="{{ route('knowledge.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
@@ -168,8 +186,8 @@
                             <span
                                 class="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0
                                         {{ request()->routeIs('knowledge.pending*') ? 'bg-orange-100' : 'bg-gray-100' }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                 </svg>
@@ -217,13 +235,93 @@
                         Aset Manajemen
                     </p>
 
+                    {{-- Dashboard --}}
+                    <a href="{{ route('siam.dashboard') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+          {{ request()->routeIs('siam.dashboard') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                {{ request()->routeIs('siam.dashboard') ? 'bg-cyan-100' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                        </span>
+                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Dashboard</span>
+                    </a>
+
+                    {{-- ════════════════════════════════════════════════════════ --}}
+                    {{-- MASTER DATA --}}
+                    {{-- ════════════════════════════════════════════════════════ --}}
+                    <p :class="collapsed ? 'lg:hidden' : ''"
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-4 pb-1 whitespace-nowrap">
+                        Master Data
+                    </p>
+
+                    {{-- Kategori --}}
+                    <a href="{{ route('siam.categories.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+              {{ request()->routeIs('siam.categories.*') ? 'bg-slate-100 text-slate-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                    {{ request()->routeIs('siam.categories.*') ? 'bg-slate-200' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                        </span>
+                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Kategori</span>
+                    </a>
+
+                    {{-- Brand & Model --}}
+                    <a href="{{ route('siam.asset-types.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+              {{ request()->routeIs('siam.asset-types.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                    {{ request()->routeIs('siam.asset-types.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                        </span>
+                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Brand & Model</span>
+                    </a>
+
+                    {{-- Konsumable --}}
+                    <a href="{{ route('siam.consumables.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+              {{ request()->routeIs('siam.consumables.*') ? 'bg-lime-50 text-lime-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                    {{ request()->routeIs('siam.consumables.*') ? 'bg-lime-100' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                        </span>
+                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Konsumable</span>
+                    </a>
+
+                    {{-- ════════════════════════════════════════════════════════ --}}
+                    {{-- TRANSAKSI --}}
+                    {{-- ════════════════════════════════════════════════════════ --}}
+                    <p :class="collapsed ? 'lg:hidden' : ''"
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-4 pb-1 whitespace-nowrap">
+                        Transaksi
+                    </p>
+
                     {{-- Daftar Aset --}}
                     <a href="{{ route('siam.assets.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+              {{ request()->routeIs('siam.assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.assets.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
+                    {{ request()->routeIs('siam.assets.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -236,10 +334,10 @@
                     {{-- Serah Terima --}}
                     <a href="{{ route('siam.assignments.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.assignments.*') ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+              {{ request()->routeIs('siam.assignments.*') ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.assignments.*') ? 'bg-teal-100' : 'bg-gray-100' }}">
+                    {{ request()->routeIs('siam.assignments.*') ? 'bg-teal-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -252,10 +350,10 @@
                     {{-- Peminjaman --}}
                     <a href="{{ route('siam.loans.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.loans.*') ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+              {{ request()->routeIs('siam.loans.*') ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.loans.*') ? 'bg-amber-100' : 'bg-gray-100' }}">
+                    {{ request()->routeIs('siam.loans.*') ? 'bg-amber-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -269,10 +367,10 @@
                     <a href="{{ route('siam.maintenances.index') }}"
                         :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.maintenances.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+              {{ request()->routeIs('siam.maintenances.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.maintenances.*') ? 'bg-orange-100' : 'bg-gray-100' }}">
+                    {{ request()->routeIs('siam.maintenances.*') ? 'bg-orange-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -284,69 +382,21 @@
                         <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Perbaikan</span>
                     </a>
 
-                    {{-- Konsumable --}}
-                    <a href="{{ route('siam.consumables.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.consumables.*') ? 'bg-lime-50 text-lime-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.consumables.*') ? 'bg-lime-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                        </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Konsumable</span>
-                    </a>
-
                     {{-- Transaksi Konsumable --}}
                     <a href="{{ route('siam.consumable-transactions.index') }}"
                         :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.consumable-transactions.*') ? 'bg-pink-50 text-pink-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+              {{ request()->routeIs('siam.consumable-transactions.*') ? 'bg-pink-50 text-pink-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.consumable-transactions.*') ? 'bg-pink-100' : 'bg-gray-100' }}">
+                    {{ request()->routeIs('siam.consumable-transactions.*') ? 'bg-pink-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Transaksi</span>
-                    </a>
-
-                    {{-- Kategori --}}
-                    <a href="{{ route('siam.categories.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.categories.*') ? 'bg-slate-100 text-slate-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.categories.*') ? 'bg-slate-200' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                        </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Kategori</span>
-                    </a>
-
-                    {{-- 🆕 Brand & Model (dipindah ke SIAM) --}}
-                    <a href="{{ route('siam.asset-types.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                              {{ request()->routeIs('siam.asset-types.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('siam.asset-types.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                            </svg>
-                        </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Brand & Model</span>
+                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Transaksi Konsumable</span>
                     </a>
                 @endif
 
@@ -358,6 +408,8 @@
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1 whitespace-nowrap">
                         Master Data
                     </p>
+
+                    {{-- Dashboard --}}
 
                     {{-- Users (admin only) --}}
                     @if (auth()->user()->isAdmin())
@@ -426,88 +478,29 @@
                         </span>
                         <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Vendor</span>
                     </a>
+
+                    {{-- Activity Log (admin & support) --}}
+                    @if (auth()->user()->hasAnyRole(['admin', 'support']))
+                        <a href="{{ route('activity.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                            class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                                  {{ request()->routeIs('activity.*') ? 'bg-rose-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <span
+                                class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                        {{ request()->routeIs('activity.*') ? 'bg-rose-100' : 'bg-gray-100' }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </span>
+                            <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Activity Log</span>
+                        </a>
+                    @endif
                 @endif
 
             </nav>
 
-            {{-- FOOTER SIDEBAR --}}
-            <div class="border-t border-gray-100 p-3 shrink-0">
-                <div :class="collapsed ? 'lg:justify-center lg:p-0' : ''"
-                    class="group relative flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 mb-2">
-                    <div
-                        class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-violet-600
-                                flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
-                    </div>
-                    <div :class="collapsed ? 'lg:hidden' : 'flex-1 min-w-0'">
-                        <div class="flex items-center gap-1.5">
-                            <p class="text-sm font-semibold text-gray-800 truncate">{{ auth()->user()->name ?? 'User' }}
-                            </p>
-                            @if (auth()->check())
-                                <span
-                                    class="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
-                                        @if (auth()->user()->isAdmin()) bg-violet-100 text-violet-700 border border-violet-200
-                                        @elseif(auth()->user()->isSupport()) bg-blue-100 text-blue-700 border border-blue-200
-                                        @else bg-gray-100 text-gray-600 border border-gray-200 @endif">
-                                    {{ auth()->user()->role }}
-                                </span>
-                            @endif
-                        </div>
-                        <p class="text-[11px] text-gray-500 truncate">{{ auth()->user()->email ?? '' }}</p>
-                    </div>
-                </div>
-
-                <button type="button" @click="showLogoutConfirm = true"
-                    :class="collapsed ? 'lg:justify-center lg:px-0 lg:py-2.5' : ''"
-                    class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold
-                           bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-100 transition-all">
-                    <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-red-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                    </span>
-                    <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Logout</span>
-                </button>
-
-                <form id="sidebarLogoutForm" method="POST" action="{{ route('admin.logout') }}" class="hidden">
-                    @csrf
-                </form>
-            </div>
-
         </aside>
-
-        {{-- MODAL LOGOUT --}}
-        <div x-show="showLogoutConfirm"
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center pointer-events-auto"
-            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showLogoutConfirm = false">
-                <div class="flex justify-center mb-4">
-                    <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                    </div>
-                </div>
-                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Konfirmasi Logout</h3>
-                <p class="text-sm text-gray-500 text-center mb-6">Yakin ingin keluar dari akun ini?</p>
-                <div class="flex gap-2">
-                    <button type="button" @click="showLogoutConfirm = false"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
-                        Batal
-                    </button>
-                    <button type="button" @click="confirmLogout()"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
-                        Ya, Logout
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -515,7 +508,6 @@
             return {
                 open: false,
                 collapsed: false,
-                showLogoutConfirm: false,
 
                 toggle() {
                     this.open = !this.open;
@@ -532,11 +524,6 @@
                             collapsed: this.collapsed
                         }
                     }));
-                },
-
-                confirmLogout() {
-                    this.showLogoutConfirm = false;
-                    document.getElementById('sidebarLogoutForm').submit();
                 },
 
                 init() {

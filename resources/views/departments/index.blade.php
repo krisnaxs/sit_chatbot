@@ -62,7 +62,6 @@
                                 <th class="px-4 py-3 text-left">Deskripsi</th>
                                 <th class="px-4 py-3 text-right">Jumlah User</th>
                                 <th class="px-4 py-3 text-center">Status</th>
-                                <th class="px-4 py-3 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -75,14 +74,15 @@
                                         'description' => $d->description,
                                         'is_active' => $d->is_active,
                                         'users_count' => $d->users_count,
+                                        'created_at' => $d->created_at?->format('d M Y'),
                                         'routes' => [
                                             'edit' => route('siam.departments.edit', $d),
                                             'delete' => route('siam.departments.destroy', $d),
                                         ],
                                     ];
                                 @endphp
-                                <tr class="hover:bg-indigo-50 cursor-pointer transition-colors"
-                                    @click='openModal({{ json_encode($deptData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
+                                <tr @click='openModal({{ json_encode($deptData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                    class="hover:bg-indigo-50 cursor-pointer transition-colors">
                                     <td class="px-4 py-3 text-gray-500 font-medium">
                                         {{ $departments->firstItem() + $i }}
                                     </td>
@@ -111,14 +111,10 @@
                                                 class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">Nonaktif</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('siam.departments.edit', $d) }}"
-                                            class="text-xs text-violet-600 hover:underline">Edit</a>
-                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-16 text-center">
+                                    <td colspan="6" class="px-4 py-16 text-center">
                                         <div class="flex flex-col items-center gap-3">
                                             <div
                                                 class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
@@ -154,7 +150,7 @@
         </div>
     </div>
 
-    {{-- MODAL AKSI DEPARTEMEN --}}
+    {{-- MODAL POPUP AKSI (seperti assets) --}}
     <div x-show="showModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -162,26 +158,31 @@
 
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal()"></div>
 
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
             x-transition:enter-end="opacity-100 scale-100" @click.away="closeModal()">
 
             {{-- HEADER --}}
             <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white">
                 <div class="flex items-start justify-between">
-                    <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span
+                                class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold font-mono"
+                                x-text="selected?.code"></span>
+                            <span x-show="selected?.is_active"
+                                class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold">
+                                Aktif
+                            </span>
+                            <span x-show="!selected?.is_active"
+                                class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold">
+                                Nonaktif
+                            </span>
                         </div>
-                        <div class="min-w-0">
-                            <h3 class="text-lg font-bold truncate" x-text="selected?.name"></h3>
-                            <p class="text-sm text-white/80 font-mono" x-text="selected?.code"></p>
-                        </div>
+                        <h3 class="text-xl font-bold truncate" x-text="selected?.name"></h3>
+                        <p class="text-sm text-white/80 mt-1">
+                            <span x-text="selected?.users_count"></span> user terdaftar
+                        </p>
                     </div>
                     <button @click="closeModal()" class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
@@ -200,19 +201,23 @@
                         <div class="font-mono text-xs text-indigo-700 font-semibold" x-text="selected?.code"></div>
                     </div>
                     <div>
+                        <div class="text-xs text-gray-500">Jumlah User</div>
+                        <div class="text-xs font-medium" x-text="selected?.users_count + ' user'"></div>
+                    </div>
+                    <div>
                         <div class="text-xs text-gray-500">Status</div>
                         <div class="text-xs font-medium">
                             <span x-show="selected?.is_active" class="text-emerald-600">Aktif</span>
                             <span x-show="!selected?.is_active" class="text-gray-500">Nonaktif</span>
                         </div>
                     </div>
+                    <div>
+                        <div class="text-xs text-gray-500">Terdaftar</div>
+                        <div class="text-xs" x-text="selected?.created_at ?? '-'"></div>
+                    </div>
                     <div class="col-span-2">
                         <div class="text-xs text-gray-500">Deskripsi</div>
                         <div class="text-xs" x-text="selected?.description ?? '-'"></div>
-                    </div>
-                    <div class="col-span-2">
-                        <div class="text-xs text-gray-500">Jumlah User</div>
-                        <div class="text-xs font-medium" x-text="selected?.users_count + ' user'"></div>
                     </div>
                 </div>
             </div>
@@ -221,11 +226,12 @@
             <div class="p-6">
                 <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pilih Aksi</h4>
 
-                <div class="space-y-2">
+                <div class="grid grid-cols-2 gap-3">
+
                     {{-- EDIT --}}
                     <a :href="selected?.routes.edit"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-violet-300 hover:bg-violet-50 transition">
+                              hover:border-violet-300 hover:bg-violet-50 transition group">
                         <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -233,28 +239,31 @@
                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <div class="font-semibold text-sm text-gray-800">Edit</div>
-                            <div class="text-xs text-gray-500">Ubah data departemen</div>
+                            <div class="text-xs text-gray-500">Ubah data</div>
                         </div>
                     </a>
 
-                    {{-- HAPUS --}}
-                    <button type="button" @click="confirmDelete()"
-                        class="w-full flex items-center gap-3 p-3 rounded-xl border border-red-200
-                                   bg-red-50 hover:bg-red-100 hover:border-red-300 transition text-left">
-                        <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-sm text-red-700">Hapus</div>
-                            <div class="text-xs text-red-500">Tindakan tidak bisa dibatalkan</div>
-                        </div>
-                    </button>
+                    {{-- HAPUS (admin only) --}}
+                    @if (auth()->user()->isAdmin())
+                        <button type="button" @click="confirmDelete()"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-red-200
+                                   bg-red-50 hover:bg-red-100 hover:border-red-300 transition group w-full text-left">
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-red-700">Hapus</div>
+                                <div class="text-xs text-red-500">Khusus admin</div>
+                            </div>
+                        </button>
+                    @endif
+
                 </div>
             </div>
 
@@ -265,11 +274,12 @@
                     Batal
                 </button>
             </div>
+
         </div>
     </div>
 
     {{-- MODAL KONFIRMASI HAPUS --}}
-    <div x-show="showDeleteModal"
+    <div x-show="showDeleteModal" x-cloak
         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center"
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -287,6 +297,8 @@
             <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Hapus Departemen?</h3>
             <p class="text-sm text-gray-500 text-center mb-6">
                 Yakin ingin menghapus <strong class="text-gray-800" x-text="selected?.name"></strong>?
+                <br>
+                <span class="text-xs text-red-500">Tindakan ini tidak bisa dibatalkan.</span>
             </p>
             <div class="flex gap-2">
                 <button type="button" @click="showDeleteModal = false"
@@ -326,6 +338,8 @@
                 },
 
                 confirmDelete() {
+                    // Tutup modal detail dulu, baru buka modal konfirmasi hapus
+                    this.showModal = false;
                     this.showDeleteModal = true;
                 },
 

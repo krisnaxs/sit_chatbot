@@ -94,7 +94,6 @@
                                 <th class="px-4 py-3 text-left">Kontak</th>
                                 <th class="px-4 py-3 text-right">Aset</th>
                                 <th class="px-4 py-3 text-center">Status</th>
-                                <th class="px-4 py-3 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -118,8 +117,8 @@
                                         ],
                                     ];
                                 @endphp
-                                <tr class="hover:bg-indigo-50 cursor-pointer transition-colors"
-                                    @click='openModal({{ json_encode($vendorData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
+                                <tr @click='openModal({{ json_encode($vendorData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                    class="hover:bg-indigo-50 cursor-pointer transition-colors">
                                     <td class="px-4 py-3 text-gray-500 font-medium">
                                         {{ $vendors->firstItem() + $i }}
                                     </td>
@@ -171,14 +170,10 @@
                                                 class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">Nonaktif</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('siam.vendors.edit', $v) }}"
-                                            class="text-xs text-violet-600 hover:underline">Edit</a>
-                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-16 text-center">
+                                    <td colspan="7" class="px-4 py-16 text-center">
                                         <div class="flex flex-col items-center gap-3">
                                             <div
                                                 class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
@@ -189,7 +184,14 @@
                                                         d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                                 </svg>
                                             </div>
-                                            <p class="font-semibold text-gray-900">Belum ada vendor</p>
+                                            <div>
+                                                <p class="font-semibold text-gray-900">Belum ada vendor</p>
+                                                <p class="text-sm text-gray-500 mt-1">Tambahkan vendor pertama</p>
+                                            </div>
+                                            <a href="{{ route('siam.vendors.create') }}"
+                                                class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
+                                                + Tambah vendor
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
@@ -207,7 +209,7 @@
         </div>
     </div>
 
-    {{-- MODAL AKSI --}}
+    {{-- MODAL POPUP AKSI VENDOR --}}
     <div x-show="showModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -216,8 +218,10 @@
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal()"></div>
 
         <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            @click.away="closeModal()">
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100" @click.away="closeModal()">
 
+            {{-- HEADER --}}
             <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white">
                 <div class="flex items-start justify-between">
                     <div class="flex-1 min-w-0">
@@ -238,6 +242,7 @@
                 </div>
             </div>
 
+            {{-- INFO --}}
             <div class="px-6 py-4 bg-gray-50 border-b">
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div>
@@ -256,15 +261,30 @@
                         <div class="text-xs text-gray-500">Alamat</div>
                         <div class="text-xs" x-text="selected?.address ?? '-'"></div>
                     </div>
+                    <div class="col-span-2">
+                        <div class="text-xs text-gray-500">Status</div>
+                        <div class="text-xs font-medium">
+                            <span x-show="selected?.is_active" class="text-emerald-600">Aktif</span>
+                            <span x-show="!selected?.is_active" class="text-gray-500">Nonaktif</span>
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <div class="text-xs text-gray-500">Catatan</div>
+                        <div class="text-xs" x-text="selected?.notes ?? '-'"></div>
+                    </div>
                 </div>
             </div>
 
+            {{-- AKSI --}}
             <div class="p-6">
                 <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pilih Aksi</h4>
-                <div class="space-y-2">
+
+                <div class="grid grid-cols-2 gap-3">
+
+                    {{-- EDIT --}}
                     <a :href="selected?.routes.edit"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-violet-300 hover:bg-violet-50 transition">
+                              hover:border-violet-300 hover:bg-violet-50 transition group">
                         <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -272,30 +292,35 @@
                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <div class="font-semibold text-sm text-gray-800">Edit</div>
-                            <div class="text-xs text-gray-500">Ubah data vendor</div>
+                            <div class="text-xs text-gray-500">Ubah data</div>
                         </div>
                     </a>
 
-                    <button type="button" @click="confirmDelete()"
-                        class="w-full flex items-center gap-3 p-3 rounded-xl border border-red-200
-                                   bg-red-50 hover:bg-red-100 hover:border-red-300 transition text-left">
-                        <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-sm text-red-700">Hapus</div>
-                            <div class="text-xs text-red-500">Tindakan tidak bisa dibatalkan</div>
-                        </div>
-                    </button>
+                    {{-- HAPUS (admin only) --}}
+                    @if (auth()->user()->isAdmin())
+                        <button type="button" @click="confirmDelete()"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-red-200
+                                   bg-red-50 hover:bg-red-100 hover:border-red-300 transition group w-full text-left">
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-red-700">Hapus</div>
+                                <div class="text-xs text-red-500">Khusus admin</div>
+                            </div>
+                        </button>
+                    @endif
+
                 </div>
             </div>
 
+            {{-- FOOTER --}}
             <div class="px-6 py-3 bg-gray-50 border-t flex justify-end">
                 <button @click="closeModal()"
                     class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
@@ -305,8 +330,8 @@
         </div>
     </div>
 
-    {{-- MODAL HAPUS --}}
-    <div x-show="showDeleteModal"
+    {{-- MODAL KONFIRMASI HAPUS --}}
+    <div x-show="showDeleteModal" x-cloak
         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center"
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -324,6 +349,8 @@
             <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Hapus Vendor?</h3>
             <p class="text-sm text-gray-500 text-center mb-6">
                 Yakin ingin menghapus <strong class="text-gray-800" x-text="selected?.name"></strong>?
+                <br>
+                <span class="text-xs text-red-500">Tindakan ini tidak bisa dibatalkan.</span>
             </p>
             <div class="flex gap-2">
                 <button type="button" @click="showDeleteModal = false"
@@ -356,11 +383,15 @@
                     this.selected = data;
                     this.showModal = true;
                 },
+
                 closeModal() {
                     this.showModal = false;
                     this.selected = null;
                 },
+
                 confirmDelete() {
+                    // Tutup modal detail dulu, baru buka modal konfirmasi hapus
+                    this.showModal = false;
                     this.showDeleteModal = true;
                 },
 

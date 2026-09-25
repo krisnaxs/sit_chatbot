@@ -5,8 +5,13 @@ namespace Database\Seeders;
 use App\Models\Asset;
 use App\Models\AssetAssignment;
 use App\Models\AssetCategory;
+use App\Models\AssetLoan;
+use App\Models\AssetMaintenance;
+use App\Models\AssetMovement;
 use App\Models\AssetOwnership;
+use App\Models\AssetType;
 use App\Models\Consumable;
+use App\Models\ConsumableTransaction;
 use App\Models\Department;
 use App\Models\Location;
 use App\Models\User;
@@ -23,9 +28,14 @@ class SiamSeeder extends Seeder
         $this->seedUsers();
         $vendors = $this->seedVendors();
         $categories = $this->seedCategories();
+        $this->seedAssetTypes();       // tetap dijalankan → untuk dropdown
         $this->seedAssets($categories, $vendors);
         $this->seedConsumables($categories);
         $this->seedAssignments();
+        $this->seedLoans();
+        $this->seedMaintenances();
+        $this->seedMovements();
+        $this->seedConsumableTransactions();
 
         $this->command->newLine();
         $this->command->info('🎉 SIAM seeder selesai!');
@@ -82,7 +92,6 @@ class SiamSeeder extends Seeder
         $finRoom = Location::where('room', 'Ruang Finance')->first();
         $hrdRoom = Location::where('room', 'Ruang HRD')->first();
 
-        // Update admin & support biar punya dept/lokasi
         User::where('email', 'admin@admin.com')->update([
             'department_id' => $itDept?->id,
             'location_id' => $itRoom?->id,
@@ -101,14 +110,13 @@ class SiamSeeder extends Seeder
         ];
 
         foreach ($users as $u) {
-            // ✅ Generate username manual dari email (sebelum @)
             $username = User::generateUsername($u['email']);
 
             User::updateOrCreate(
                 ['email' => $u['email']],
                 [
                     'nip' => $u['nip'],
-                    'username' => $username,          // ✅ WAJIB DIISI
+                    'username' => $username,
                     'name' => $u['name'],
                     'password' => Hash::make('password123'),
                     'role' => 'user',
@@ -165,10 +173,34 @@ class SiamSeeder extends Seeder
     }
 
     // ================================================================
+    // Master data untuk dropdown form (tidak direlasikan ke assets)
+    private function seedAssetTypes(): void
+    {
+        $data = [
+            ['brand' => 'Lenovo', 'model' => 'ThinkPad T14 Gen 4', 'description' => 'Laptop bisnis 14 inch'],
+            ['brand' => 'HP', 'model' => 'ProDesk 400 G9', 'description' => 'PC Desktop SFF'],
+            ['brand' => 'Epson', 'model' => 'L3110 All-in-One', 'description' => 'Printer inkjet 3in1'],
+            ['brand' => 'Logitech', 'model' => 'M170', 'description' => 'Mouse wireless'],
+            ['brand' => 'Logitech', 'model' => 'K120', 'description' => 'Keyboard USB'],
+            ['brand' => 'Seagate', 'model' => 'Expansion 1TB', 'description' => 'HDD eksternal'],
+        ];
+
+        foreach ($data as $d) {
+            AssetType::updateOrCreate(
+                ['brand' => $d['brand'], 'model' => $d['model']],
+                $d
+            );
+        }
+
+        $this->command->info('✅ Asset Types: ' . count($data));
+    }
+
+    // ================================================================
     private function seedAssets(array $categories, array $vendors): void
     {
         $lenovoVendor = $vendors['PT Lenovo Indonesia'];
         $sewaVendor = $vendors['PT Sewa Komputer Indonesia'];
+        $mitraVendor = $vendors['CV Mitra Office Supply'];
 
         $counter = 0;
 
@@ -211,6 +243,7 @@ class SiamSeeder extends Seeder
                 'contract_start' => $isLeased ? now()->subMonths(6) : null,
                 'contract_end' => $isLeased ? now()->addMonths(18) : null,
                 'monthly_cost' => $isLeased ? 500000 : null,
+                'pic_vendor' => $isLeased ? 'Bpk. Joko' : 'Ibu Rina',
             ]);
         }
 
@@ -241,10 +274,11 @@ class SiamSeeder extends Seeder
 
             AssetOwnership::create([
                 'asset_id' => $asset->id,
-                'vendor_id' => $lenovoVendor->id,
+                'vendor_id' => $mitraVendor->id,
                 'ownership_type' => 'owned',
                 'purchase_price' => 8500000,
                 'invoice_number' => 'INV-PC-2026-' . str_pad($i, 4, '0', STR_PAD_LEFT),
+                'pic_vendor' => 'Bpk. Anton',
             ]);
         }
 
@@ -275,12 +309,13 @@ class SiamSeeder extends Seeder
 
             AssetOwnership::create([
                 'asset_id' => $asset->id,
-                'vendor_id' => $isLeased ? $sewaVendor->id : $lenovoVendor->id,
+                'vendor_id' => $isLeased ? $sewaVendor->id : $mitraVendor->id,
                 'ownership_type' => $asset->ownership_type,
                 'purchase_price' => $isLeased ? null : 3500000,
                 'monthly_cost' => $isLeased ? 200000 : null,
                 'contract_start' => $isLeased ? now()->subMonths(3) : null,
                 'contract_end' => $isLeased ? now()->addMonths(9) : null,
+                'pic_vendor' => $isLeased ? 'Bpk. Joko' : 'Bpk. Anton',
             ]);
         }
 
@@ -344,20 +379,25 @@ class SiamSeeder extends Seeder
         $dewi = User::where('email', 'dewi.lestari@perusahaan.com')->first();
         $rudi = User::where('email', 'rudi.hartono@perusahaan.com')->first();
 
-        $laptops = Asset::where('model', 'ThinkPad T14 Gen 4')
+        $laptops = Asset::where('hostname', 'like', 'NB-T14-%')
             ->orderBy('id')
             ->limit(10)
             ->get();
 
+        if ($laptops->count() < 7) {
+            $this->command->warn('⚠️  Laptop T14 kurang dari 7 unit — assignments dilewati.');
+            return;
+        }
+
         $assignments = [
-            ['asset' => $laptops[0] ?? null, 'user' => $budi, 'days_ago' => 180, 'returned' => null],
-            ['asset' => $laptops[1] ?? null, 'user' => $siti, 'days_ago' => 150, 'returned' => null],
-            ['asset' => $laptops[2] ?? null, 'user' => $andi, 'days_ago' => 120, 'returned' => null],
-            ['asset' => $laptops[3] ?? null, 'user' => $dewi, 'days_ago' => 90, 'returned' => null],
-            ['asset' => $laptops[4] ?? null, 'user' => $rudi, 'days_ago' => 60, 'returned' => null],
-            ['asset' => $laptops[5] ?? null, 'user' => $support, 'days_ago' => 200, 'returned' => 30],
-            ['asset' => $laptops[6] ?? null, 'user' => $dewi, 'days_ago' => 300, 'returned' => 150],
-            ['asset' => $laptops[6] ?? null, 'user' => $budi, 'days_ago' => 150, 'returned' => 30],
+            ['asset' => $laptops[0], 'user' => $budi, 'days_ago' => 180, 'returned' => null],
+            ['asset' => $laptops[1], 'user' => $siti, 'days_ago' => 150, 'returned' => null],
+            ['asset' => $laptops[2], 'user' => $andi, 'days_ago' => 120, 'returned' => null],
+            ['asset' => $laptops[3], 'user' => $dewi, 'days_ago' => 90, 'returned' => null],
+            ['asset' => $laptops[4], 'user' => $rudi, 'days_ago' => 60, 'returned' => null],
+            ['asset' => $laptops[5], 'user' => $support, 'days_ago' => 200, 'returned' => 30],
+            ['asset' => $laptops[6], 'user' => $dewi, 'days_ago' => 300, 'returned' => 150],
+            ['asset' => $laptops[6], 'user' => $budi, 'days_ago' => 150, 'returned' => 30],
         ];
 
         foreach ($assignments as $a) {
@@ -370,6 +410,7 @@ class SiamSeeder extends Seeder
 
             AssetAssignment::create([
                 'asset_id' => $a['asset']->id,
+                'hostname' => $a['asset']->hostname,
                 'user_id' => $a['user']->id,
                 'location_id' => $a['user']->location_id,
                 'department_id' => $a['user']->department_id,
@@ -392,5 +433,372 @@ class SiamSeeder extends Seeder
         }
 
         $this->command->info('✅ Assignments: ' . count($assignments) . ' records');
+    }
+
+    // ================================================================
+    private function seedLoans(): void
+    {
+        $admin = User::where('email', 'admin@admin.com')->first();
+        $siti = User::where('email', 'siti.aminah@perusahaan.com')->first();
+        $andi = User::where('email', 'andi.wijaya@perusahaan.com')->first();
+        $dewi = User::where('email', 'dewi.lestari@perusahaan.com')->first();
+
+        $loanableAssets = Asset::where('hostname', 'like', 'NB-T14-%')
+            ->whereNotIn('id', function ($q) {
+                $q->select('asset_id')->from('asset_assignments')->whereNull('returned_at');
+            })
+            ->whereNotIn('id', function ($q) {
+                $q->select('asset_id')->from('asset_loans')
+                    ->whereIn('status', ['approved', 'borrowed', 'overdue']);
+            })
+            ->orderBy('id')
+            ->limit(4)
+            ->get();
+
+        if ($loanableAssets->count() < 4) {
+            $this->command->warn('⚠️  Asset untuk loan kurang — loans dilewati.');
+            return;
+        }
+
+        $data = [
+            [
+                'asset' => $loanableAssets[0],
+                'user' => $siti,
+                'loan' => 20,
+                'due' => 5,
+                'returned' => null,
+                'status' => 'borrowed',
+                'purpose' => 'Kunjungan klien',
+            ],
+            [
+                'asset' => $loanableAssets[1],
+                'user' => $andi,
+                'loan' => 15,
+                'due' => -3,
+                'returned' => null,
+                'status' => 'overdue',
+                'purpose' => 'Pelatihan HRD',
+            ],
+            [
+                'asset' => $loanableAssets[2],
+                'user' => $dewi,
+                'loan' => 30,
+                'due' => 10,
+                'returned' => null,
+                'status' => 'approved',
+                'purpose' => 'Audit laporan keuangan',
+            ],
+            [
+                'asset' => $loanableAssets[3],
+                'user' => $siti,
+                'loan' => 60,
+                'due' => 30,
+                'returned' => 25,
+                'status' => 'returned',
+                'purpose' => 'Meeting bulanan',
+            ],
+        ];
+
+        foreach ($data as $d) {
+            AssetLoan::create([
+                'asset_id' => $d['asset']->id,
+                'user_id' => $d['user']->id,
+                'loan_date' => now()->subDays($d['loan']),
+                'due_date' => now()->addDays($d['due']),
+                'returned_at' => $d['returned'] ? now()->subDays($d['returned']) : null,
+                'purpose' => $d['purpose'],
+                'approved_by' => $admin?->id,
+                'status' => $d['status'],
+                'condition_on_loan' => 100,
+                'condition_on_return' => $d['returned'] ? rand(80, 95) : null,
+                'notes' => 'Loan-' . strtoupper($d['status']),
+            ]);
+
+            if (in_array($d['status'], ['approved', 'borrowed', 'overdue'])) {
+                $d['asset']->update([
+                    'status' => 'loaned',
+                    'current_user_id' => $d['user']->id,
+                ]);
+            }
+        }
+
+        $this->command->info('✅ Loans: ' . count($data) . ' records');
+    }
+
+    // ================================================================
+    private function seedMaintenances(): void
+    {
+        $mitraVendor = Vendor::where('name', 'CV Mitra Office Supply')->first();
+        $sewaVendor = Vendor::where('name', 'PT Sewa Komputer Indonesia')->first();
+
+        $assets = Asset::where('hostname', 'like', 'NB-T14-%')
+            ->orderBy('id')
+            ->limit(5)
+            ->get();
+
+        if ($assets->count() < 5) {
+            $this->command->warn('⚠️  Asset untuk maintenance kurang — dilewati.');
+            return;
+        }
+
+        $data = [
+            [
+                'asset' => $assets[0],
+                'vendor' => $mitraVendor,
+                'type' => 'corrective',
+                'issue' => 'Keyboard beberapa tombol tidak berfungsi',
+                'action' => 'Ganti keyboard baru',
+                'tech' => 'Bpk. Slamet',
+                'cost' => 350000,
+                'start' => 60,
+                'end' => 58,
+                'status' => 'done',
+                'cond_b' => 70,
+                'cond_a' => 95,
+            ],
+            [
+                'asset' => $assets[1],
+                'vendor' => $sewaVendor,
+                'type' => 'preventive',
+                'issue' => 'Pembersihan rutin dan update BIOS',
+                'action' => 'Clean up + BIOS update',
+                'tech' => 'Tim Vendor Sewa',
+                'cost' => 0,
+                'start' => 30,
+                'end' => 30,
+                'status' => 'done',
+                'cond_b' => 85,
+                'cond_a' => 98,
+            ],
+            [
+                'asset' => $assets[2],
+                'vendor' => $mitraVendor,
+                'type' => 'corrective',
+                'issue' => 'Baterai cepat habis (drop < 30 menit)',
+                'action' => 'Menunggu penggantian baterai dari vendor',
+                'tech' => 'Bpk. Slamet',
+                'cost' => 850000,
+                'start' => 5,
+                'end' => null,
+                'status' => 'in_progress',
+                'cond_b' => 60,
+                'cond_a' => null,
+            ],
+            [
+                'asset' => $assets[3],
+                'vendor' => $mitraVendor,
+                'type' => 'upgrade',
+                'issue' => 'RAM 16GB kurang untuk workload developer',
+                'action' => 'Upgrade ke 32GB DDR4',
+                'tech' => 'Tim IT Internal',
+                'cost' => 1200000,
+                'start' => 90,
+                'end' => 88,
+                'status' => 'done',
+                'cond_b' => 80,
+                'cond_a' => 100,
+            ],
+            [
+                'asset' => $assets[4],
+                'vendor' => $sewaVendor,
+                'type' => 'corrective',
+                'issue' => 'Layar berkedip-kedip',
+                'action' => 'Pengecekan kabel fleksibel LCD',
+                'tech' => 'Tim Vendor Sewa',
+                'cost' => 0,
+                'start' => 2,
+                'end' => null,
+                'status' => 'open',
+                'cond_b' => 65,
+                'cond_a' => null,
+            ],
+        ];
+
+        foreach ($data as $d) {
+            AssetMaintenance::create([
+                'asset_id' => $d['asset']->id,
+                'vendor_id' => $d['vendor']?->id,
+                'type' => $d['type'],
+                'issue' => $d['issue'],
+                'action' => $d['action'],
+                'technician' => $d['tech'],
+                'cost' => $d['cost'],
+                'start_date' => now()->subDays($d['start']),
+                'end_date' => $d['end'] !== null ? now()->subDays($d['end']) : null,
+                'status' => $d['status'],
+                'condition_before' => $d['cond_b'],
+                'condition_after' => $d['cond_a'],
+                'notes' => 'Maintenance ' . $d['type'],
+            ]);
+
+            if (in_array($d['status'], ['open', 'in_progress'])) {
+                $d['asset']->update(['status' => 'maintenance']);
+            }
+        }
+
+        $this->command->info('✅ Maintenances: ' . count($data) . ' records');
+    }
+
+    // ================================================================
+    private function seedMovements(): void
+    {
+        $admin = User::where('email', 'admin@admin.com')->first();
+
+        $assignments = AssetAssignment::with('asset', 'user')
+            ->orderBy('id')
+            ->limit(8)
+            ->get();
+
+        if ($assignments->isEmpty()) {
+            $this->command->warn('⚠️  Tidak ada assignment — movements dilewati.');
+            return;
+        }
+
+        foreach ($assignments as $a) {
+            AssetMovement::create([
+                'asset_id' => $a->asset_id,
+                'movable_type' => User::class,
+                'movable_id' => $a->user_id,
+                'from_location_id' => null,
+                'to_location_id' => $a->location_id,
+                'type' => 'assign',
+                'reference_table' => 'asset_assignments',
+                'reference_id' => $a->id,
+                'moved_at' => $a->assigned_at,
+                'moved_by' => $admin?->id,
+                'notes' => "Assign ke {$a->user?->name}",
+            ]);
+
+            if ($a->returned_at) {
+                AssetMovement::create([
+                    'asset_id' => $a->asset_id,
+                    'movable_type' => User::class,
+                    'movable_id' => $a->user_id,
+                    'from_location_id' => $a->location_id,
+                    'to_location_id' => null,
+                    'type' => 'return',
+                    'reference_table' => 'asset_assignments',
+                    'reference_id' => $a->id,
+                    'moved_at' => $a->returned_at,
+                    'moved_by' => $admin?->id,
+                    'notes' => "Return dari {$a->user?->name}",
+                ]);
+            }
+        }
+
+        $loans = AssetLoan::whereIn('status', ['approved', 'borrowed', 'overdue'])
+            ->orderBy('id')
+            ->get();
+
+        foreach ($loans as $loan) {
+            AssetMovement::create([
+                'asset_id' => $loan->asset_id,
+                'movable_type' => User::class,
+                'movable_id' => $loan->user_id,
+                'from_location_id' => null,
+                'to_location_id' => null,
+                'type' => 'loan',
+                'reference_table' => 'asset_loans',
+                'reference_id' => $loan->id,
+                'moved_at' => $loan->loan_date,
+                'moved_by' => $admin?->id,
+                'notes' => "Loan: {$loan->purpose}",
+            ]);
+        }
+
+        $maintenances = AssetMaintenance::orderBy('id')->get();
+
+        foreach ($maintenances as $m) {
+            AssetMovement::create([
+                'asset_id' => $m->asset_id,
+                'movable_type' => null,
+                'movable_id' => null,
+                'from_location_id' => null,
+                'to_location_id' => null,
+                'type' => 'maintenance',
+                'reference_table' => 'asset_maintenances',
+                'reference_id' => $m->id,
+                'moved_at' => $m->start_date,
+                'moved_by' => $admin?->id,
+                'notes' => "Maintenance: {$m->issue}",
+            ]);
+        }
+
+        $this->command->info('✅ Movements: generated');
+    }
+
+    // ================================================================
+    private function seedConsumableTransactions(): void
+    {
+        $admin = User::where('email', 'admin@admin.com')->first();
+        $budi = User::where('email', 'budi.santoso@perusahaan.com')->first();
+        $siti = User::where('email', 'siti.aminah@perusahaan.com')->first();
+        $andi = User::where('email', 'andi.wijaya@perusahaan.com')->first();
+        $rudi = User::where('email', 'rudi.hartono@perusahaan.com')->first();
+
+        $mouse = Consumable::where('name', 'Mouse Logitech M170')->first();
+        $keyboard = Consumable::where('name', 'Keyboard Logitech K120')->first();
+        $hdd = Consumable::where('name', 'HDD External Seagate 1TB')->first();
+
+        if (!$mouse || !$keyboard || !$hdd) {
+            $this->command->warn('⚠️  Consumable tidak lengkap — transactions dilewati.');
+            return;
+        }
+
+        $laptops = Asset::where('hostname', 'like', 'NB-T14-%')
+            ->orderBy('id')
+            ->limit(3)
+            ->get();
+
+        $data = [
+            // ===== IN =====
+            ['consumable' => $mouse, 'user' => null, 'type' => 'in', 'qty' => 50, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-MSE-001'],
+            ['consumable' => $keyboard, 'user' => null, 'type' => 'in', 'qty' => 30, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-KBD-001'],
+            ['consumable' => $hdd, 'user' => null, 'type' => 'in', 'qty' => 10, 'days_ago' => 85, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-HDD-001'],
+
+            // ===== OUT =====
+            ['consumable' => $mouse, 'user' => $budi, 'type' => 'out', 'qty' => 1, 'days_ago' => 60, 'requested' => $budi, 'approved' => $admin, 'location' => $budi?->location_id, 'asset' => $laptops[0] ?? null, 'purpose' => 'Mouse laptop rusak', 'notes' => null],
+            ['consumable' => $mouse, 'user' => $siti, 'type' => 'out', 'qty' => 1, 'days_ago' => 45, 'requested' => $siti, 'approved' => $admin, 'location' => $siti?->location_id, 'asset' => null, 'purpose' => 'Mouse baru untuk staff', 'notes' => null],
+            ['consumable' => $keyboard, 'user' => $andi, 'type' => 'out', 'qty' => 1, 'days_ago' => 40, 'requested' => $andi, 'approved' => $admin, 'location' => $andi?->location_id, 'asset' => $laptops[1] ?? null, 'purpose' => 'Keyboard rusak kena cairan', 'notes' => null],
+            ['consumable' => $hdd, 'user' => $rudi, 'type' => 'out', 'qty' => 1, 'days_ago' => 30, 'requested' => $rudi, 'approved' => $admin, 'location' => $rudi?->location_id, 'asset' => null, 'purpose' => 'Backup data project', 'notes' => null],
+            ['consumable' => $mouse, 'user' => $rudi, 'type' => 'out', 'qty' => 2, 'days_ago' => 20, 'requested' => $rudi, 'approved' => $admin, 'location' => $rudi?->location_id, 'asset' => null, 'purpose' => 'Mouse cadangan untuk tim IT', 'notes' => null],
+
+            // ===== RETURN =====
+            ['consumable' => $keyboard, 'user' => $siti, 'type' => 'return', 'qty' => 1, 'days_ago' => 15, 'requested' => $siti, 'approved' => $admin, 'location' => $siti?->location_id, 'asset' => null, 'purpose' => 'Keyboard tidak jadi dipakai', 'notes' => 'Kondisi masih bagus'],
+        ];
+
+        $inCount = $outCount = $returnCount = 0;
+
+        foreach ($data as $d) {
+            ConsumableTransaction::create([
+                'consumable_id' => $d['consumable']->id,
+                'user_id' => $d['user']?->id,
+                'type' => $d['type'],
+                'quantity' => $d['qty'],
+                'transaction_date' => now()->subDays($d['days_ago']),
+                'requested_by' => $d['requested']?->id,
+                'approved_by' => $d['approved']?->id,
+                'location_id' => $d['location'],
+                'asset_id' => $d['asset']?->id,
+                'purpose' => $d['purpose'],
+                'notes' => $d['notes'],
+            ]);
+
+            // Update stock real-time
+            $consumable = $d['consumable'];
+            match ($d['type']) {
+                'in' => $consumable->increment('stock_available', $d['qty']),
+                'out' => $consumable->decrement('stock_available', $d['qty']),
+                'return' => $consumable->increment('stock_available', $d['qty']),
+            };
+
+            match ($d['type']) {
+                'in' => $inCount++,
+                'out' => $outCount++,
+                'return' => $returnCount++,
+            };
+        }
+
+        $this->command->info("✅ Consumable Transactions: in={$inCount}, out={$outCount}, return={$returnCount}");
     }
 }

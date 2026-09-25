@@ -1,51 +1,88 @@
 @props(['context' => 'portal'])
 
-{{-- 🎈 FLOATING CHAT WIDGET — FAB + Modal Mini --}}
-<div x-data="chatWidget()" x-init="context = '{{ $context }}'">
+{{-- 🎈 FLOATING CHAT WIDGET — MINIMIZE KE POJOK KANAN --}}
+<div x-data="chatWidget()" x-init="init()">
 
-    {{-- 🎈 FLOATING BUTTON (FAB) --}}
-    <button type="button" @click="openChat()"
-        class="chat-fab fixed bottom-6 right-6 z-[60] group
-               flex items-center gap-3
-               pl-3 pr-5 py-3
-               rounded-full
+    {{-- 🎈 WRAPPER FAB --}}
+    <div x-show="!minimized" x-cloak class="fixed top-1/2 -translate-y-1/2 right-6 z-[60]">
+
+        {{-- FAB utama --}}
+        <button type="button" @click="openChat()"
+            class="flex items-center gap-3
+                   pl-3 pr-4 py-3
+                   rounded-full
+                   bg-gradient-to-br from-blue-500 to-violet-600
+                   hover:from-blue-600 hover:to-violet-700
+                   text-white font-semibold text-sm
+                   shadow-2xl shadow-blue-500/40
+                   transition-all duration-300
+                   hover:shadow-blue-500/60
+                   select-none">
+
+            <div class="relative shrink-0">
+                <span class="absolute inset-0 rounded-full bg-white/40 animate-ping opacity-75"></span>
+                <div
+                    class="relative w-9 h-9 rounded-full bg-white/20
+                            flex items-center justify-center
+                            ring-2 ring-white/40">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                </div>
+            </div>
+
+            <span class="whitespace-nowrap hidden sm:inline">Tanya SIS Assistant</span>
+            <span class="whitespace-nowrap sm:hidden">Tanya</span>
+        </button>
+
+        {{-- 🆕 TOMBOL MINIMIZE — di LUAR FAB, posisi absolute --}}
+        <button type="button" @click="toggleMinimize()"
+            class="absolute -top-1 -right-1 w-6 h-6 rounded-full
+                   bg-white border-2 border-blue-500
+                   flex items-center justify-center
+                   shadow-lg hover:scale-110 active:scale-95
+                   transition-all duration-200 z-10"
+            title="Kecilkan ke pojok">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-blue-600" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
+            </svg>
+        </button>
+    </div>
+
+    {{-- 🆕 TAB KECIL NEMPEL DI POJOK KANAN (kalau minimized) --}}
+    <button type="button" x-show="minimized" x-cloak @click="toggleMinimize()"
+        class="fixed top-1/2 -translate-y-1/2 right-0 z-[60]
+               flex items-center justify-center
+               w-10 h-14
+               rounded-l-2xl
                bg-gradient-to-br from-blue-500 to-violet-600
                hover:from-blue-600 hover:to-violet-700
-               text-white font-semibold text-sm
+               text-white
                shadow-2xl shadow-blue-500/40
                transition-all duration-300
-               hover:scale-105 active:scale-95
-               hover:shadow-blue-500/60"
-        title="Tanya SIS Assistant">
+               hover:w-12
+               select-none"
+        title="Buka SIS Assistant">
 
-        <!-- Avatar bot dengan pulse ring -->
-        <div class="relative shrink-0">
-            <span class="absolute inset-0 rounded-full bg-white/40 animate-ping opacity-75"></span>
-            <div
-                class="relative w-9 h-9 rounded-full bg-white/20
-                        flex items-center justify-center
-                        ring-2 ring-white/40">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-            </div>
+        <div class="relative">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 border border-white"></span>
         </div>
-
-        <!-- Label -->
-        <span class="whitespace-nowrap hidden sm:inline">Tanya SIS Assistant</span>
-        <span class="whitespace-nowrap sm:hidden">Tanya</span>
     </button>
 
-    {{-- 💬 MODAL CHAT MINI (muncul dari kanan bawah) --}}
-    <div x-show="open" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-y-8 scale-95"
-        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-        x-transition:leave-end="opacity-0 translate-y-8 scale-95" @click.away="closeChat()"
-        class="fixed bottom-24 right-6 z-[70]
+    {{-- 💬 MODAL CHAT --}}
+    <div x-show="open" x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95" @click.away="closeChat()"
+        class="fixed z-[70] top-1/2 -translate-y-1/2 right-20
                w-[380px] max-w-[calc(100vw-2rem)]
                bg-white rounded-2xl shadow-2xl border border-gray-100
                overflow-hidden flex flex-col"
@@ -55,7 +92,7 @@
         <div
             class="flex items-center justify-between px-4 py-3
                     bg-gradient-to-r from-blue-500 to-violet-600
-                    text-white shrink-0">
+                    text-white shrink-0 select-none">
 
             <div class="flex items-center gap-3 min-w-0">
                 <div class="relative shrink-0">
@@ -82,7 +119,6 @@
             </div>
 
             <div class="flex items-center gap-1 shrink-0">
-                {{-- ⛶ Tombol Expand ke /chat --}}
                 <a href="{{ route('chat.index') }}" class="p-1.5 rounded-lg hover:bg-white/20 transition"
                     title="Buka halaman penuh">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -92,7 +128,6 @@
                     </svg>
                 </a>
 
-                {{-- ✕ Close --}}
                 <button @click="closeChat()" class="p-1.5 rounded-lg hover:bg-white/20 transition" title="Tutup">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2.5">
@@ -130,7 +165,6 @@
             {{-- Messages --}}
             <template x-for="(msg, idx) in messages" :key="idx">
                 <div>
-                    {{-- User Message --}}
                     <template x-if="msg.role === 'user'">
                         <div class="flex justify-end">
                             <div
@@ -142,7 +176,6 @@
                         </div>
                     </template>
 
-                    {{-- Bot Message --}}
                     <template x-if="msg.role === 'bot'">
                         <div class="flex items-start gap-2">
                             <div
@@ -163,7 +196,7 @@
                                 <template x-if="msg.file">
                                     <div class="mt-2 pt-2 border-t border-gray-100">
 
-                                        {{-- Preview Image --}}
+                                        {{-- Image --}}
                                         <template x-if="msg.file.category === 'image'">
                                             <div>
                                                 <img :src="msg.file.url" :alt="msg.file.name"
@@ -189,7 +222,7 @@
                                             </div>
                                         </template>
 
-                                        {{-- Preview PDF --}}
+                                        {{-- PDF --}}
                                         <template x-if="msg.file.category === 'pdf'">
                                             <a :href="msg.file.url" target="_blank"
                                                 class="flex items-center gap-2 p-2
@@ -222,7 +255,7 @@
                                             </a>
                                         </template>
 
-                                        {{-- File Generic (Word, Excel, PPT, ZIP, dll) --}}
+                                        {{-- Generic --}}
                                         <template x-if="!['image', 'pdf'].includes(msg.file.category)">
                                             <a :href="msg.file.url" :download="msg.file.name" target="_blank"
                                                 class="flex items-center gap-2 p-2
@@ -335,9 +368,23 @@
                 messages: [],
                 isTyping: false,
 
+                minimized: true,
+
+                init() {
+                    const savedMinimized = localStorage.getItem('chat-fab-minimized');
+                    this.minimized = savedMinimized === null ? true : savedMinimized === 'true';
+                },
+
+                toggleMinimize() {
+                    this.minimized = !this.minimized;
+                    localStorage.setItem('chat-fab-minimized', this.minimized ? 'true' : 'false');
+                },
+
                 openChat() {
                     this.open = true;
-                    this.$nextTick(() => this.scrollToBottom());
+                    this.$nextTick(() => {
+                        this.scrollToBottom();
+                    });
                 },
 
                 closeChat() {
@@ -348,7 +395,6 @@
                     const text = this.input.trim();
                     if (!text || this.isTyping) return;
 
-                    // Tambah pesan user
                     this.messages.push({
                         role: 'user',
                         text: text
@@ -372,7 +418,6 @@
 
                         const data = await res.json();
 
-                        // Delay kecil biar typing indicator kelihatan
                         await new Promise(r => setTimeout(r, 400));
 
                         if (res.ok && data.status === 'ok') {

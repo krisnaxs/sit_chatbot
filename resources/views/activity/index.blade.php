@@ -33,7 +33,7 @@
                 </p>
             </div>
 
-            {{-- 🆕 Tombol Bersihkan — HANYA ADMIN --}}
+            {{-- Tombol Bersihkan — HANYA ADMIN --}}
             @if (auth()->user()->isAdmin())
                 <button type="button" @click="showClearModal = true"
                     class="inline-flex items-center gap-2
@@ -182,7 +182,6 @@
                                 class="px-4 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-48">
                                 Waktu</th>
 
-                            {{-- 🆕 Kolom Aksi HANYA untuk admin --}}
                             @if (auth()->user()->isAdmin())
                                 <th
                                     class="px-4 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider w-16">
@@ -207,6 +206,9 @@
                                                      @case('app') bg-emerald-100 text-emerald-700 @break
                                                      @case('app_click') bg-violet-100 text-violet-700 @break
                                                      @case('knowledge') bg-amber-100 text-amber-700 @break
+                                                     @case('siam') bg-cyan-100 text-cyan-700 @break
+                                                     @case('user') bg-indigo-100 text-indigo-700 @break
+                                                     @case('activity') bg-rose-100 text-rose-700 @break
                                                      @default bg-gray-100 text-gray-700
                                                  @endswitch">
                                         {{ $act->log_name ?? 'general' }}
@@ -216,9 +218,38 @@
                                     <div class="text-sm text-gray-800 font-medium">
                                         {{ $act->description }}
                                     </div>
+
+                                    {{-- 🆕 Badge "X field diubah" untuk event updated --}}
                                     @php
                                         $props = $act->properties ?? collect();
+                                        $old = $props['old'] ?? null;
+                                        $new = $props['new'] ?? null;
+                                        $changedCount = 0;
+                                        if ($act->event === 'updated' && $old && $new) {
+                                            foreach ($new as $k => $v) {
+                                                if (($old[$k] ?? null) != $v && $k !== 'updated_at') {
+                                                    $changedCount++;
+                                                }
+                                            }
+                                        }
                                     @endphp
+
+                                    @if ($changedCount > 0)
+                                        <div class="mt-1.5 flex flex-wrap gap-1.5">
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold
+                                                         bg-amber-100 text-amber-700 border border-amber-200">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                {{ $changedCount }} field diubah
+                                            </span>
+                                        </div>
+                                    @endif
+
                                     @if ($props->count() > 0)
                                         <details class="mt-1.5 group" onclick="event.stopPropagation()">
                                             <summary
@@ -284,7 +315,6 @@
                                     </div>
                                 </td>
 
-                                {{-- 🆕 Kolom Aksi — HANYA ADMIN --}}
                                 @if (auth()->user()->isAdmin())
                                     <td class="px-4 py-4 text-right" onclick="event.stopPropagation()">
                                         <button type="button"
@@ -340,9 +370,9 @@
 
     </div>
 
-    {{-- 🆕 MODAL & FORM — hanya di-render untuk admin --}}
+    {{-- MODAL & FORM — hanya di-render untuk admin --}}
     @if (auth()->user()->isAdmin())
-        <!-- 🗑️ MODAL KONFIRMASI HAPUS LOG -->
+        <!-- MODAL KONFIRMASI HAPUS LOG -->
         <div x-show="showDeleteModal"
             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
@@ -383,7 +413,7 @@
             </div>
         </div>
 
-        <!-- 🧹 MODAL KONFIRMASI BERSIHKAN SEMUA -->
+        <!-- MODAL KONFIRMASI BERSIHKAN SEMUA -->
         <div x-show="showClearModal"
             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
@@ -437,7 +467,7 @@
         </form>
     @endif
 
-    <!-- 🔔 TOAST -->
+    <!-- TOAST -->
     <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"

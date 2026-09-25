@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Edit Kategori - SIAM</title>
+    <title>Tambah Kategori - SIAM</title>
 
     <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -14,7 +14,7 @@
 
 <body class="bg-slate-100 font-sans">
 
-    <x-header title="Edit Kategori" />
+    <x-header title="Tambah Kategori" />
     <x-sidebar />
 
     <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
@@ -26,24 +26,23 @@
                 stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-            <span class="text-gray-900 font-semibold">Edit</span>
+            <span class="text-gray-900 font-semibold">Tambah</span>
         </nav>
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
 
             <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
                 <div
-                    class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500
-                            flex items-center justify-center shadow-lg shadow-amber-500/30">
+                    class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500
+                            flex items-center justify-center shadow-lg shadow-emerald-500/30">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-gray-900">Edit Kategori</h1>
-                    <p class="text-sm text-gray-500 mt-0.5">Perbarui data <strong>{{ $category->name }}</strong></p>
+                    <h1 class="text-xl font-bold text-gray-900">Tambah Kategori</h1>
+                    <p class="text-sm text-gray-500 mt-0.5">Buat kategori aset baru</p>
                 </div>
             </div>
 
@@ -57,16 +56,15 @@
                 </div>
             @endif
 
-            <form action="{{ route('siam.categories.update', $category) }}" method="POST" class="space-y-5">
+            <form action="{{ route('siam.categories.store') }}" method="POST" class="space-y-5">
                 @csrf
-                @method('PUT')
 
                 <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block font-semibold text-sm text-gray-700 mb-2">
                             Kode <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="code" value="{{ old('code', $category->code) }}" required
+                        <input type="text" name="code" value="{{ old('code') }}" required placeholder="LPT"
                             class="w-full border rounded-xl px-3 py-2.5 text-sm font-mono uppercase
                                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                                    @error('code') border-red-400 bg-red-50 @else border-gray-200 @enderror">
@@ -79,7 +77,7 @@
                         <label class="block font-semibold text-sm text-gray-700 mb-2">
                             Nama <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="name" value="{{ old('name', $category->name) }}" required
+                        <input type="text" name="name" value="{{ old('name') }}" required placeholder="Laptop"
                             class="w-full border rounded-xl px-3 py-2.5 text-sm
                                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                                    @error('name') border-red-400 bg-red-50 @else border-gray-200 @enderror">
@@ -94,10 +92,10 @@
                         <input type="checkbox" name="is_consumable" value="1"
                             class="w-5 h-5 rounded border-gray-300 text-amber-600
                                    focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 cursor-pointer"
-                            {{ old('is_consumable', $category->is_consumable) ? 'checked' : '' }}>
+                            {{ old('is_consumable') ? 'checked' : '' }}>
                         <div>
                             <span class="text-sm font-semibold text-gray-800">Konsumable</span>
-                            <p class="text-xs text-gray-500">Barang habis pakai</p>
+                            <p class="text-xs text-gray-500">Barang habis pakai (tinta, kertas, dll)</p>
                         </div>
                     </label>
                 </div>
@@ -107,7 +105,7 @@
                         <input type="checkbox" name="is_active" value="1"
                             class="w-5 h-5 rounded border-gray-300 text-indigo-600
                                    focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer"
-                            {{ old('is_active', $category->is_active) ? 'checked' : '' }}>
+                            {{ old('is_active', true) ? 'checked' : '' }}>
                         <div>
                             <span class="text-sm font-semibold text-gray-800">Aktifkan</span>
                             <p class="text-xs text-gray-500">Kategori bisa dipilih di form aset</p>
@@ -117,10 +115,10 @@
 
                 <div>
                     <label class="block font-semibold text-sm text-gray-700 mb-2">Deskripsi</label>
-                    <textarea name="description" rows="3"
+                    <textarea name="description" rows="3" placeholder="Keterangan tambahan (opsional)"
                         class="w-full border rounded-xl px-3 py-2.5 text-sm
                                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                               border-gray-200">{{ old('description', $category->description) }}</textarea>
+                               border-gray-200">{{ old('description') }}</textarea>
                 </div>
 
                 <div class="flex gap-3 pt-4 border-t border-gray-100">
@@ -135,7 +133,7 @@
                             stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                        Update
+                        Simpan
                     </button>
                     <a href="{{ route('siam.categories.index') }}"
                         class="px-5 py-2.5 rounded-xl border border-gray-300

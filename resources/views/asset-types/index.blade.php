@@ -93,7 +93,6 @@
                                 <th class="px-4 py-3 text-left">Model / Type</th>
                                 <th class="px-4 py-3 text-left">Deskripsi</th>
                                 <th class="px-4 py-3 text-center">Status</th>
-                                <th class="px-4 py-3 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -111,8 +110,8 @@
                                         ],
                                     ];
                                 @endphp
-                                <tr class="hover:bg-indigo-50 cursor-pointer transition-colors"
-                                    @click='openModal({{ json_encode($typeData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
+                                <tr @click='openModal({{ json_encode($typeData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                    class="hover:bg-indigo-50 cursor-pointer transition-colors">
                                     <td class="px-4 py-3 text-gray-500 font-medium">
                                         {{ $assetTypes->firstItem() + $i }}
                                     </td>
@@ -135,15 +134,30 @@
                                                 class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">Nonaktif</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('siam.asset-types.edit', $t) }}"
-                                            class="text-xs text-violet-600 hover:underline">Edit</a>
-                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-16 text-center text-gray-400">
-                                        Belum ada brand & model.
+                                    <td colspan="5" class="px-4 py-16 text-center">
+                                        <div class="flex flex-col items-center gap-3">
+                                            <div
+                                                class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold text-gray-900">Belum ada brand & model</p>
+                                                <p class="text-sm text-gray-500 mt-1">Tambahkan brand & model pertama
+                                                </p>
+                                            </div>
+                                            <a href="{{ route('siam.asset-types.create') }}"
+                                                class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
+                                                + Tambah brand & model
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforelse
@@ -160,7 +174,7 @@
         </div>
     </div>
 
-    {{-- MODAL AKSI --}}
+    {{-- MODAL POPUP AKSI BRAND & MODEL --}}
     <div x-show="showModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -171,12 +185,23 @@
         <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             @click.away="closeModal()">
 
+            {{-- HEADER --}}
             <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white">
                 <div class="flex items-start justify-between">
                     <div class="flex-1 min-w-0">
-                        <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
-                            x-text="selected?.brand"></span>
-                        <h3 class="text-lg font-bold truncate mt-1" x-text="selected?.model"></h3>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
+                                x-text="selected?.brand"></span>
+                            <span x-show="selected?.is_active"
+                                class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold">
+                                Aktif
+                            </span>
+                            <span x-show="!selected?.is_active"
+                                class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold">
+                                Nonaktif
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-bold truncate" x-text="selected?.model"></h3>
                     </div>
                     <button @click="closeModal()" class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
@@ -187,6 +212,7 @@
                 </div>
             </div>
 
+            {{-- INFO --}}
             <div class="px-6 py-4 bg-gray-50 border-b">
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div>
@@ -197,6 +223,13 @@
                         <div class="text-xs text-gray-500">Model</div>
                         <div class="text-xs font-medium" x-text="selected?.model"></div>
                     </div>
+                    <div>
+                        <div class="text-xs text-gray-500">Status</div>
+                        <div class="text-xs font-medium">
+                            <span x-show="selected?.is_active" class="text-emerald-600">Aktif</span>
+                            <span x-show="!selected?.is_active" class="text-gray-500">Nonaktif</span>
+                        </div>
+                    </div>
                     <div class="col-span-2">
                         <div class="text-xs text-gray-500">Deskripsi</div>
                         <div class="text-xs" x-text="selected?.description ?? '-'"></div>
@@ -204,12 +237,16 @@
                 </div>
             </div>
 
+            {{-- AKSI --}}
             <div class="p-6">
                 <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pilih Aksi</h4>
-                <div class="space-y-2">
+
+                <div class="grid grid-cols-2 gap-3">
+
+                    {{-- EDIT --}}
                     <a :href="selected?.routes.edit"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-violet-300 hover:bg-violet-50 transition">
+                              hover:border-violet-300 hover:bg-violet-50 transition group">
                         <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -217,30 +254,35 @@
                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <div class="font-semibold text-sm text-gray-800">Edit</div>
-                            <div class="text-xs text-gray-500">Ubah brand / model</div>
+                            <div class="text-xs text-gray-500">Ubah data</div>
                         </div>
                     </a>
 
-                    <button type="button" @click="confirmDelete()"
-                        class="w-full flex items-center gap-3 p-3 rounded-xl border border-red-200
-                                   bg-red-50 hover:bg-red-100 hover:border-red-300 transition text-left">
-                        <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-sm text-red-700">Hapus</div>
-                            <div class="text-xs text-red-500">Tindakan tidak bisa dibatalkan</div>
-                        </div>
-                    </button>
+                    {{-- HAPUS (admin only) --}}
+                    @if (auth()->user()->isAdmin())
+                        <button type="button" @click="confirmDelete()"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-red-200
+                                   bg-red-50 hover:bg-red-100 hover:border-red-300 transition group w-full text-left">
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-red-700">Hapus</div>
+                                <div class="text-xs text-red-500">Khusus admin</div>
+                            </div>
+                        </button>
+                    @endif
+
                 </div>
             </div>
 
+            {{-- FOOTER --}}
             <div class="px-6 py-3 bg-gray-50 border-t flex justify-end">
                 <button @click="closeModal()"
                     class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
@@ -250,8 +292,8 @@
         </div>
     </div>
 
-    {{-- MODAL HAPUS --}}
-    <div x-show="showDeleteModal"
+    {{-- MODAL KONFIRMASI HAPUS --}}
+    <div x-show="showDeleteModal" x-cloak
         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center"
         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -268,8 +310,10 @@
             </div>
             <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Hapus Brand & Model?</h3>
             <p class="text-sm text-gray-500 text-center mb-6">
-                Yakin ingin menghapus <strong x-text="selected?.brand"></strong> — <strong
-                    x-text="selected?.model"></strong>?
+                Yakin ingin menghapus <strong class="text-gray-800" x-text="selected?.brand"></strong> —
+                <strong class="text-gray-800" x-text="selected?.model"></strong>?
+                <br>
+                <span class="text-xs text-red-500">Tindakan ini tidak bisa dibatalkan.</span>
             </p>
             <div class="flex gap-2">
                 <button type="button" @click="showDeleteModal = false"
@@ -307,6 +351,8 @@
                     this.selected = null;
                 },
                 confirmDelete() {
+                    // Tutup modal detail dulu, baru buka modal konfirmasi hapus
+                    this.showModal = false;
                     this.showDeleteModal = true;
                 },
 

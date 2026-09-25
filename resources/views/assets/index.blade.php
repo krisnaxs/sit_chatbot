@@ -25,17 +25,12 @@
     }
 }">
 
-    {{-- HEADER --}}
     <x-header title="Daftar Aset" />
-
-    {{-- SIDEBAR --}}
     <x-sidebar />
 
-    {{-- MAIN CONTENT --}}
     <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
         class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
 
-        {{-- FLASH --}}
         @if (session('success'))
             <div class="mb-4 p-3 rounded-lg bg-green-100 text-green-800 border border-green-200">
                 {{ session('success') }}
@@ -79,7 +74,7 @@
             </div>
 
             {{-- STATISTIK GLOBAL --}}
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                 <div class="bg-white rounded-lg shadow p-4 border-l-4 border-gray-400">
                     <div class="text-xs text-gray-500 uppercase">Total</div>
                     <div class="text-2xl font-bold text-gray-800">{{ $stats['total'] }}</div>
@@ -92,13 +87,25 @@
                     <div class="text-xs text-gray-500 uppercase">Sewa</div>
                     <div class="text-2xl font-bold text-orange-600">{{ $stats['leased'] }}</div>
                 </div>
+                <div class="bg-white rounded-lg shadow p-4 border-l-4 border-emerald-500">
+                    <div class="text-xs text-gray-500 uppercase">Tersedia</div>
+                    <div class="text-2xl font-bold text-emerald-600">{{ $stats['available'] }}</div>
+                </div>
                 <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
                     <div class="text-xs text-gray-500 uppercase">Dipakai</div>
                     <div class="text-2xl font-bold text-blue-600">{{ $stats['in_use'] }}</div>
                 </div>
-                <div class="bg-white rounded-lg shadow p-4 border-l-4 border-emerald-500">
-                    <div class="text-xs text-gray-500 uppercase">Tersedia</div>
-                    <div class="text-2xl font-bold text-emerald-600">{{ $stats['available'] }}</div>
+                <div class="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500">
+                    <div class="text-xs text-gray-500 uppercase">Perbaikan</div>
+                    <div class="text-2xl font-bold text-amber-600">{{ $stats['maintenance'] }}</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4 border-l-4 border-gray-500">
+                    <div class="text-xs text-gray-500 uppercase">Pensiun</div>
+                    <div class="text-2xl font-bold text-gray-600">{{ $stats['retired'] }}</div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
+                    <div class="text-xs text-gray-500 uppercase">Hilang</div>
+                    <div class="text-2xl font-bold text-red-600">{{ $stats['lost'] }}</div>
                 </div>
             </div>
 
@@ -107,7 +114,6 @@
                 <form method="GET" action="{{ route('siam.assets.index') }}"
                     class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3">
 
-                    {{-- SEARCH --}}
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1">Cari (SN / Kode / Hostname / Pemakai)</label>
                         <input type="text" name="search" value="{{ request('search') }}"
@@ -115,7 +121,6 @@
                             class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
                     </div>
 
-                    {{-- KATEGORI --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Kategori</label>
                         <select name="category_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -128,7 +133,6 @@
                         </select>
                     </div>
 
-                    {{-- KEPEMILIKAN --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Kepemilikan</label>
                         <select name="ownership_type" data-auto-submit
@@ -139,7 +143,6 @@
                         </select>
                     </div>
 
-                    {{-- STATUS --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Status</label>
                         <select name="status" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -153,7 +156,6 @@
                         </select>
                     </div>
 
-                    {{-- BRAND --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Brand</label>
                         <select name="brand" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -165,7 +167,6 @@
                         </select>
                     </div>
 
-                    {{-- MODEL --}}
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1 flex items-center gap-1">
                             Model
@@ -191,7 +192,6 @@
                         </select>
                     </div>
 
-                    {{-- LOKASI --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Lokasi</label>
                         <select name="location_id" data-auto-submit
@@ -205,7 +205,6 @@
                         </select>
                     </div>
 
-                    {{-- PEMAKAI --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Pemakai</label>
                         <select name="user_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -218,7 +217,18 @@
                         </select>
                     </div>
 
-                    {{-- TOMBOL --}}
+                    {{-- 🆕 TAHUN PEMBELIAN --}}
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Tahun Pembelian</label>
+                        <select name="year" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <option value="">Semua</option>
+                            @foreach ($years as $y)
+                                <option value="{{ $y }}" @selected(request('year') == $y)>{{ $y }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     <div class="flex items-end gap-2 lg:col-span-2">
                         <button type="submit"
                             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
@@ -232,7 +242,7 @@
                 </form>
             </div>
 
-            {{-- 🆕 SUMMARY HASIL FILTER --}}
+            {{-- SUMMARY HASIL FILTER --}}
             @if ($hasFilter && $summary['total'] > 0)
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                     <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
@@ -256,6 +266,9 @@
                                         {{ $categories->firstWhere('id', request('category_id'))?->name }}
                                     </span>
                                 @endif
+                                @if (request('year'))
+                                    • Tahun: <span class="font-semibold text-gray-700">{{ request('year') }}</span>
+                                @endif
                                 @if (request('search'))
                                     • Pencarian: "<span
                                         class="font-semibold text-gray-700">{{ request('search') }}</span>"
@@ -265,67 +278,50 @@
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                        {{-- Total --}}
                         <div class="rounded-xl p-3 bg-gray-50 border border-gray-200">
                             <div class="text-[10px] text-gray-500 uppercase font-semibold tracking-wide">Total</div>
                             <div class="text-2xl font-bold text-gray-800">{{ $summary['total'] }}</div>
                             <div class="text-[10px] text-gray-400">unit</div>
                         </div>
-
-                        {{-- Tersedia --}}
                         <div class="rounded-xl p-3 bg-emerald-50 border border-emerald-200">
                             <div class="text-[10px] text-emerald-600 uppercase font-semibold tracking-wide">Tersedia
                             </div>
                             <div class="text-2xl font-bold text-emerald-700">{{ $summary['available'] }}</div>
                             <div class="text-[10px] text-emerald-500">siap dipakai</div>
                         </div>
-
-                        {{-- Dipakai --}}
                         <div class="rounded-xl p-3 bg-blue-50 border border-blue-200">
                             <div class="text-[10px] text-blue-600 uppercase font-semibold tracking-wide">Dipakai</div>
                             <div class="text-2xl font-bold text-blue-700">{{ $summary['in_use'] }}</div>
                             <div class="text-[10px] text-blue-500">user pegang</div>
                         </div>
-
-                        {{-- Dipinjam --}}
                         <div class="rounded-xl p-3 bg-amber-50 border border-amber-200">
                             <div class="text-[10px] text-amber-600 uppercase font-semibold tracking-wide">Dipinjam
                             </div>
                             <div class="text-2xl font-bold text-amber-700">{{ $summary['loaned'] }}</div>
                             <div class="text-[10px] text-amber-500">sementara</div>
                         </div>
-
-                        {{-- Perbaikan --}}
                         <div class="rounded-xl p-3 bg-orange-50 border border-orange-200">
                             <div class="text-[10px] text-orange-600 uppercase font-semibold tracking-wide">Perbaikan
                             </div>
                             <div class="text-2xl font-bold text-orange-700">{{ $summary['maintenance'] }}</div>
                             <div class="text-[10px] text-orange-500">maintenance</div>
                         </div>
-
-                        {{-- Pensiun --}}
                         <div class="rounded-xl p-3 bg-gray-100 border border-gray-300">
                             <div class="text-[10px] text-gray-600 uppercase font-semibold tracking-wide">Pensiun</div>
                             <div class="text-2xl font-bold text-gray-700">{{ $summary['retired'] }}</div>
                             <div class="text-[10px] text-gray-500">tidak dipakai</div>
                         </div>
-
-                        {{-- Hilang --}}
                         <div class="rounded-xl p-3 bg-red-50 border border-red-200">
                             <div class="text-[10px] text-red-600 uppercase font-semibold tracking-wide">Hilang</div>
                             <div class="text-2xl font-bold text-red-700">{{ $summary['lost'] }}</div>
                             <div class="text-[10px] text-red-500">lost</div>
                         </div>
-
-                        {{-- Hak Milik --}}
                         <div class="rounded-xl p-3 bg-green-50 border border-green-200">
                             <div class="text-[10px] text-green-600 uppercase font-semibold tracking-wide">Hak Milik
                             </div>
                             <div class="text-2xl font-bold text-green-700">{{ $summary['owned'] }}</div>
                             <div class="text-[10px] text-green-500">owned</div>
                         </div>
-
-                        {{-- Sewa --}}
                         <div class="rounded-xl p-3 bg-orange-50 border border-orange-200">
                             <div class="text-[10px] text-orange-600 uppercase font-semibold tracking-wide">Sewa</div>
                             <div class="text-2xl font-bold text-orange-700">{{ $summary['leased'] }}</div>
@@ -341,20 +337,21 @@
                     <table class="min-w-full text-sm">
                         <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                             <tr>
+                                <th class="px-3 py-2 text-left w-12">No</th>
                                 <th class="px-3 py-2 text-left">SN</th>
                                 <th class="px-3 py-2 text-left">Brand & Model</th>
                                 <th class="px-3 py-2 text-left">Kategori</th>
                                 <th class="px-3 py-2 text-left">Kepemilikan</th>
                                 <th class="px-3 py-2 text-left">Pemakai</th>
                                 <th class="px-3 py-2 text-left">Lokasi</th>
-                                <th class="px-3 py-2 text-left">OS</th>
+                                <th class="px-3 py-2 text-left">Tahun</th>
                                 <th class="px-3 py-2 text-left">Hostname</th>
                                 <th class="px-3 py-2 text-left">Status</th>
                                 <th class="px-3 py-2 text-left">Kondisi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            @forelse ($assets as $asset)
+                            @forelse ($assets as $index => $asset)
                                 @php
                                     $assetData = [
                                         'id' => $asset->id,
@@ -371,7 +368,7 @@
                                         'condition_percent' => $asset->condition_percent,
                                         'current_user' => $asset->currentUser?->name,
                                         'current_location' => $asset->currentLocation?->full_name,
-                                        'os' => $asset->os,
+                                        'purchase_year' => $asset->purchase_date?->format('Y'),
                                         'routes' => [
                                             'show' => route('siam.assets.show', $asset),
                                             'edit' => route('siam.assets.edit', $asset),
@@ -387,6 +384,12 @@
 
                                 <tr @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
                                     class="hover:bg-indigo-50 cursor-pointer transition-colors">
+
+                                    {{-- 🆕 No --}}
+                                    <td class="px-3 py-2 text-xs text-gray-500 font-medium">
+                                        {{ $assets->firstItem() + $index }}
+                                    </td>
+
                                     <td class="px-3 py-2 font-mono text-xs text-indigo-700">
                                         {{ $asset->serial_number }}
                                     </td>
@@ -434,7 +437,16 @@
                                             <span class="text-gray-400 italic">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-3 py-2 text-xs">{{ $asset->os ?? '-' }}</td>
+
+                                    {{-- 🆕 TAHUN PEMBELIAN --}}
+                                    <td class="px-3 py-2 text-xs">
+                                        @if ($asset->purchase_date)
+                                            <span class="font-medium">{{ $asset->purchase_date->format('Y') }}</span>
+                                        @else
+                                            <span class="text-gray-400 italic">-</span>
+                                        @endif
+                                    </td>
+
                                     <td class="px-3 py-2 text-xs font-mono">{{ $asset->hostname ?? '-' }}</td>
                                     <td class="px-3 py-2">
                                         @php
@@ -478,7 +490,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-3 py-8 text-center text-gray-400">
+                                    <td colspan="11" class="px-3 py-8 text-center text-gray-400">
                                         Tidak ada aset ditemukan.
                                     </td>
                                 </tr>
@@ -550,8 +562,8 @@
                         <div class="text-xs" x-text="selectedAsset?.current_location ?? '-'"></div>
                     </div>
                     <div>
-                        <div class="text-xs text-gray-500">OS</div>
-                        <div class="text-xs" x-text="selectedAsset?.os ?? '-'"></div>
+                        <div class="text-xs text-gray-500">Tahun Pembelian</div>
+                        <div class="text-xs" x-text="selectedAsset?.purchase_year ?? '-'"></div>
                     </div>
                     <div>
                         <div class="text-xs text-gray-500">Kondisi</div>

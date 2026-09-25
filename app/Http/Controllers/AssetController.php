@@ -17,6 +17,9 @@ class AssetController extends Controller
     /**
      * Daftar aset dengan filter lengkap + summary statistik.
      */
+    /**
+     * Daftar aset dengan filter lengkap + summary statistik.
+     */
     public function index(Request $request)
     {
         $query = Asset::with(['category', 'currentUser', 'currentLocation']);
@@ -63,6 +66,11 @@ class AssetController extends Controller
             $query->where('current_user_id', $request->user_id);
         }
 
+        // 🆕 Filter tahun pembelian
+        if ($request->filled('year')) {
+            $query->whereYear('purchase_date', $request->year);
+        }
+
         // ============================================================
         // SUMMARY (dari hasil filter SEBELUM pagination)
         // ============================================================
@@ -86,7 +94,8 @@ class AssetController extends Controller
             || $request->filled('brand')
             || $request->filled('model')
             || $request->filled('location_id')
-            || $request->filled('user_id');
+            || $request->filled('user_id')
+            || $request->filled('year');
 
         // ============================================================
         // SORT
@@ -106,7 +115,10 @@ class AssetController extends Controller
         // ============================================================
         // Dropdown data
         // ============================================================
-        $categories = AssetCategory::active()->orderBy('name')->get();
+        $categories = AssetCategory::active()
+            ->where('is_consumable', false)
+            ->orderBy('name')
+            ->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $users = User::active()->orderBy('name')->get();
 
@@ -130,6 +142,13 @@ class AssetController extends Controller
             ->orderBy('model')
             ->get();
 
+        // 🆕 Daftar tahun pembelian unik
+        $years = Asset::selectRaw('YEAR(purchase_date) as year')
+            ->whereNotNull('purchase_date')
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year');
+
         // Statistik global (selalu total keseluruhan)
         $stats = [
             'total' => Asset::count(),
@@ -137,6 +156,9 @@ class AssetController extends Controller
             'leased' => Asset::leased()->count(),
             'in_use' => Asset::inUse()->count(),
             'available' => Asset::available()->count(),
+            'maintenance' => Asset::where('status', 'maintenance')->count(),
+            'retired' => Asset::where('status', 'retired')->count(),
+            'lost' => Asset::where('status', 'lost')->count(),
         ];
 
         return view('assets.index', compact(
@@ -147,8 +169,9 @@ class AssetController extends Controller
             'brands',
             'models',
             'stats',
-            'summary',      // 🆕
-            'hasFilter'     // 🆕
+            'summary',
+            'hasFilter',
+            'years'
         ));
     }
 
@@ -179,7 +202,10 @@ class AssetController extends Controller
      */
     public function create()
     {
-        $categories = AssetCategory::active()->orderBy('name')->get();
+        $categories = AssetCategory::active()
+            ->where('is_consumable', false)
+            ->orderBy('name')
+            ->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $users = User::active()->orderBy('name')->get();
         $vendors = Vendor::active()->orderBy('name')->get();
@@ -290,7 +316,10 @@ class AssetController extends Controller
     {
         $asset->load('ownership');
 
-        $categories = AssetCategory::active()->orderBy('name')->get();
+        $categories = AssetCategory::active()
+            ->where('is_consumable', false)
+            ->orderBy('name')
+            ->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $users = User::active()->orderBy('name')->get();
         $vendors = Vendor::active()->orderBy('name')->get();
@@ -317,7 +346,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Update aset + ownership.
+     * Update aset + ownership + (opsional) maintenance.
      */
     public function update(Request $request, Asset $asset)
     {
@@ -345,9 +374,23 @@ class AssetController extends Controller
             'invoice_number' => 'nullable|string|max:100',
             'monthly_cost' => 'nullable|numeric|min:0',
             'contract_end' => 'nullable|date',
+
+            // 🆕 Field maintenance dari modal — semua nullable
+            'maintenance' => 'nullable|array',
+            'maintenance.issue' => 'nullable|string|max:255',
+            'maintenance.action' => 'nullable|string',
+            'maintenance.vendor_id' => 'nullable|exists:vendors,id',
+            'maintenance.technician' => 'nullable|string|max:100',
+            'maintenance.cost' => 'nullable|numeric|min:0',
+            'maintenance.start_date' => 'nullable|date',
+            'maintenance.end_date' => 'nullable|date|after_or_equal:maintenance.start_date',
+            'maintenance.condition_before' => 'nullable|integer|min:0|max:100',
+            'maintenance.condition_after' => 'nullable|integer|min:0|max:100',
+            'maintenance.notes' => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($request, $validated, $asset) {
+            // === Update asset ===
             if ($request->hasFile('photo')) {
                 if ($asset->photo_path && \Storage::disk('public')->exists($asset->photo_path)) {
                     \Storage::disk('public')->delete($asset->photo_path);
@@ -376,37 +419,54 @@ class AssetController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
+            // === Update ownership ===
             $ownership = $asset->ownership;
+            $ownershipData = [
+                'vendor_id' => $validated['vendor_id'] ?? null,
+                'ownership_type' => $validated['ownership_type'],
+                'purchase_price' => $validated['ownership_type'] === 'owned' ? ($validated['purchase_price'] ?? null) : null,
+                'invoice_number' => $validated['ownership_type'] === 'owned' ? ($validated['invoice_number'] ?? null) : null,
+                'contract_number' => $validated['ownership_type'] === 'leased' ? ($validated['invoice_number'] ?? null) : null,
+                'contract_start' => $validated['ownership_type'] === 'leased' ? ($validated['purchase_date'] ?? null) : null,
+                'contract_end' => $validated['ownership_type'] === 'leased' ? ($validated['contract_end'] ?? null) : null,
+                'monthly_cost' => $validated['ownership_type'] === 'leased' ? ($validated['monthly_cost'] ?? null) : null,
+            ];
 
             if ($ownership) {
-                $ownership->update([
-                    'vendor_id' => $validated['vendor_id'] ?? null,
-                    'ownership_type' => $validated['ownership_type'],
-                    'purchase_price' => $validated['ownership_type'] === 'owned' ? ($validated['purchase_price'] ?? null) : null,
-                    'invoice_number' => $validated['ownership_type'] === 'owned' ? ($validated['invoice_number'] ?? null) : null,
-                    'contract_number' => $validated['ownership_type'] === 'leased' ? ($validated['invoice_number'] ?? null) : null,
-                    'contract_start' => $validated['ownership_type'] === 'leased' ? ($validated['purchase_date'] ?? null) : null,
-                    'contract_end' => $validated['ownership_type'] === 'leased' ? ($validated['contract_end'] ?? null) : null,
-                    'monthly_cost' => $validated['ownership_type'] === 'leased' ? ($validated['monthly_cost'] ?? null) : null,
-                ]);
+                $ownership->update($ownershipData);
             } else {
-                AssetOwnership::create([
+                AssetOwnership::create(array_merge($ownershipData, ['asset_id' => $asset->id]));
+            }
+
+            // 🆕 === Buat maintenance record HANYA kalau issue diisi ===
+            if (!empty($validated['maintenance']) && !empty($validated['maintenance']['issue'])) {
+                $maint = $validated['maintenance'];
+
+                \App\Models\AssetMaintenance::create([
                     'asset_id' => $asset->id,
-                    'vendor_id' => $validated['vendor_id'] ?? null,
-                    'ownership_type' => $validated['ownership_type'],
-                    'purchase_price' => $validated['ownership_type'] === 'owned' ? ($validated['purchase_price'] ?? null) : null,
-                    'invoice_number' => $validated['invoice_number'] ?? null,
-                    'contract_number' => $validated['ownership_type'] === 'leased' ? ($validated['invoice_number'] ?? null) : null,
-                    'contract_start' => $validated['ownership_type'] === 'leased' ? ($validated['purchase_date'] ?? null) : null,
-                    'contract_end' => $validated['ownership_type'] === 'leased' ? ($validated['contract_end'] ?? null) : null,
-                    'monthly_cost' => $validated['ownership_type'] === 'leased' ? ($validated['monthly_cost'] ?? null) : null,
+                    'vendor_id' => $maint['vendor_id'] ?? null,
+                    'type' => 'corrective',
+                    'issue' => $maint['issue'],
+                    'action' => $maint['action'] ?? null,
+                    'technician' => $maint['technician'] ?? null,
+                    'cost' => $maint['cost'] ?? 0,
+                    'start_date' => $maint['start_date'] ?? now()->format('Y-m-d'),
+                    'end_date' => $maint['end_date'] ?? null,
+                    'status' => 'open',
+                    'condition_before' => $maint['condition_before'] ?? $asset->condition_percent,
+                    'condition_after' => $maint['condition_after'] ?? null,
+                    'notes' => $maint['notes'] ?? null,
                 ]);
             }
         });
 
+        $msg = (!empty($validated['maintenance']) && !empty($validated['maintenance']['issue']))
+            ? 'Aset diupdate & perbaikan berhasil dicatat.'
+            : 'Aset berhasil diupdate.';
+
         return redirect()
             ->route('siam.assets.show', $asset)
-            ->with('success', 'Aset berhasil diupdate.');
+            ->with('success', $msg);
     }
 
     /**
