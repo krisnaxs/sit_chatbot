@@ -9,6 +9,9 @@ use App\Models\Location;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\ConsumableTransactionsExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConsumableTransactionController extends Controller
 {
@@ -71,9 +74,15 @@ class ConsumableTransactionController extends Controller
      */
     public function create(Request $request)
     {
+        // 🆕 Pre-load dengan total_out & total_return
         $consumable = $request->filled('consumable_id')
-            ? Consumable::find($request->consumable_id)
+            ? Consumable::withSum(['transactions as total_out' => fn($q) => $q->where('type', 'out')], 'quantity')
+                ->withSum(['transactions as total_return' => fn($q) => $q->where('type', 'return')], 'quantity')
+                ->find($request->consumable_id)
             : null;
+
+        // 🆕 Type default dari query string
+        $defaultType = $request->get('type', 'out');
 
         $consumables = Consumable::orderBy('name')->get();
         $users = User::active()->orderBy('name')->get();
@@ -85,7 +94,8 @@ class ConsumableTransactionController extends Controller
             'consumables',
             'users',
             'locations',
-            'assets'
+            'assets',
+            'defaultType'   // 🆕
         ));
     }
 
@@ -174,6 +184,71 @@ class ConsumableTransactionController extends Controller
         ]);
 
         return view('consumable-transactions.show', compact('transaction'));
+    }
+
+    /**
+     * Export Excel
+     */
+    public function exportExcel(Request $request)
+    {
+        $filters = $request->only([
+            'type',
+            'consumable_id',
+            'user_id',
+            'date_from',
+            'date_to',
+        ]);
+
+        $filename = 'transaksi-konsumable-' . now()->format('Ymd-His') . '.xlsx';
+
+        return Excel::download(new ConsumableTransactionsExport($filters), $filename);
+    }
+
+    /**
+     * Export PDF
+     */
+    public function exportPdf(Request $request)
+    {
+        $query = ConsumableTransaction::with([
+            'consumable',
+            'user',
+            'location',
+            'asset',
+            'requestedBy',
+            'approvedBy',
+        ]);
+
+        // Terapkan filter sama seperti index()
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+        if ($request->filled('consumable_id')) {
+            $query->where('consumable_id', $request->consumable_id);
+        }
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+        if ($request->filled('date_from')) {
+            $query->where('transaction_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('transaction_date', '<=', $request->date_to . ' 23:59:59');
+        }
+
+        $transactions = $query->orderByDesc('transaction_date')->get();
+
+        $summary = [
+            'total' => $transactions->count(),
+            'total_in' => $transactions->where('type', 'in')->sum('quantity'),
+            'total_out' => $transactions->where('type', 'out')->sum('quantity'),
+            'total_return' => $transactions->where('type', 'return')->sum('quantity'),
+        ];
+
+        $pdf = Pdf::loadView('consumable-transactions.pdf', compact('transactions', 'summary'))
+            ->setPaper('a4', 'landscape')
+            ->setOption('defaultFont', 'DejaVu Sans');
+
+        return $pdf->download('transaksi-konsumable-' . now()->format('Ymd-His') . '.pdf');
     }
 
     /**

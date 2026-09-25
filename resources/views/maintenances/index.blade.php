@@ -57,10 +57,11 @@
 
                     {{-- SEARCH --}}
                     <div class="lg:col-span-2">
-                        <label class="block text-xs text-gray-500 mb-1">Cari (SN / Brand / Model / Pemakai)</label>
+                        <label class="block text-xs text-gray-500 mb-1">Cari (SN / Hostname / Brand / Model /
+                            Pemakai)</label>
                         <div class="relative">
                             <input type="text" name="search" value="{{ request('search') }}"
-                                placeholder="Contoh: T14-SN-0040 atau Budi"
+                                placeholder="Contoh: T14-SN-0040 atau NB-T14-001 atau Budi"
                                 class="w-full border rounded-lg pl-9 pr-3 py-2 text-sm
                                        focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -127,7 +128,9 @@
                     <table class="min-w-full text-sm">
                         <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                             <tr>
+                                <th class="px-3 py-2 text-left w-12">No</th> {{-- 🆕 --}}
                                 <th class="px-3 py-2 text-left">Aset</th>
+                                <th class="px-3 py-2 text-left">Hostname</th> {{-- 🆕 --}}
                                 <th class="px-3 py-2 text-left">Pemakai</th>
                                 <th class="px-3 py-2 text-left">Masalah</th>
                                 <th class="px-3 py-2 text-left">Vendor</th>
@@ -137,13 +140,14 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            @forelse ($maintenances as $m)
+                            @forelse ($maintenances as $index => $m)
                                 @php
                                     $maintData = [
                                         'id' => $m->id,
                                         'asset_brand' => $m->asset?->brand,
                                         'asset_model' => $m->asset?->model,
                                         'asset_sn' => $m->asset?->serial_number,
+                                        'asset_hostname' => $m->asset?->hostname, // 🆕
                                         'current_user' => $m->asset?->currentUser?->name,
                                         'current_user_position' => $m->asset?->currentUser?->position,
                                         'type' => $m->type,
@@ -173,6 +177,12 @@
                                 @endphp
                                 <tr @click='openModal({{ json_encode($maintData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
                                     class="hover:bg-indigo-50 cursor-pointer transition-colors">
+
+                                    {{-- 🆕 NO URUT --}}
+                                    <td class="px-3 py-2 text-xs text-gray-500 font-medium">
+                                        {{ $maintenances->firstItem() + $index }}
+                                    </td>
+
                                     <td class="px-3 py-2">
                                         <div class="font-medium text-gray-800">
                                             {{ $m->asset?->brand }} {{ $m->asset?->model }}
@@ -181,6 +191,12 @@
                                             {{ $m->asset?->serial_number }}
                                         </div>
                                     </td>
+
+                                    {{-- 🆕 HOSTNAME --}}
+                                    <td class="px-3 py-2 text-xs font-mono text-indigo-700">
+                                        {{ $m->asset?->hostname ?? '-' }}
+                                    </td>
+
                                     <td class="px-3 py-2">
                                         @if ($m->asset?->currentUser)
                                             <div class="text-gray-800 text-xs font-medium">
@@ -223,7 +239,8 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-16 text-center">
+                                    {{-- 🆕 COLSPAN 9 (dari 7) --}}
+                                    <td colspan="9" class="px-4 py-16 text-center">
                                         <div class="flex flex-col items-center gap-3">
                                             <div
                                                 class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
@@ -315,6 +332,13 @@
 
             <div class="px-6 py-4 bg-gray-50 border-b">
                 <div class="grid grid-cols-2 gap-3 text-sm">
+
+                    {{-- 🆕 HOSTNAME DI MODAL --}}
+                    <div class="col-span-2">
+                        <div class="text-xs text-gray-500">Hostname</div>
+                        <div class="text-xs font-mono text-indigo-700" x-text="selected?.asset_hostname ?? '-'"></div>
+                    </div>
+
                     <div class="col-span-2">
                         <div class="text-xs text-gray-500">Pemakai Aset</div>
                         <div class="text-xs font-medium" x-text="selected?.current_user ?? 'Tidak ada pemakai'"></div>

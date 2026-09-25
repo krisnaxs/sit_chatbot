@@ -11,6 +11,10 @@ use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\AssetsExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
 
 class AssetController extends Controller
 {
@@ -468,6 +472,71 @@ class AssetController extends Controller
             ->route('siam.assets.show', $asset)
             ->with('success', $msg);
     }
+
+    public function exportExcel(Request $request)
+    {
+        $filters = $request->only([
+            'search',
+            'category_id',
+            'ownership_type',
+            'status',
+            'brand',
+            'model',
+            'location_id',
+            'user_id',
+            'year',
+        ]);
+
+        $filename = 'daftar-aset-' . now()->format('Ymd-His') . '.xlsx';
+
+        return Excel::download(new AssetsExport($filters), $filename);
+    }
+
+    /**
+     * Export PDF
+     */
+    public function exportPdf(Request $request)
+    {
+        $query = Asset::with(['category', 'currentUser', 'currentLocation']);
+
+        // Terapkan filter yang sama seperti index()
+        // (bisa refactor jadi method private applyFilters($query, $request))
+        if ($request->filled('search')) { /* ... */
+        }
+        if ($request->filled('category_id'))
+            $query->where('category_id', $request->category_id);
+        if ($request->filled('ownership_type'))
+            $query->where('ownership_type', $request->ownership_type);
+        if ($request->filled('status'))
+            $query->where('status', $request->status);
+        if ($request->filled('brand'))
+            $query->where('brand', $request->brand);
+        if ($request->filled('model'))
+            $query->where('model', $request->model);
+        if ($request->filled('location_id'))
+            $query->where('current_location_id', $request->location_id);
+        if ($request->filled('user_id'))
+            $query->where('current_user_id', $request->user_id);
+        if ($request->filled('year'))
+            $query->whereYear('purchase_date', $request->year);
+
+        $assets = $query->orderBy('asset_code')->get();
+
+        $summary = [
+            'total' => $assets->count(),
+            'available' => $assets->where('status', 'available')->count(),
+            'in_use' => $assets->where('status', 'in_use')->count(),
+            'maintenance' => $assets->where('status', 'maintenance')->count(),
+            'owned' => $assets->where('ownership_type', 'owned')->count(),
+            'leased' => $assets->where('ownership_type', 'leased')->count(),
+        ];
+
+        $pdf = Pdf::loadView('assets.pdf', compact('assets', 'summary'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('daftar-aset-' . now()->format('Ymd-His') . '.pdf');
+    }
+
 
     /**
      * Hapus aset.

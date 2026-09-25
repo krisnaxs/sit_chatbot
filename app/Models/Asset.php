@@ -199,6 +199,27 @@ class Asset extends Model
         };
     }
 
+    /**
+     * 🆕 Label kepemilikan + nama vendor (untuk export Excel & PDF)
+     * Contoh: HAK MILIK "PT Lenovo Indonesia"
+     *         SEWA "PT XYZ Leasing"
+     *         HAK MILIK  (kalau tidak ada vendor)
+     */
+    public function getOwnershipLabelWithVendorAttribute(): string
+    {
+        $base = match ($this->ownership_type) {
+            'owned' => 'HAK MILIK',
+            'leased' => 'SEWA',
+            default => '-',
+        };
+
+        $vendorName = $this->ownership?->vendor?->name;
+
+        return $vendorName
+            ? "{$base} \"{$vendorName}\""
+            : $base;
+    }
+
     public function getOwnershipColorAttribute(): string
     {
         return match ($this->ownership_type) {

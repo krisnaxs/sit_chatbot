@@ -39,15 +39,45 @@
                     <h1 class="text-2xl font-bold text-gray-800">Transaksi Konsumable</h1>
                     <p class="text-sm text-gray-500">Riwayat barang masuk, keluar, dan kembali</p>
                 </div>
-                <a href="{{ route('siam.consumable-transactions.create') }}"
-                    class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 text-sm font-medium
-                           inline-flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Catat Transaksi
-                </a>
+
+                <div class="flex flex-wrap gap-2">
+                    {{-- EXPORT EXCEL --}}
+                    <a href="{{ route('siam.consumable-transactions.export.excel', request()->query()) }}"
+                        title="Export data yang tampil ke Excel"
+                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium
+                   inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Excel
+                    </a>
+
+                    {{-- EXPORT PDF --}}
+                    <a href="{{ route('siam.consumable-transactions.export.pdf', request()->query()) }}" target="_blank"
+                        title="Export data yang tampil ke PDF"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium
+                   inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        PDF
+                    </a>
+
+                    {{-- CATAT TRANSAKSI --}}
+                    <a href="{{ route('siam.consumable-transactions.create') }}"
+                        class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 text-sm font-medium
+                   inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Catat Transaksi
+                    </a>
+                </div>
             </div>
 
             {{-- STATISTIK --}}
@@ -321,7 +351,7 @@
                     {{-- DETAIL --}}
                     <a :href="selected?.routes.show"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-indigo-300 hover:bg-indigo-50 transition group">
+                               hover:border-indigo-300 hover:bg-indigo-50 transition group">
                         <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -334,6 +364,40 @@
                         <div class="min-w-0">
                             <div class="font-semibold text-sm text-gray-800">Detail</div>
                             <div class="text-xs text-gray-500">Info lengkap</div>
+                        </div>
+                    </a>
+
+                    {{-- KELUARKAN --}}
+                    <a :href="'{{ route('siam.consumable-transactions.create') }}?consumable_id=' + selected?.id + '&type=out'"
+                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
+                               hover:border-red-300 hover:bg-red-50 transition group">
+                        <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-sm text-gray-800">Keluarkan</div>
+                            <div class="text-xs text-gray-500">Kasih ke user</div>
+                        </div>
+                    </a>
+
+                    {{-- KEMBALIKAN --}}
+                    <a :href="'{{ route('siam.consumable-transactions.create') }}?consumable_id=' + selected?.id + '&type=return'"
+                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
+                               hover:border-blue-300 hover:bg-blue-50 transition group">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-sm text-gray-800">Kembalikan</div>
+                            <div class="text-xs text-gray-500">User return</div>
                         </div>
                     </a>
 

@@ -50,10 +50,38 @@
                     <h1 class="text-2xl font-bold text-gray-800">Daftar Aset IT</h1>
                     <p class="text-sm text-gray-500">Kelola aset laptop, PC, printer, dan konsumable</p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
+                    {{-- 🆕 EXPORT EXCEL --}}
+                    <a href="{{ route('siam.assets.export.excel', request()->query()) }}"
+                        title="Export data yang tampil ke Excel"
+                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium
+               inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                        </svg>
+                        Excel
+                    </a>
+
+                    {{-- 🆕 EXPORT PDF --}}
+                    <a href="{{ route('siam.assets.export.pdf', request()->query()) }}" target="_blank"
+                        title="Export data yang tampil ke PDF"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium
+               inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-6 4h4" />
+                        </svg>
+                        PDF
+                    </a>
+
+                    {{-- Tombol lama (Brand & Model, Tambah Aset) --}}
                     <a href="{{ route('siam.asset-types.index') }}"
                         class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium
-                               inline-flex items-center gap-2">
+               inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -63,7 +91,7 @@
                     </a>
                     <a href="{{ route('siam.assets.create') }}"
                         class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium
-                               inline-flex items-center gap-2">
+               inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -123,7 +151,8 @@
 
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Kategori</label>
-                        <select name="category_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <select name="category_id" data-auto-submit
+                            class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="">Semua</option>
                             @foreach ($categories as $c)
                                 <option value="{{ $c->id }}" @selected(request('category_id') == $c->id)>

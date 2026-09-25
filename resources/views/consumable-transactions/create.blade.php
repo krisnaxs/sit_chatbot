@@ -47,6 +47,7 @@
                 class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
                 @csrf
 
+                {{-- ============ ITEM ============ --}}
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">
                         Item <span class="text-red-500">*</span>
@@ -60,34 +61,63 @@
                             </option>
                         @endforeach
                     </select>
+
+                    {{-- 🆕 INFO STOK (muncul kalau item pre-selected dari URL) --}}
+                    @if ($consumable)
+                        <div class="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs space-y-1">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Stok Total:</span>
+                                <span class="font-semibold">{{ $consumable->stock_total }}
+                                    {{ $consumable->unit }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Stok Tersedia:</span>
+                                <span class="font-semibold text-green-700">{{ $consumable->stock_available }}
+                                    {{ $consumable->unit }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Sedang Dipakai User:</span>
+                                <span class="font-semibold text-amber-700">
+                                    {{ ($consumable->total_out ?? 0) - ($consumable->total_return ?? 0) }}
+                                    {{ $consumable->unit }}
+                                </span>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
+                {{-- ============ TIPE ============ --}}
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">
                         Tipe Transaksi <span class="text-red-500">*</span>
                     </label>
                     <div class="grid grid-cols-3 gap-2">
+                        {{-- MASUK --}}
                         <label class="cursor-pointer">
                             <input type="radio" name="type" value="in" class="peer sr-only"
-                                @checked(old('type') === 'in')>
+                                @checked(old('type', $defaultType ?? 'out') === 'in')>
                             <div
                                 class="p-3 rounded-lg border-2 text-center peer-checked:border-green-500 peer-checked:bg-green-50 transition">
                                 <div class="text-sm font-semibold text-green-700">Masuk</div>
                                 <div class="text-xs text-gray-500">Restock</div>
                             </div>
                         </label>
+
+                        {{-- KELUAR --}}
                         <label class="cursor-pointer">
                             <input type="radio" name="type" value="out" class="peer sr-only"
-                                @checked(old('type', 'out') === 'out')>
+                                @checked(old('type', $defaultType ?? 'out') === 'out')>
                             <div
                                 class="p-3 rounded-lg border-2 text-center peer-checked:border-red-500 peer-checked:bg-red-50 transition">
                                 <div class="text-sm font-semibold text-red-700">Keluar</div>
                                 <div class="text-xs text-gray-500">Kasih ke user</div>
                             </div>
                         </label>
+
+                        {{-- KEMBALI --}}
                         <label class="cursor-pointer">
                             <input type="radio" name="type" value="return" class="peer sr-only"
-                                @checked(old('type') === 'return')>
+                                @checked(old('type', $defaultType ?? 'out') === 'return')>
                             <div
                                 class="p-3 rounded-lg border-2 text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 transition">
                                 <div class="text-sm font-semibold text-blue-700">Kembali</div>
@@ -97,6 +127,7 @@
                     </div>
                 </div>
 
+                {{-- ============ QTY + TANGGAL ============ --}}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">
@@ -115,6 +146,7 @@
                     </div>
                 </div>
 
+                {{-- ============ USER ============ --}}
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">User Penerima</label>
                     <select name="user_id" class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -126,6 +158,7 @@
                     </select>
                 </div>
 
+                {{-- ============ LOKASI + ASET ============ --}}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Lokasi</label>
@@ -150,6 +183,7 @@
                     </div>
                 </div>
 
+                {{-- ============ KEPERLUAN ============ --}}
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Keperluan</label>
                     <input type="text" name="purpose" value="{{ old('purpose') }}"
@@ -157,11 +191,13 @@
                         class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
 
+                {{-- ============ CATATAN ============ --}}
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan</label>
                     <textarea name="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm">{{ old('notes') }}</textarea>
                 </div>
 
+                {{-- ============ SUBMIT ============ --}}
                 <div class="flex gap-2 pt-2">
                     <a href="{{ route('siam.consumable-transactions.index') }}"
                         class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">

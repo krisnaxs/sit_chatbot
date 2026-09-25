@@ -13,16 +13,19 @@ class AssetLoanController extends Controller
     {
         $query = AssetLoan::with(['asset', 'user', 'approvedBy']);
 
-        if ($request->filled('status'))   $query->where('status', $request->status);
-        if ($request->filled('asset_id')) $query->where('asset_id', $request->asset_id);
-        if ($request->filled('user_id'))  $query->where('user_id', $request->user_id);
+        if ($request->filled('status'))
+            $query->where('status', $request->status);
+        if ($request->filled('asset_id'))
+            $query->where('asset_id', $request->asset_id);
+        if ($request->filled('user_id'))
+            $query->where('user_id', $request->user_id);
 
         $loans = $query->orderByDesc('loan_date')
             ->paginate($request->get('per_page', 25))
             ->withQueryString();
 
         $assets = Asset::orderBy('serial_number')->get();
-        $users  = User::active()->orderBy('name')->get();
+        $users = User::active()->orderBy('name')->get();
 
         return view('loans.index', compact('loans', 'assets', 'users'));
     }
@@ -32,7 +35,7 @@ class AssetLoanController extends Controller
         $asset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
 
         $assets = Asset::whereIn('status', ['available', 'loaned'])->orderBy('serial_number')->get();
-        $users  = User::active()->orderBy('name')->get();
+        $users = User::active()->orderBy('name')->get();
 
         return view('loans.create', compact('asset', 'assets', 'users'));
     }
@@ -40,13 +43,13 @@ class AssetLoanController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'asset_id'            => 'required|exists:assets,id',
-            'user_id'             => 'required|exists:users,id',
-            'loan_date'           => 'required|date',
-            'due_date'            => 'required|date|after_or_equal:loan_date',
-            'purpose'             => 'nullable|string|max:255',
-            'condition_on_loan'   => 'nullable|integer|min:0|max:100',
-            'notes'               => 'nullable|string',
+            'asset_id' => 'required|exists:assets,id',
+            'user_id' => 'required|exists:users,id',
+            'loan_date' => 'required|date',
+            'due_date' => 'required|date|after_or_equal:loan_date',
+            'purpose' => 'nullable|string|max:255',
+            'condition_on_loan' => 'nullable|integer|min:0|max:100',
+            'notes' => 'nullable|string',
         ]);
 
         $validated['status'] = 'borrowed';
@@ -71,15 +74,19 @@ class AssetLoanController extends Controller
     public function returnAsset(Request $request, AssetLoan $loan)
     {
         $validated = $request->validate([
-            'returned_at'         => 'required|date',
+            'returned_at' => 'required|date',
             'condition_on_return' => 'nullable|integer|min:0|max:100',
-            'notes'               => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
 
         $validated['status'] = 'returned';
         $loan->update($validated);
 
-        $loan->asset->update(['status' => 'available']);
+        // 🆕 Lepas current user saat aset dikembalikan
+        $loan->asset->update([
+            'status' => 'available',
+            'current_user_id' => null,   // ✅ KUNCI PERBAIKAN
+        ]);
 
         return redirect()
             ->route('siam.loans.index')

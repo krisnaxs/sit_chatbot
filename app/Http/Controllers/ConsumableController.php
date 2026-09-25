@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\AssetCategory;
 use App\Models\Consumable;
 use Illuminate\Http\Request;
+use App\Exports\ConsumablesExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConsumableController extends Controller
 {
@@ -13,7 +16,18 @@ class ConsumableController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Consumable::with('category');
+        // 🆕 Eager load total_out & total_return dari transaksi
+        $query = Consumable::with('category')
+            ->withSum([
+                'transactions as total_out' => function ($q) {
+                    $q->where('type', 'out');
+                }
+            ], 'quantity')
+            ->withSum([
+                'transactions as total_return' => function ($q) {
+                    $q->where('type', 'return');
+                }
+            ], 'quantity');
 
         // Search
         if ($request->filled('search')) {
@@ -136,6 +150,67 @@ class ConsumableController extends Controller
         return redirect()
             ->route('siam.consumables.index')
             ->with('success', 'Konsumable berhasil diupdate.');
+    }
+
+    /**
+     * Export Excel
+     */
+    public function exportExcel(Request $request)
+    {
+        $filters = $request->only(['search', 'category_id', 'low_stock']);
+
+        $filename = 'konsumable-' . now()->format('Ymd-His') . '.xlsx';
+
+        return Excel::download(new ConsumablesExport($filters), $filename);
+    }
+
+    /**
+     * Export PDF
+     */
+    public function exportPdf(Request $request)
+    {
+        // 🆕 Eager load total_out & total_return
+        $query = Consumable::with('category')
+            ->withSum([
+                'transactions as total_out' => function ($q) {
+                    $q->where('type', 'out');
+                }
+            ], 'quantity')
+            ->withSum([
+                'transactions as total_return' => function ($q) {
+                    $q->where('type', 'return');
+                }
+            ], 'quantity');
+
+        // Terapkan filter sama seperti index()
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('brand', 'like', '%' . $request->search . '%')
+                    ->orWhere('model', 'like', '%' . $request->search . '%');
+            });
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('low_stock')) {
+            $query->lowStock();
+        }
+
+        $consumables = $query->orderBy('name')->get();
+
+        $summary = [
+            'total' => $consumables->count(),
+            'low_stock' => $consumables->where('is_low_stock', true)->count(),
+            'out_stock' => $consumables->where('stock_available', 0)->count(),
+            'available' => $consumables->where('stock_available', '>', 0)->count(),
+        ];
+
+        $pdf = Pdf::loadView('consumables.pdf', compact('consumables', 'summary'))
+            ->setPaper('a4', 'landscape')
+            ->setOption('defaultFont', 'DejaVu Sans');
+
+        return $pdf->download('konsumable-' . now()->format('Ymd-His') . '.pdf');
     }
 
     /**

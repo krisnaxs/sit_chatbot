@@ -73,13 +73,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/activity/clear', [ActivityLogController::class, 'clear'])->name('activity.clear');
     Route::delete('/activity/{activity}', [ActivityLogController::class, 'destroy'])->name('activity.destroy');
 
-    // ---- Manajemen User (Admin Only) ----
-    // ✅ Semua user login boleh lihat profil (termasuk dirinya sendiri)
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-    });
 
-    // ✅ Hanya admin yang boleh kelola user
+
+    // Hanya admin yang boleh kelola user
     Route::middleware(['role:admin'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
@@ -89,6 +85,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     // ============================================================
     // 🆕 SIAM — HANYA ADMIN & SUPPORT
     // ============================================================
@@ -108,6 +105,12 @@ Route::middleware(['auth'])->group(function () {
 
             // ---- Aset ----
             Route::resource('assets', AssetController::class);
+            Route::get('assets/export/excel', [AssetController::class, 'exportExcel'])
+                ->name('assets.export.excel');
+
+            Route::get('assets/export/pdf', [AssetController::class, 'exportPdf'])
+                ->name('assets.export.pdf');
+
 
             // ---- Assignment ----
             Route::resource('assignments', AssetAssignmentController::class)
@@ -127,9 +130,19 @@ Route::middleware(['auth'])->group(function () {
                 ->name('maintenances.complete');
 
             // ---- Consumable ----
+            Route::get('consumables/export/excel', [ConsumableController::class, 'exportExcel'])
+                ->name('consumables.export.excel');
+
+            Route::get('consumables/export/pdf', [ConsumableController::class, 'exportPdf'])
+                ->name('consumables.export.pdf');
             Route::resource('consumables', ConsumableController::class);
 
             // ---- Consumable Transactions ----
+            Route::get('consumable-transactions/export/excel', [ConsumableTransactionController::class, 'exportExcel'])
+                ->name('consumable-transactions.export.excel');
+
+            Route::get('consumable-transactions/export/pdf', [ConsumableTransactionController::class, 'exportPdf'])
+                ->name('consumable-transactions.export.pdf');
             Route::resource('consumable-transactions', ConsumableTransactionController::class)
                 ->except(['edit', 'update'])
                 ->parameters(['consumable-transactions' => 'transaction']);
