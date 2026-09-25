@@ -8,8 +8,21 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AssetTypeController;
 use App\Http\Controllers\PendingKnowledgeController;
 use App\Http\Controllers\UserController;
+
+// ============ SIAM CONTROLLERS ============
+use App\Http\Controllers\AssetController;
+use App\Http\Controllers\AssetAssignmentController;
+use App\Http\Controllers\AssetLoanController;
+use App\Http\Controllers\AssetMaintenanceController;
+use App\Http\Controllers\AssetCategoryController;
+use App\Http\Controllers\VendorController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\LocationController;
+use App\Http\Controllers\ConsumableController;
+use App\Http\Controllers\ConsumableTransactionController;
 
 // ============================================================
 // AUTH ADMIN
@@ -17,13 +30,13 @@ use App\Http\Controllers\UserController;
 Route::post('/admin/login', [LoginController::class, 'login'])->name('admin.login');
 Route::post('/admin/logout', [LoginController::class, 'logout'])->name('admin.logout');
 
-// Placeholder route login supaya middleware auth tidak error
+// Placeholder route login
 Route::get('/login', function () {
-    return redirect('/'); // Modal login ada di portal
+    return redirect('/');
 })->name('login');
 
 // ============================================================
-// ROUTES YANG WAJIB LOGIN (ADMIN)
+// ROUTES YANG WAJIB LOGIN
 // ============================================================
 Route::middleware(['auth'])->group(function () {
 
@@ -35,13 +48,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/apps/{app}', [AppController::class, 'update'])->name('apps.update');
     Route::delete('/apps/{app}', [AppController::class, 'destroy'])->name('apps.destroy');
 
-    // ---- Dashboard ----
+    // ---- Dashboard SIT ----
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ============================================================
-    // 🆕 PENDING KNOWLEDGE — WAJIB DI ATAS Resource knowledge
-    // (hanya admin & support)
-    // ============================================================
+    // ---- Pending Knowledge (admin & support) ----
     Route::middleware(['role:admin,support'])->group(function () {
         Route::get('/knowledge/pending', [PendingKnowledgeController::class, 'index'])
             ->name('knowledge.pending');
@@ -53,7 +63,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('knowledge.pending.clear');
     });
 
-    // ---- Manajemen Knowledge (Chatbot) — SETELAH pending ----
+    // ---- Manajemen Knowledge ----
     Route::resource('knowledge', KnowledgeController::class);
 
     // ---- Activity Log ----
@@ -67,6 +77,48 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('users', UserController::class);
     });
 
+    // ============================================================
+    // 🆕 SIAM — HANYA ADMIN & SUPPORT
+    // ============================================================
+    Route::prefix('siam')
+        ->name('siam.')
+        ->middleware(['role:admin,support'])
+        ->group(function () {
+
+            // ---- Master Data ----
+            Route::resource('categories', AssetCategoryController::class);
+            Route::resource('vendors', VendorController::class);
+            Route::resource('departments', DepartmentController::class);
+            Route::resource('locations', LocationController::class);
+
+            // ---- Aset ----
+            Route::resource('assets', AssetController::class);
+
+            // ---- Assignment ----
+            Route::resource('assignments', AssetAssignmentController::class)
+                ->except(['edit', 'update']);
+            Route::post('assignments/{assignment}/return', [AssetAssignmentController::class, 'returnAsset'])
+                ->name('assignments.return');
+
+            // ---- Loan ----
+            Route::resource('loans', AssetLoanController::class)
+                ->except(['edit', 'update']);
+            Route::post('loans/{loan}/return', [AssetLoanController::class, 'returnAsset'])
+                ->name('loans.return');
+
+            // ---- Maintenance ----
+            Route::resource('maintenances', AssetMaintenanceController::class);
+
+            // ---- Consumable ----
+            Route::resource('consumables', ConsumableController::class);
+
+            // ---- Consumable Transactions ----
+            Route::resource('consumable-transactions', ConsumableTransactionController::class)
+                ->except(['edit', 'update']);
+            // ---- Asset Types ----
+            Route::resource('asset-types', AssetTypeController::class);
+        });
+
 });
 
 // ============================================================
@@ -74,7 +126,7 @@ Route::middleware(['auth'])->group(function () {
 // ============================================================
 Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
 Route::post('/chat/send', [ChatController::class, 'send'])
-    ->middleware('throttle:20,1') // max 20 pesan/menit per IP
+    ->middleware('throttle:20,1')
     ->name('chat.send');
 
 // ============================================================
@@ -83,4 +135,3 @@ Route::post('/chat/send', [ChatController::class, 'send'])
 Route::get('/', [PortalController::class, 'index'])->name('portal');
 Route::get('/portal/legacy', [PortalController::class, 'legacy'])->name('portal.legacy');
 Route::get('/app/click/{id}', [PortalController::class, 'click'])->name('app.click');
-

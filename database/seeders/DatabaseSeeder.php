@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             KnowledgeSeeder::class,
             AppSeeder::class,
+            SiamSeeder::class,
         ]);
     }
 }

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminUserSeeder extends Seeder
 {
@@ -13,52 +14,72 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
+        $defaultPassword = 'password123';
+
         // ============================================================
-        // 1. ADMIN UTAMA
+        // DAFTAR USER DEFAULT
         // ============================================================
-        User::updateOrCreate(
-            ['email' => 'admin@admin.com'],
+        $users = [
             [
+                'nip' => '10000001',
                 'name' => 'Admin',
-                'password' => Hash::make('password123'),
+                'email' => 'admin@admin.com',
+                'phone' => '081200000001',
+                'position' => 'System Administrator',
                 'role' => 'admin',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $this->command->info('✅ Admin user created: admin@admin.com / password123');
-
-        // ============================================================
-        // 2. SUPPORT (Opsional)
-        // ============================================================
-        User::updateOrCreate(
-            ['email' => 'support@admin.com'],
+            ],
             [
+                'nip' => '10000002',
                 'name' => 'Support',
-                'password' => Hash::make('password123'),
+                'email' => 'support@admin.com',
+                'phone' => '081200000002',
+                'position' => 'IT Support',
                 'role' => 'support',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $this->command->info('✅ Support user created: support@admin.com / password123');
-
-        // ============================================================
-        // 3. USER BIASA (Opsional)
-        // ============================================================
-        User::updateOrCreate(
-            ['email' => 'user@admin.com'],
+            ],
             [
+                'nip' => '10000003',
                 'name' => 'User',
-                'password' => Hash::make('password123'),
+                'email' => 'user@admin.com',
+                'phone' => '081200000003',
+                'position' => 'Staff',
                 'role' => 'user',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
+            ],
+        ];
 
-        $this->command->info('✅ Regular user created: user@admin.com / password123');
+        // ============================================================
+        // CREATE / UPDATE USER
+        // ============================================================
+        foreach ($users as $data) {
+            // Generate username dari email sebelum @
+            // Contoh: admin@admin.com → admin
+            $username = User::generateUsername($data['email']);
+
+            // Cek apakah user sudah ada (by email) — kalau ada, pakai username lama
+            $existing = User::withTrashed()->where('email', $data['email'])->first();
+            if ($existing) {
+                $username = $existing->username;
+            }
+
+            $user = User::updateOrCreate(
+                ['email' => $data['email']],
+                [
+                    'nip' => $data['nip'],
+                    'username' => $username,
+                    'name' => $data['name'],
+                    'password' => Hash::make($defaultPassword),
+                    'phone' => $data['phone'],
+                    'position' => $data['position'],
+                    'role' => $data['role'],
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                    'deleted_at' => null, // restore kalau pernah di-soft delete
+                ]
+            );
+
+            $this->command->info("✅ {$data['role']} created: {$username} / {$defaultPassword}");
+        }
+
+        $this->command->newLine();
+        $this->command->info('🎉 All default users seeded successfully!');
     }
 }

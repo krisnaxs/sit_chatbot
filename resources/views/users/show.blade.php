@@ -4,216 +4,413 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail User - Admin</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>Detail User — {{ $user->name }}</title>
+
     <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="bg-slate-100 font-sans">
 
-    <x-header title="Detail User" placeholder="Cari user..." />
+    <x-header title="Detail User" />
     <x-sidebar />
 
     <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-3xl mx-auto p-6 mt-4 lg:mr-auto transition-all duration-300">
+        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
 
-        <!-- BREADCRUMB -->
-        <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
-            <a href="{{ route('users.index') }}" class="hover:text-blue-600 transition">Manajemen User</a>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            <span class="text-gray-900 font-semibold">Detail</span>
-        </nav>
+        <div class="space-y-6">
 
-        <!-- PROFILE CARD -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {{-- HEADER --}}
+            <div>
+                <a href="{{ route('users.index') }}" class="text-sm text-indigo-600 hover:underline">← Kembali ke daftar
+                    user</a>
+            </div>
 
-            <!-- HERO BANNER -->
-            <div class="h-32 bg-gradient-to-br from-blue-500 to-violet-600"></div>
+            {{-- KARTU PROFIL --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-br from-indigo-500 to-violet-600 h-24"></div>
 
-            <!-- PROFILE -->
-            <div class="px-6 sm:px-8 pb-8">
-                <!-- Avatar -->
-                <div class="flex items-end justify-between -mt-16 mb-4">
-                    <div
-                        class="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600
-                                flex items-center justify-center
-                                text-white font-black text-4xl
-                                ring-4 ring-white shadow-xl shrink-0">
-                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                <div class="px-6 pb-6">
+                    <div class="flex flex-wrap items-end gap-4 -mt-12">
+                        <div class="w-24 h-24 rounded-2xl bg-white p-1 shadow-lg">
+                            <div
+                                class="w-full h-full rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-3xl font-bold">
+                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                            </div>
+                        </div>
+
+                        <div class="flex-1 min-w-0 pb-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h1 class="text-2xl font-bold text-gray-800">{{ $user->name }}</h1>
+
+                                {{-- Badge role --}}
+                                <span
+                                    class="px-2.5 py-0.5 text-xs rounded-full font-bold uppercase
+                                    @if ($user->role === 'admin') bg-violet-100 text-violet-700 border border-violet-200
+                                    @elseif ($user->role === 'support') bg-blue-100 text-blue-700 border border-blue-200
+                                    @else bg-gray-100 text-gray-600 border border-gray-200 @endif">
+                                    {{ $user->role }}
+                                </span>
+
+                                {{-- Badge status --}}
+                                @if ($user->is_active)
+                                    <span
+                                        class="px-2.5 py-0.5 text-xs rounded-full font-bold bg-green-100 text-green-700 border border-green-200">
+                                        AKTIF
+                                    </span>
+                                @else
+                                    <span
+                                        class="px-2.5 py-0.5 text-xs rounded-full font-bold bg-red-100 text-red-700 border border-red-200">
+                                        NONAKTIF
+                                    </span>
+                                @endif
+                            </div>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ $user->position ?? '-' }}
+                                @if ($user->department)
+                                    • {{ $user->department->name }}
+                                @endif
+                            </p>
+                        </div>
+
+                        <div class="flex gap-2 pb-1">
+                            <a href="{{ route('users.edit', $user) }}"
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+                                ✏️ Edit
+                            </a>
+                        </div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <a href="{{ route('users.edit', $user) }}"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
-                                   bg-gradient-to-br from-blue-500 to-violet-600
-                                   hover:from-blue-600 hover:to-violet-700
-                                   text-white font-semibold text-sm
-                                   shadow-lg shadow-blue-500/30
-                                   transition-all duration-300
-                                   hover:scale-105 active:scale-95">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit
-                        </a>
-                    </div>
+                    {{-- Info grid --}}
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t text-sm">
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">NIP</dt>
+                            <dd class="font-mono font-medium">{{ $user->nip ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">Username</dt>
+                            <dd class="font-mono font-medium text-indigo-700">{{ $user->username }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">Email</dt>
+                            <dd class="font-medium break-all">{{ $user->email }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">No. HP</dt>
+                            <dd class="font-medium">{{ $user->phone ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">Departemen</dt>
+                            <dd class="font-medium">{{ $user->department?->name ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">Jabatan</dt>
+                            <dd class="font-medium">{{ $user->position ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">Lokasi Kerja</dt>
+                            <dd class="font-medium">{{ $user->location?->full_name ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">Terdaftar</dt>
+                            <dd class="font-medium">{{ $user->created_at?->format('d M Y') ?? '-' }}</dd>
+                        </div>
+                    </dl>
                 </div>
+            </div>
 
-                <!-- Name & Email -->
-                <div class="mb-6">
-                    <div class="flex items-center gap-2 flex-wrap mb-1">
-                        <h1 class="text-2xl font-bold text-gray-900">{{ $user->name }}</h1>
-                        @php
-                            $roleColors = [
-                                'admin' => 'bg-violet-50 text-violet-700 border-violet-200',
-                                'support' => 'bg-blue-50 text-blue-700 border-blue-200',
-                                'user' => 'bg-gray-50 text-gray-700 border-gray-200',
-                            ];
-                        @endphp
-                        <span
-                            class="px-2.5 py-1 rounded-lg border {{ $roleColors[$user->role] ?? '' }}
-                                     text-xs font-bold uppercase">
-                            {{ $user->role }}
+            {{-- STATISTIK RINGKAS --}}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-cyan-500">
+                    <div class="text-xs text-gray-500 uppercase">Aset Dipegang</div>
+                    <div class="text-2xl font-bold text-cyan-600">{{ $user->currentAssets->count() }}</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-blue-500">
+                    <div class="text-xs text-gray-500 uppercase">History Pemakai</div>
+                    <div class="text-2xl font-bold text-blue-600">{{ $user->assetAssignments->count() }}</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-amber-500">
+                    <div class="text-xs text-gray-500 uppercase">Peminjaman Aktif</div>
+                    <div class="text-2xl font-bold text-amber-600">{{ $user->activeLoans->count() }}</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-pink-500">
+                    <div class="text-xs text-gray-500 uppercase">Konsumable</div>
+                    <div class="text-2xl font-bold text-pink-600">{{ $user->consumableTransactions->count() }}</div>
+                </div>
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- ASET YANG SEDANG DIPEGANG --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
+                        Aset yang Sedang Dipegang
+                        <span class="text-xs text-gray-500 font-normal">
+                            ({{ $user->currentAssets->count() }})
                         </span>
-                        @if ($user->is_active)
-                            <span
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg
-                                         bg-emerald-50 text-emerald-700 border border-emerald-200
-                                         text-xs font-semibold">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                Aktif
-                            </span>
-                        @else
-                            <span
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg
-                                         bg-gray-100 text-gray-500 border border-gray-200
-                                         text-xs font-semibold">
-                                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                                Nonaktif
-                            </span>
-                        @endif
-                    </div>
-                    <p class="text-gray-500">{{ $user->email }}</p>
+                    </h2>
                 </div>
 
-                <!-- INFO GRID -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-gray-100">
-
-                    <!-- ID -->
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">User ID</p>
-                            <p class="text-sm font-bold text-gray-900">#{{ $user->id }}</p>
-                        </div>
+                @if ($user->currentAssets->isEmpty())
+                    <div class="text-center py-8">
+                        <p class="text-sm text-gray-400 italic">Tidak ada aset yang sedang dipegang.</p>
                     </div>
-
-                    <!-- Role -->
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-500" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Role</p>
-                            <p class="text-sm font-bold text-gray-900">{{ ucfirst($user->role) }}</p>
-                        </div>
+                @else
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach ($user->currentAssets as $asset)
+                            <a href="{{ route('siam.assets.show', $asset) }}"
+                                class="flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 transition group">
+                                <div class="w-12 h-12 rounded-lg bg-cyan-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-600" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium text-gray-800 truncate">
+                                        {{ $asset->brand }} {{ $asset->model }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 font-mono">
+                                        SN: {{ $asset->serial_number }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ $asset->category?->name }}
+                                        @if ($asset->currentLocation)
+                                            • 📍 {{ $asset->currentLocation->full_name }}
+                                        @endif
+                                    </div>
+                                    @if ($asset->condition_percent !== null)
+                                        <div class="mt-2 flex items-center gap-2">
+                                            <div class="w-20 bg-gray-200 rounded-full h-1.5">
+                                                <div class="h-1.5 rounded-full
+                                                    {{ $asset->condition_percent >= 80
+                                                        ? 'bg-green-500'
+                                                        : ($asset->condition_percent >= 60
+                                                            ? 'bg-yellow-500'
+                                                            : ($asset->condition_percent >= 40
+                                                                ? 'bg-orange-500'
+                                                                : 'bg-red-500')) }}"
+                                                    style="width: {{ $asset->condition_percent }}%"></div>
+                                            </div>
+                                            <span class="text-xs text-gray-600">{{ $asset->condition_percent }}%</span>
+                                        </div>
+                                    @endif
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 text-gray-400 group-hover:text-cyan-600 transition shrink-0"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        @endforeach
                     </div>
-
-                    <!-- Dibuat -->
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Dibuat</p>
-                            <p class="text-sm font-bold text-gray-900">
-                                {{ $user->created_at->format('d M Y') }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Login terakhir -->
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Terakhir Update</p>
-                            <p class="text-sm font-bold text-gray-900">
-                                {{ $user->updated_at->diffForHumans() }}
-                            </p>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- BACK BUTTON -->
-                <div class="mt-8 pt-6 border-t border-gray-100">
-                    <a href="{{ route('users.index') }}"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
-                               border border-gray-300 text-gray-700 font-semibold text-sm
-                               hover:bg-gray-50 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Kembali ke Daftar
-                    </a>
-                </div>
+                @endif
             </div>
+
+            {{-- ============================================================ --}}
+            {{-- HISTORY PEMAKAI --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        History Pemakai
+                        <span class="text-xs text-gray-500 font-normal">
+                            ({{ $user->assetAssignments->count() }})
+                        </span>
+                    </h2>
+                </div>
+
+                @if ($user->assetAssignments->isEmpty())
+                    <div class="text-center py-8">
+                        <p class="text-sm text-gray-400 italic">Belum ada history pemakaian aset.</p>
+                    </div>
+                @else
+                    <div class="space-y-3">
+                        @foreach ($user->assetAssignments->sortByDesc('assigned_at') as $a)
+                            <div
+                                class="flex items-start gap-3 p-3 rounded-xl border
+                                {{ $a->is_active ? 'border-blue-300 bg-blue-50' : 'border-gray-200' }}">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <a href="{{ route('siam.assets.show', $a->asset) }}"
+                                            class="font-medium text-gray-800 hover:text-blue-600 hover:underline">
+                                            {{ $a->asset?->brand }} {{ $a->asset?->model }}
+                                        </a>
+                                        @if ($a->is_active)
+                                            <span
+                                                class="px-2 py-0.5 text-xs rounded bg-blue-600 text-white font-semibold">
+                                                SEDANG DIPAKAI
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">
+                                                Sudah Kembali
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs text-gray-500 font-mono mt-0.5">
+                                        SN: {{ $a->asset?->serial_number }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        📅 {{ $a->assigned_at?->format('d M Y') ?? '-' }}
+                                        →
+                                        {{ $a->returned_at?->format('d M Y') ?? 'Sekarang' }}
+                                        @if ($a->duration_days !== null)
+                                            <span class="text-gray-400">({{ $a->duration_days }} hari)</span>
+                                        @endif
+                                    </div>
+                                    @if ($a->condition_on_assign !== null || $a->condition_on_return !== null)
+                                        <div class="text-xs text-gray-500 mt-0.5">
+                                            Kondisi: serah {{ $a->condition_on_assign ?? '-' }}%
+                                            @if ($a->condition_on_return !== null)
+                                                → kembali {{ $a->condition_on_return }}%
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- PEMINJAMAN AKTIF --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Peminjaman Aktif
+                        <span class="text-xs text-gray-500 font-normal">
+                            ({{ $user->activeLoans->count() }})
+                        </span>
+                    </h2>
+                </div>
+
+                @if ($user->activeLoans->isEmpty())
+                    <div class="text-center py-8">
+                        <p class="text-sm text-gray-400 italic">Tidak ada peminjaman aktif.</p>
+                    </div>
+                @else
+                    <ul class="space-y-3">
+                        @foreach ($user->activeLoans as $loan)
+                            <li class="flex items-start gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <a href="{{ route('siam.assets.show', $loan->asset) }}"
+                                        class="font-medium text-gray-800 hover:text-amber-600 hover:underline">
+                                        {{ $loan->asset?->brand }} {{ $loan->asset?->model }}
+                                    </a>
+                                    <div class="text-xs text-gray-500 font-mono">
+                                        SN: {{ $loan->asset?->serial_number }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        📅 Pinjam: {{ $loan->loan_date?->format('d M Y') }}
+                                        → Jatuh tempo: {{ $loan->due_date?->format('d M Y') }}
+                                        @if ($loan->is_overdue)
+                                            <span
+                                                class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-red-100 text-red-700 font-bold">
+                                                TERLAMBAT
+                                            </span>
+                                        @endif
+                                    </div>
+                                    @if ($loan->purpose)
+                                        <div class="text-xs text-gray-500 mt-0.5">
+                                            Tujuan: {{ $loan->purpose }}
+                                        </div>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- KONSUMABLE YANG PERNAH DIMINTA --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+                        Konsumable yang Pernah Diminta
+                        <span class="text-xs text-gray-500 font-normal">
+                            ({{ $user->consumableTransactions->count() }})
+                        </span>
+                    </h2>
+                </div>
+
+                @if ($user->consumableTransactions->isEmpty())
+                    <div class="text-center py-8">
+                        <p class="text-sm text-gray-400 italic">Belum pernah minta konsumable.</p>
+                    </div>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                                <tr>
+                                    <th class="px-3 py-2 text-left">Tanggal</th>
+                                    <th class="px-3 py-2 text-left">Item</th>
+                                    <th class="px-3 py-2 text-left">Tipe</th>
+                                    <th class="px-3 py-2 text-right">Qty</th>
+                                    <th class="px-3 py-2 text-left">Keperluan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach ($user->consumableTransactions->sortByDesc('transaction_date') as $t)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-3 py-2 text-xs">
+                                            {{ $t->transaction_date?->format('d M Y H:i') ?? '-' }}
+                                        </td>
+                                        <td class="px-3 py-2 text-xs font-medium">
+                                            {{ $t->consumable?->name ?? '-' }}
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            @php
+                                                $typeColor = match ($t->type) {
+                                                    'in' => 'bg-green-100 text-green-700',
+                                                    'out' => 'bg-red-100 text-red-700',
+                                                    'return' => 'bg-blue-100 text-blue-700',
+                                                    default => 'bg-gray-100 text-gray-700',
+                                                };
+                                            @endphp
+                                            <span class="px-2 py-0.5 text-xs rounded {{ $typeColor }}">
+                                                {{ $t->type_label }}
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-medium">{{ $t->quantity }}</td>
+                                        <td class="px-3 py-2 text-xs">{{ $t->purpose ?? '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+
         </div>
-
-        <!-- DANGER ZONE (opsional) -->
-        @if ($user->id !== auth()->id())
-            <div class="mt-6 bg-white rounded-2xl shadow-sm border border-red-100 p-6">
-                <h3 class="font-bold text-red-700 mb-2">Zona Berbahaya</h3>
-                <p class="text-sm text-gray-500 mb-4">
-                    Menghapus user akan menghilangkan semua data terkait. Tindakan ini tidak bisa dibatalkan.
-                </p>
-                <button type="button"
-                    onclick="if(confirm('Yakin ingin menghapus user ini?')) { document.getElementById('showDeleteForm').submit(); }"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
-                           bg-red-600 hover:bg-red-700 text-white font-semibold text-sm
-                           shadow-lg shadow-red-500/30 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Hapus User Ini
-                </button>
-
-                <form id="showDeleteForm" method="POST" action="{{ route('users.destroy', $user) }}"
-                    class="hidden">
-                    @csrf
-                    @method('DELETE')
-                </form>
-            </div>
-        @endif
-
     </div>
 
     <script>

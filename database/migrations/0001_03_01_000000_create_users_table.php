@@ -11,33 +11,32 @@ return new class extends Migration {
             $table->id();
 
             // ============ IDENTITAS ============
-            $table->string('nik')->nullable()->unique()->after('id');   // NIK pegawai
+            $table->string('nip')->nullable()->unique();       // ✅ hapus ->after()
+            $table->string('username')->unique();              // ✅ hapus ->after()
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('phone')->nullable();                        // no. HP
-            $table->string('photo_path')->nullable();                   // foto profil
+            $table->string('phone')->nullable();
+            $table->string('photo_path')->nullable();
 
             // ============ ORGANISASI ============
             $table->foreignId('department_id')->nullable()
                 ->constrained('departments')->nullOnDelete();
-            $table->string('position')->nullable();                     // jabatan
+
+            $table->string('position')->nullable();
 
             $table->foreignId('location_id')->nullable()
-                ->constrained('locations')->nullOnDelete();           // lokasi kerja default
+                ->constrained('locations')->nullOnDelete();
 
             // ============ ROLE & STATUS ============
-            // admin   = super admin
-            // support = IT support (assign aset, maintenance)
-            // user    = pegawai biasa (pemakai aset)
             $table->enum('role', ['admin', 'support', 'user'])->default('user');
             $table->boolean('is_active')->default(true);
 
             // ============ AUTH ============
             $table->rememberToken();
             $table->timestamps();
-            $table->softDeletes();   // opsional: user jangan hard delete
+            $table->softDeletes();
 
             // ============ INDEX ============
             $table->index('role');
