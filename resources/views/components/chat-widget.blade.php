@@ -156,7 +156,7 @@
                         class="bg-white rounded-2xl rounded-tl-sm px-3.5 py-2.5 shadow-sm border border-gray-100 max-w-[80%]">
                         <p class="text-sm text-gray-700 font-semibold mb-0.5">Halo! 👋</p>
                         <p class="text-sm text-gray-600">
-                            Ada yang bisa saya bantu? Tanya apa saja tentang aplikasi di SIT.
+                            Ada yang bisa saya bantu?
                         </p>
                     </div>
                 </div>
