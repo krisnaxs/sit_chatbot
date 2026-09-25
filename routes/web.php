@@ -81,4 +81,6 @@ Route::post('/chat/send', [ChatController::class, 'send'])
 // PORTAL PUBLIK
 // ============================================================
 Route::get('/', [PortalController::class, 'index'])->name('portal');
-Route::get('/go/{id}', [PortalController::class, 'click'])->name('app.click');
+Route::get('/portal/legacy', [PortalController::class, 'legacy'])->name('portal.legacy');
+Route::get('/app/click/{id}', [PortalController::class, 'click'])->name('app.click');
+
