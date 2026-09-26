@@ -361,12 +361,12 @@ class SiamDashboardController extends Controller
         $recentAssignments = collect($recentSerah)
             ->merge($recentKembali)
             ->sortByDesc('at')
-            ->take(8)
+            ->take(5)
             ->values();
 
         $recentActivities = Activity::with('causer')
             ->orderByDesc('id')
-            ->limit(8)
+            ->limit(5)
             ->get();
 
         // ============================================================
