@@ -82,7 +82,7 @@ class ChatController extends Controller
     ];
 
     /**
-     * 🆕 Kata tanya — kalau ada, JANGAN anggap follow-up.
+     * Kata tanya — kalau ada, JANGAN anggap follow-up.
      */
     private const QUESTION_WORDS = [
         'berapa',
@@ -98,7 +98,6 @@ class ChatController extends Controller
         'merk',
         'merek',
         'brand',
-        'terbanyak',
         'terbanyak',
         'paling',
         'top',
@@ -117,7 +116,7 @@ class ChatController extends Controller
     ];
 
     /**
-     * 🆕 Whitelist follow-up — pesan harus mengandung salah satu ini.
+     * Whitelist follow-up — pesan harus mengandung salah satu ini.
      */
     private const FOLLOWUP_KEYWORDS = [
         'lanjut',
@@ -174,7 +173,7 @@ class ChatController extends Controller
         $pesan = trim($request->input('pesan'));
         $sessionId = $request->session()->getId();
 
-        // 🆕 Cek follow-up DULU
+        // Cek follow-up DULU
         $followUp = $this->handleFollowUp($pesan, $request);
 
         if ($followUp) {
@@ -223,14 +222,14 @@ class ChatController extends Controller
     }
 
     // ============================================================
-    // 🆕 FOLLOW-UP HANDLER
+    // FOLLOW-UP HANDLER
     // ============================================================
 
     private function handleFollowUp(string $pesan, Request $request): ?array
     {
         $lower = Str::lower(trim($pesan));
 
-        // 🆕 Kalau ada kata tanya → BUKAN follow-up
+        // Kalau ada kata tanya → BUKAN follow-up
         foreach (self::QUESTION_WORDS as $qw) {
             if (str_contains($lower, $qw)) {
                 return null;
@@ -258,7 +257,7 @@ class ChatController extends Controller
             }
         }
 
-        // 🆕 Whitelist: harus mengandung salah satu FOLLOWUP_KEYWORDS
+        // Whitelist: harus mengandung salah satu FOLLOWUP_KEYWORDS
         $isFollowUp = false;
         foreach (self::FOLLOWUP_KEYWORDS as $kw) {
             if (str_contains($lower, $kw)) {
@@ -351,9 +350,6 @@ class ChatController extends Controller
         return [$jawaban, 'database'];
     }
 
-    /**
-     * 🆕 Follow-up: aset by ownership (hak milik / sewa).
-     */
     private function followUpAssetByOwnership(array $ctx, int $offset, int $limit, Request $request): array
     {
         $ownership = $ctx['ownership'] ?? null;
@@ -608,18 +604,71 @@ class ChatController extends Controller
     }
 
     // ============================================================
-    // CARI JAWABAN
+    // CARI JAWABAN (3.5 LAYER)
     // ============================================================
 
     private function cariJawaban(string $pesan): array
     {
-        // LAYER 0: Query Database via QueryRouter
+        // ============================================================
+        // LAYER 0: QueryRouter (SIAM + Aset Spesifik)
+        // ============================================================
         $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
         if ($dbAnswer) {
+            // Kalau handler return context (index 2), simpan ke session
+            if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
+                session()->put('last_query_context', $dbAnswer[2]);
+            }
             return [$dbAnswer[0], 'database', null];
         }
 
-        // Bersihkan pesan
+        // ============================================================
+        // 🆕 LAYER 0.5: Safety net deteksi SN/hostname pattern
+        // ============================================================
+        // Contoh: NB-T14-005, T14-SN-0005, AST-2026-0005, PC-DESK-003
+        // PENTING: HANYA return kalau aset DITEMUKAN di DB
+        //          Kalau tidak ada → lanjut ke Knowledge/AI (biar tetap bisa jawab topik umum)
+        if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
+            $identifier = strtoupper($m[1]);
+
+            $asset = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
+                ->where('serial_number', 'like', "%{$identifier}%")
+                ->orWhere('hostname', 'like', "%{$identifier}%")
+                ->orWhere('asset_code', 'like', "%{$identifier}%")
+                ->first();
+
+            // HANYA return kalau aset DITEMUKAN
+            if ($asset) {
+                $jawaban = "🔍 **{$asset->serial_number}**";
+                if ($asset->hostname) {
+                    $jawaban .= " ({$asset->hostname})";
+                }
+                $jawaban .= "\n\n"
+                    . "• Brand/Model: {$asset->brand} {$asset->model}\n"
+                    . "• Kategori: " . ($asset->category?->name ?? '-') . "\n"
+                    . "• Status: {$asset->status}\n"
+                    . "• Hak Kepemilikan: " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa') . "\n";
+
+                if ($asset->currentUser) {
+                    $jawaban .= "\n👤 **Pemegang saat ini:** {$asset->currentUser->name}";
+                    if ($asset->currentUser->position) {
+                        $jawaban .= " ({$asset->currentUser->position})";
+                    }
+                } else {
+                    $jawaban .= "\n👤 **Pemegang saat ini:** *tidak ada* (aset tersedia)";
+                }
+
+                if ($asset->currentLocation) {
+                    $jawaban .= "\n📍 **Lokasi:** {$asset->currentLocation->full_name}";
+                }
+
+                return [$jawaban, 'database', null];
+            }
+            // Kalau tidak ada di DB → JANGAN return, lanjut ke Knowledge/AI
+        }
+
+        // ============================================================
+        // LAYER 1-2: Knowledge (SIAM + Umum)
+        // ============================================================
         $pesanBersih = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($pesan));
         $pesanBersih = preg_replace('/\s+/', ' ', trim($pesanBersih));
 
@@ -650,7 +699,9 @@ class ChatController extends Controller
             ];
         }
 
-        // LAYER 3: Fallback Ollama
+        // ============================================================
+        // LAYER 3: AI Fallback (SIAM + IT Umum)
+        // ============================================================
         return [$this->tanyaOllama($pesan), 'ai', null];
     }
 
@@ -724,7 +775,7 @@ class ChatController extends Controller
     }
 
     // ============================================================
-    // OLLAMA
+    // OLLAMA (Dual-Mode: SIAM + IT Umum)
     // ============================================================
 
     private function tanyaOllama(string $pesan): string
@@ -755,14 +806,24 @@ class ChatController extends Controller
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => "Kamu adalah SIS Assistant, asisten virtual PLN UBP Suralaya. "
-                            . "SELALU jawab dalam Bahasa Indonesia. "
-                            . "Jawab SINGKAT (maksimal 3-4 kalimat). "
-                            . "LANGSUNG ke inti pertanyaan tanpa basa-basi. "
-                            . "JANGAN mulai jawaban dengan sapaan 'Halo' kecuali user menyapa duluan. "
-                            . "Kalau pertanyaan tidak jelas atau di luar topik, "
-                            . "katakan dengan sopan bahwa kamu hanya bisa membantu seputar aplikasi di SIT. "
-                            . "Jangan menyebut dirimu sebagai AI atau language model.",
+                        'content' => "Kamu adalah **SIS Assistant** — asisten virtual yang cerdas dan ramah untuk karyawan perusahaan.\n\n"
+                            . "**KEAHLIAN KAMU:**\n"
+                            . "1. **Aplikasi SIAM** — manajemen aset IT (laptop, PC, printer, monitor, konsumable).\n"
+                            . "   Istilah: hak milik (owned), sewa (leased), status aset, serah terima, BAST, peminjaman, perbaikan, vendor, garansi, kontrak sewa.\n"
+                            . "2. **IT Umum** — hardware, software, jaringan, keamanan, database, pemrograman, Microsoft Office, email, printer, cloud, troubleshooting dasar, dll.\n"
+                            . "3. **Aplikasi internal perusahaan** — helpdesk, ERP, Maximo, IAM, dll.\n\n"
+                            . "**ATURAN JAWAB:**\n"
+                            . "• SELALU jawab dalam Bahasa Indonesia.\n"
+                            . "• Jawab SINGKAT — maksimal 3-4 kalimat, LANGSUNG ke inti.\n"
+                            . "• JANGAN mulai dengan sapaan 'Halo' kecuali user menyapa duluan.\n"
+                            . "• Kalau tidak tahu, katakan: *\"Maaf, saya belum punya info tentang itu. Coba tanya dengan cara lain atau hubungi IT Support.\"*\n"
+                            . "• JANGAN mengarang fakta yang tidak kamu ketahui.\n\n"
+                            . "**KHUSUS — KODE ASET:**\n"
+                            . "Kode seperti `NB-T14-005`, `AST-2026-0001`, `T14-SN-0005`, `PC-DESK-003` adalah **HOSTNAME / SN / ASSET CODE** dari aset IT perusahaan.\n"
+                            . "JANGAN menganggapnya sebagai nomor meteran listrik, nomor rekening, atau nomor seri barang lain.\n"
+                            . "Kalau tidak tahu detail asetnya, arahkan user ke menu Aset di SIAM.\n\n"
+                            . "**GAYA:**\n"
+                            . "Ramah, profesional, solutif. Gunakan emoji secukupnya. Jangan sebut dirimu AI atau language model.",
                     ],
                     [
                         'role' => 'user',

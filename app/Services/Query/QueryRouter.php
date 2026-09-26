@@ -11,6 +11,9 @@ class QueryRouter
     public function tryAnswer(string $pesan): ?array
     {
         $services = [
+            app(CrossQueryService::class),
+            app(AnalyticsQueryService::class),
+            app(SiamQueryService::class),
             app(AssetQueryService::class),
             app(UserQueryService::class),
             app(LocationQueryService::class),

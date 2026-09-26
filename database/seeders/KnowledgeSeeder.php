@@ -33,6 +33,9 @@ class KnowledgeSeeder extends Seeder
             $this->faqSIT(),
             $this->plnUmum(),
             $this->troubleshooting(),
+            $this->siamAset(),
+            $this->siamTransaksi(),
+            $this->siamKonsumable(),
         );
 
         // Insert batched (500 per batch) → aman untuk 5000+ rows
@@ -43,9 +46,9 @@ class KnowledgeSeeder extends Seeder
             $rows = [];
             foreach ($chunk as $item) {
                 $rows[] = [
-                    'id'         => $id++,
+                    'id' => $id++,
                     'kata_kunci' => $item[0],
-                    'jawaban'    => $item[1],
+                    'jawaban' => $item[1],
                 ];
             }
             DB::table('knowledge')->insert($rows);
@@ -747,6 +750,150 @@ class KnowledgeSeeder extends Seeder
             ['cara backup data', 'Copy folder penting ke eksternal drive atau cloud storage.'],
             ['cara kompres file', 'Klik kanan file/folder > Send to > Compressed (zipped) folder.'],
             ['cara ekstrak zip', 'Klik kanan file .zip > Extract All, pilih lokasi, klik Extract.'],
+        ];
+    }
+
+    // ============================================================
+    // 21. SIAM — MANAJEMEN ASET (~50)
+    // ============================================================
+    private function siamAset(): array
+    {
+        return [
+            // ===== Konsep Dasar =====
+            ['apa itu siam', 'SIAM (Sistem Informasi Aset Manajemen) adalah aplikasi untuk mengelola aset IT perusahaan — mulai dari pendataan, serah terima, peminjaman, perbaikan, hingga monitoring hak kepemilikan (milik/sewa).'],
+            ['siam', 'SIAM adalah Sistem Informasi Aset Manajemen — aplikasi pengelolaan aset IT perusahaan.'],
+            ['fungsi siam', 'SIAM berfungsi untuk mendata, melacak, dan mengelola aset IT: siapa pemegangnya, di mana lokasinya, status, hak kepemilikan, dan riwayat perawatan.'],
+            ['kegunaan siam', 'SIAM berguna untuk pelacakan aset, laporan kepemilikan (milik/sewa), monitoring status, perencanaan perawatan, dan audit aset IT.'],
+
+            // ===== Dashboard =====
+            ['cara lihat dashboard siam', 'Buka menu Dashboard SIAM di sidebar. Di sana ada grafik Ringkasan Aset, Perbandingan Hak Milik vs Sewa, Breakdown per Kategori & Model, Status Aset, dan Tren Perbaikan.'],
+            ['dashboard siam', 'Dashboard SIAM adalah halaman utama yang menampilkan ringkasan & statistik aset IT: total, status, hak kepemilikan, kategori, brand, model, tren perbaikan, dll.'],
+            ['cara filter dashboard', 'Di Dashboard SIAM, ada 5 dropdown filter: Kategori, Brand, Model, Tahun Pembelian, dan Hak Kepemilikan. Pilih salah satu (atau lebih) — semua grafik & tabel otomatis ter-filter.'],
+            ['reset filter dashboard', 'Kalau mau reset filter, klik tombol "Reset Filter" berwarna merah di kanan atas panel filter.'],
+
+            // ===== Hak Kepemilikan =====
+            ['apa itu hak milik', 'Hak Milik (owned) artinya aset dibeli sendiri oleh perusahaan. Nilainya tercatat sebagai nilai aset perusahaan.'],
+            ['apa itu sewa', 'Sewa (leased) artinya aset disewa dari vendor. Ada biaya bulanan, kontrak, dan masa berlaku yang harus dipantau.'],
+            ['perbedaan hak milik dan sewa', "**Hak Milik (owned)**: aset dibeli sendiri, ada nilai pembelian, tidak ada biaya bulanan.\n**Sewa (leased)**: aset disewa vendor, ada biaya bulanan, ada kontrak & masa berlaku."],
+            ['apa itu ownership', 'Ownership / hak kepemilikan menentukan apakah aset itu milik perusahaan (owned) atau sewa (leased). Berpengaruh ke biaya (pembelian vs bulanan).'],
+            ['apa itu owned', 'Owned = hak milik. Aset dibeli sendiri, tercatat di nilai aset perusahaan.'],
+            ['apa itu leased', 'Leased = sewa. Aset disewa dari vendor, ada biaya bulanan dan kontrak.'],
+            ['bedanya owned dan leased', '**Owned** = milik sendiri (bayar sekali). **Leased** = sewa (bayar bulanan, ada kontrak).'],
+
+            // ===== Status Aset =====
+            ['status aset apa saja', 'Status aset: **Tersedia** (available), **Dipakai** (in_use), **Dipinjam** (loaned), **Perbaikan** (maintenance), **Pensiun** (retired), **Hilang** (lost).'],
+            ['apa itu status tersedia', 'Status "Tersedia" (available) artinya aset siap dipakai, tidak sedang dipegang siapa pun.'],
+            ['apa itu status dipakai', 'Status "Dipakai" (in_use) artinya aset sedang dipegang/digunakan user tertentu.'],
+            ['apa itu status dipinjam', 'Status "Dipinjam" (loaned) artinya aset sedang dipinjam untuk jangka waktu tertentu.'],
+            ['apa itu status perbaikan', 'Status "Perbaikan" (maintenance) artinya aset sedang dalam perawatan/servis.'],
+            ['apa itu status pensiun', 'Status "Pensiun" (retired) artinya aset sudah tidak dipakai lagi.'],
+            ['apa itu status hilang', 'Status "Hilang" (lost) artinya aset tidak ditemukan / hilang.'],
+            ['apa itu available', 'Available = tersedia. Aset siap dipakai, tidak sedang dipegang siapa pun.'],
+            ['apa itu in use', 'In Use = dipakai. Aset sedang digunakan user tertentu.'],
+            ['apa itu maintenance', 'Maintenance = perbaikan. Aset sedang di-servis atau dalam perawatan.'],
+            ['apa itu retired', 'Retired = pensiun. Aset sudah tidak digunakan lagi.'],
+
+            // ===== Kategori/Brand/Model =====
+            ['apa itu kategori aset', 'Kategori aset adalah pengelompokan aset berdasarkan jenisnya — misal Laptop, PC Desktop, Printer, Monitor.'],
+            ['apa itu brand aset', 'Brand adalah merek aset — misal Lenovo, HP, Epson, Logitech.'],
+            ['apa itu model aset', 'Model adalah tipe spesifik dari brand — misal Lenovo ThinkPad T14, HP ProDesk 400 G9.'],
+            ['apa itu asset code', 'Asset Code adalah kode unik aset (contoh: AST-2026-0001) untuk identifikasi internal.'],
+            ['apa itu serial number', 'Serial Number (SN) adalah nomor seri dari pabrik — unik per unit.'],
+            ['apa itu hostname', 'Hostname adalah nama jaringan komputer (contoh: NB-T14-001), dipakai untuk identifikasi di jaringan.'],
+
+            // ===== Nilai Aset =====
+            ['apa itu nilai aset', 'Nilai aset adalah total harga pembelian aset hak milik. Untuk aset sewa, yang dicatat adalah biaya bulanan.'],
+            ['apa itu biaya sewa', 'Biaya sewa adalah pengeluaran bulanan untuk aset yang di-sewa dari vendor (contoh: Rp 500.000/bulan).'],
+            ['apa itu kontrak sewa', 'Kontrak sewa adalah perjanjian antara perusahaan dengan vendor sewa — mencakup periode, biaya, dan ketentuan.'],
+
+            // ===== Garansi & Vendor =====
+            ['apa itu garansi', 'Garansi adalah jaminan dari vendor/pabrikan bahwa aset akan diperbaiki gratis jika ada kerusakan dalam periode tertentu.'],
+            ['apa itu vendor', 'Vendor adalah pihak ketiga yang menyediakan aset (jual/sewa) atau jasa perbaikan.'],
+            ['jenis vendor', 'Vendor di SIAM ada 3 jenis: **sewa** (penyedia sewa), **pembelian** (penjual), dan **both** (keduanya).'],
+
+            // ===== Aksi =====
+            ['cara tambah aset', 'Buka menu Aset > Tambah Aset. Isi data aset (SN, brand, model, kategori, hak kepemilikan, dll), lalu simpan.'],
+            ['cara edit aset', 'Buka detail aset, klik tombol Edit. Ubah data yang perlu, lalu simpan.'],
+            ['cara hapus aset', 'Buka detail aset, klik tombol Hapus. Konfirmasi penghapusan.'],
+            ['cara export aset', 'Di halaman daftar aset, klik tombol **Export Excel** atau **Export PDF**. Filter yang aktif akan ikut ter-export.'],
+            ['cara cari aset', 'Di halaman daftar aset, ketik di kolom pencarian: SN, brand, model, hostname, atau nama user pemegang.'],
+        ];
+    }
+
+    // ============================================================
+    // 22. SIAM — TRANSAKSI (Serah Terima, Pinjam, Perbaikan) (~30)
+    // ============================================================
+    private function siamTransaksi(): array
+    {
+        return [
+            // ===== Serah Terima (Assignment) =====
+            ['apa itu serah terima', 'Serah terima (assignment) adalah proses pemindahan aset dari IT ke user tertentu. Dicatat siapa penerima, kapan, kondisi, dan lokasi.'],
+            ['apa itu assignment', 'Assignment (serah terima) adalah proses aset diserahkan ke user untuk dipakai.'],
+            ['apa itu bast', 'BAST (Berita Acara Serah Terima) adalah dokumen bukti serah terima aset. Nomornya dicatat di setiap record assignment.'],
+            ['cara serah terima aset', 'Buka detail aset > klik "Assign" atau dari menu Serah Terima > Tambah. Pilih user, isi kondisi & catatan, simpan.'],
+            ['apa itu pengembalian aset', 'Pengembalian aset adalah proses user mengembalikan aset ke kantor/IT. Status aset kembali "Tersedia".'],
+
+            // ===== Peminjaman (Loan) =====
+            ['apa itu peminjaman', 'Peminjaman (loan) adalah penggunaan aset untuk jangka waktu tertentu (misal dinas luar, meeting), harus dikembalikan sesuai due date.'],
+            ['apa itu loan', 'Loan (peminjaman) adalah aset dipinjam user untuk periode tertentu, dengan tanggal pinjam & jatuh tempo.'],
+            ['apa itu due date', 'Due date adalah tanggal jatuh tempo pengembalian aset yang dipinjam.'],
+            ['apa itu overdue', 'Overdue artinya peminjaman sudah melewati tanggal jatuh tempo (terlambat).'],
+            ['cara pinjam aset', 'Buka menu Peminjaman > Tambah. Pilih aset & user, isi tanggal pinjam, due date, dan keperluan.'],
+            ['cara kembalikan aset pinjam', 'Di halaman detail peminjaman, klik tombol "Kembalikan", isi kondisi saat kembali & catatan, simpan.'],
+            ['apa itu status borrowed', 'Status "borrowed" artinya aset sedang dipinjam dan belum dikembalikan.'],
+            ['apa itu status returned', 'Status "returned" artinya aset sudah dikembalikan.'],
+
+            // ===== Perbaikan (Maintenance) =====
+            ['apa itu perbaikan', 'Perbaikan (maintenance) adalah proses servis aset yang rusak, baik preventive (rutin) maupun corrective (karena kerusakan).'],
+            ['apa itu maintenance', 'Maintenance (perbaikan) adalah perawatan/servis aset. Di SIAM ada 3 tipe: preventive, corrective, upgrade.'],
+            ['jenis maintenance', 'Tipe maintenance: **preventive** (rutin/pencegahan), **corrective** (karena rusak), **upgrade** (peningkatan spesifikasi).'],
+            ['apa itu preventive', 'Preventive maintenance adalah perawatan rutin untuk mencegah kerusakan — misal pembersihan, update BIOS.'],
+            ['apa itu corrective', 'Corrective maintenance adalah perbaikan karena ada kerusakan — misal keyboard rusak, baterai drop.'],
+            ['apa itu upgrade', 'Upgrade adalah peningkatan spesifikasi aset — misal tambah RAM, ganti SSD.'],
+            ['cara catat perbaikan', 'Buka menu Perbaikan > Tambah. Pilih aset, isi jenis, masalah, teknisi, biaya, tanggal mulai.'],
+            ['apa itu condition percent', 'Condition percent adalah nilai kondisi aset (0-100%) — 100% = mulus, 0% = rusak total.'],
+            ['apa itu condition before after', 'Di record perbaikan ada kondisi **sebelum** (sebelum diperbaiki) dan **sesudah** (setelah diperbaiki).'],
+
+            // ===== Movement / Log =====
+            ['apa itu asset movement', 'Asset Movement adalah riwayat pergerakan aset — dari siapa ke siapa, dari lokasi mana ke mana.'],
+            ['apa itu activity log', 'Activity Log adalah catatan aktivitas di sistem — siapa melakukan apa, kapan. Berguna untuk audit.'],
+        ];
+    }
+
+    // ============================================================
+    // 23. SIAM — KONSUMABLE & UMUM (~20)
+    // ============================================================
+    private function siamKonsumable(): array
+    {
+        return [
+            // ===== Konsumable =====
+            ['apa itu konsumable', 'Konsumable adalah barang habis pakai seperti mouse, keyboard, HDD eksternal. Stoknya dipantau; ada batas minimum untuk warning.'],
+            ['apa itu consumable', 'Consumable (konsumable) adalah barang habis pakai yang stoknya berkurang saat dipakai user.'],
+            ['apa itu stock available', 'Stock Available adalah jumlah stok konsumable yang tersedia untuk dipakai.'],
+            ['apa itu stock minimum', 'Stock Minimum adalah batas minimum stok. Kalau stock available ≤ minimum, muncul warning "low stock".'],
+            ['apa itu low stock', 'Low stock artinya stok konsumable sudah di bawah/sama dengan batas minimum — perlu segera restock.'],
+            ['apa itu stock out', 'Stock out artinya stok konsumable habis (0 unit).'],
+            ['cara catat transaksi konsumable', 'Buka menu Transaksi Konsumable > Tambah. Pilih konsumable, tipe (in/out/return), jumlah, penerima, dan simpan.'],
+            ['jenis transaksi konsumable', 'Transaksi konsumable ada 3 tipe: **in** (masuk/restock), **out** (keluar/dipakai), **return** (dikembalikan).'],
+            ['apa itu transaksi in', 'Transaksi "in" adalah konsumable masuk (restock/pembelian baru). Stok total & tersedia naik.'],
+            ['apa itu transaksi out', 'Transaksi "out" adalah konsumable keluar (dipakai user). Stok tersedia turun.'],
+            ['apa itu transaksi return', 'Transaksi "return" adalah konsumable dikembalikan user. Stok tersedia naik kembali.'],
+
+            // ===== User =====
+            ['cara tambah user', 'Buka menu User > Tambah User. Isi nama, email, password, departemen, lokasi, dan role.'],
+            ['role user apa saja', 'Role user di SIAM: **admin** (full access), **support** (bisa tambah aplikasi), **user** (akses terbatas).'],
+            ['apa itu departemen', 'Departemen adalah unit kerja user — misal IT, Finance, HRD, Marketing, Operations.'],
+            ['apa itu lokasi', 'Lokasi adalah tempat user/aset berada — misal Gedung A - Lt. 1 - Ruang IT.'],
+
+            // ===== Laporan =====
+            ['laporan apa saja di siam', 'Di SIAM ada laporan: Daftar Aset, Daftar Serah Terima, Daftar Peminjaman, Daftar Perbaikan, Transaksi Konsumable, Activity Log.'],
+            ['cara lihat laporan', 'Buka menu yang sesuai (Aset, Serah Terima, Peminjaman, Perbaikan), lalu klik Export Excel/PDF sesuai kebutuhan.'],
+
+            // ===== Info Umum SIAM =====
+            ['apa bedanya aset dan konsumable', '**Aset**: barang bernilai, punya SN, dilacak per unit (laptop, printer). **Konsumable**: barang habis pakai, dilacak stok total (mouse, keyboard).'],
+            ['apa itu asset tag', 'Asset Tag adalah label fisik yang ditempel di aset berisi Asset Code untuk identifikasi cepat.'],
+            ['apa itu current user', 'Current User adalah user yang sedang memegang aset saat ini.'],
+            ['apa itu current location', 'Current Location adalah lokasi aset saat ini berada.'],
         ];
     }
 }

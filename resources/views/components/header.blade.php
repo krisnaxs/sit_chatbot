@@ -44,14 +44,14 @@
                 ],
                 'chatbot' => [
                     'label' => 'Chatbot',
-                    'route' => route('knowledge.index'),
+                    'route' => route('dashboard'),
                     'icon' =>
                         '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>',
                     'active' => 'bg-amber-50 text-amber-700 shadow-sm shadow-amber-500/10',
                 ],
                 'siam' => [
                     'label' => 'SIAM',
-                    'route' => route('siam.assets.index'),
+                    'route' => route('siam.dashboard'),
                     'icon' =>
                         '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>',
                     'active' => 'bg-cyan-50 text-cyan-700 shadow-sm shadow-cyan-500/10',
@@ -59,7 +59,7 @@
                 ],
                 'master' => [
                     'label' => 'Master',
-                    'route' => route('siam.departments.index'),
+                    'route' => route('users.index'),
                     'icon' =>
                         '<path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>',
                     'active' => 'bg-violet-50 text-violet-700 shadow-sm shadow-violet-500/10',

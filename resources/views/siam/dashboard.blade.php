@@ -23,9 +23,646 @@
         <div class="space-y-6">
 
             {{-- HEADER --}}
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">Dashboard SIAM</h1>
-                <p class="text-sm text-gray-500">Ringkasan & statistik aset IT</p>
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Dashboard SIAM</h1>
+                    <p class="text-sm text-gray-500">Ringkasan & statistik aset IT</p>
+                </div>
+
+                @if ($hasFilter)
+                    <span
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        Filter Aktif
+                    </span>
+                @endif
+            </div>
+
+            {{-- ============================================================ --}}
+            {{--  FILTER DASHBOARD --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <form method="GET" action="{{ route('siam.dashboard') }}" class="space-y-3" id="filterForm">
+
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-gray-800">Filter Dashboard</h2>
+                                <p class="text-xs text-gray-500">
+                                    @if ($hasFilter)
+                                        Data di bawah mengikuti filter yang dipilih
+                                    @else
+                                        Pilih filter untuk melihat statistik spesifik
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+
+                        @if ($hasFilter)
+                            <a href="{{ route('siam.dashboard') }}"
+                                class="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Reset Filter
+                            </a>
+                        @endif
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+
+                        {{-- Kategori --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori</label>
+                            <select name="category_id"
+                                class="w-full text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Semua Kategori</option>
+                                @foreach ($filterCategories as $c)
+                                    <option value="{{ $c->id }}" @selected($filters['category_id'] == $c->id)>
+                                        {{ $c->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Brand --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Brand</label>
+                            <select name="brand" id="filterBrand"
+                                class="w-full text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Semua Brand</option>
+                                @foreach ($filterBrands as $b)
+                                    <option value="{{ $b }}" @selected($filters['brand'] == $b)>{{ $b }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Model --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Model / Type</label>
+                            <select name="model" id="filterModel"
+                                class="w-full text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Semua Model</option>
+                                @foreach ($filterModels as $m)
+                                    <option value="{{ $m->model }}" @selected($filters['model'] == $m->model)>
+                                        {{ $m->brand }} — {{ $m->model }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Tahun --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Tahun Pembelian</label>
+                            <select name="year"
+                                class="w-full text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Semua Tahun</option>
+                                @foreach ($filterYears as $y)
+                                    <option value="{{ $y }}" @selected($filters['year'] == $y)>
+                                        {{ $y }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Hak Kepemilikan --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Hak Kepemilikan</label>
+                            <select name="ownership_type"
+                                class="w-full text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Semua</option>
+                                <option value="owned" @selected($filters['ownership_type'] === 'owned')>Hak Milik (Owned)</option>
+                                <option value="leased" @selected($filters['ownership_type'] === 'leased')>Sewa (Leased)</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    {{-- Info filter aktif --}}
+                    @if ($hasFilter)
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
+                            <span class="text-[11px] text-gray-500 font-semibold">Filter aktif:</span>
+
+                            @if ($filters['category_id'])
+                                @php
+                                    $catName = $filterCategories->firstWhere('id', $filters['category_id'])?->name;
+                                @endphp
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[10px] font-semibold">
+                                    Kategori: {{ $catName }}
+                                </span>
+                            @endif
+
+                            @if ($filters['brand'])
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 text-[10px] font-semibold">
+                                    Brand: {{ $filters['brand'] }}
+                                </span>
+                            @endif
+
+                            @if ($filters['model'])
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[10px] font-semibold">
+                                    Model: {{ $filters['model'] }}
+                                </span>
+                            @endif
+
+                            @if ($filters['year'])
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold">
+                                    Tahun: {{ $filters['year'] }}
+                                </span>
+                            @endif
+
+                            @if ($filters['ownership_type'])
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">
+                                    {{ $filters['ownership_type'] === 'owned' ? 'Hak Milik' : 'Sewa' }}
+                                </span>
+                            @endif
+                        </div>
+                    @endif
+
+                </form>
+            </div>
+
+            {{-- ============================================================ --}}
+            {{--  HERO: PERBANDINGAN HAK MILIK vs SEWA --}}
+            {{-- ============================================================ --}}
+            <div
+                class="bg-gradient-to-br from-slate-800 via-slate-900 to-indigo-900 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+
+                {{-- Ornamen --}}
+                <div class="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-indigo-500/20 blur-3xl"></div>
+                <div class="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-cyan-500/20 blur-3xl"></div>
+
+                <div class="relative">
+                    <div class="flex items-center justify-between flex-wrap gap-2 mb-5 pb-4 border-b border-white/10">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-300" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-lg">Hak Kepemilikan Aset</h2>
+                                <p class="text-xs text-slate-300">Perbandingan Hak Milik vs Sewa</p>
+                            </div>
+                        </div>
+
+                        @if ($hasFilter)
+                            <span
+                                class="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-cyan-200 backdrop-blur">
+                                Data Terfilter
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+
+                        {{-- OWNED --}}
+                        <div class="rounded-2xl bg-white/5 backdrop-blur border border-emerald-400/20 p-5">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">Hak
+                                    Milik</span>
+                            </div>
+                            <div class="flex items-end gap-2 mb-1">
+                                <div class="text-4xl font-extrabold">{{ $ownershipBreakdown['owned']['total'] }}</div>
+                                <div class="text-sm text-slate-400 mb-1">unit</div>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mb-3">
+                                Rp {{ number_format($ownershipBreakdown['owned']['value'], 0, ',', '.') }}
+                                <span class="text-slate-500">(nilai beli)</span>
+                            </div>
+
+                            @php
+                                $ownedTotal = max($ownershipBreakdown['owned']['total'], 1);
+                            @endphp
+                            <div class="h-2 rounded-full bg-white/10 overflow-hidden flex">
+                                <div class="h-full bg-emerald-400"
+                                    style="width: {{ ($ownershipBreakdown['owned']['available'] / $ownedTotal) * 100 }}%"
+                                    title="Tersedia"></div>
+                                <div class="h-full bg-blue-400"
+                                    style="width: {{ ($ownershipBreakdown['owned']['in_use'] / $ownedTotal) * 100 }}%"
+                                    title="Dipakai"></div>
+                                <div class="h-full bg-amber-400"
+                                    style="width: {{ ($ownershipBreakdown['owned']['loaned'] / $ownedTotal) * 100 }}%"
+                                    title="Dipinjam"></div>
+                                <div class="h-full bg-orange-400"
+                                    style="width: {{ ($ownershipBreakdown['owned']['maintenance'] / $ownedTotal) * 100 }}%"
+                                    title="Perbaikan"></div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1 mt-2 text-[9px] text-slate-400">
+                                <span><span class="text-emerald-400">●</span>
+                                    {{ $ownershipBreakdown['owned']['available'] }}</span>
+                                <span><span class="text-blue-400">●</span>
+                                    {{ $ownershipBreakdown['owned']['in_use'] }}</span>
+                                <span><span class="text-amber-400">●</span>
+                                    {{ $ownershipBreakdown['owned']['loaned'] }}</span>
+                                <span><span class="text-orange-400">●</span>
+                                    {{ $ownershipBreakdown['owned']['maintenance'] }}</span>
+                            </div>
+                        </div>
+
+                        {{-- VS --}}
+                        <div class="flex flex-col items-center justify-center py-2">
+                            <div class="text-3xl font-black text-white/20">VS</div>
+                            @php
+                                $ownedPct =
+                                    $assetStats['total'] > 0
+                                        ? round(($ownershipBreakdown['owned']['total'] / $assetStats['total']) * 100)
+                                        : 0;
+                                $leasedPct = 100 - $ownedPct;
+                            @endphp
+                            <div class="text-[10px] text-slate-300 mt-2 text-center">
+                                <div>{{ $ownedPct }}% Hak Milik</div>
+                                <div>{{ $leasedPct }}% Sewa</div>
+                            </div>
+                        </div>
+
+                        {{-- LEASED --}}
+                        <div class="rounded-2xl bg-white/5 backdrop-blur border border-orange-400/20 p-5">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-orange-300">Sewa</span>
+                            </div>
+                            <div class="flex items-end gap-2 mb-1">
+                                <div class="text-4xl font-extrabold">{{ $ownershipBreakdown['leased']['total'] }}
+                                </div>
+                                <div class="text-sm text-slate-400 mb-1">unit</div>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mb-3">
+                                Rp {{ number_format($ownershipBreakdown['leased']['monthly_cost'], 0, ',', '.') }}
+                                <span class="text-slate-500">/ bulan</span>
+                            </div>
+
+                            @php
+                                $leasedTotal = max($ownershipBreakdown['leased']['total'], 1);
+                            @endphp
+                            <div class="h-2 rounded-full bg-white/10 overflow-hidden flex">
+                                <div class="h-full bg-emerald-400"
+                                    style="width: {{ ($ownershipBreakdown['leased']['available'] / $leasedTotal) * 100 }}%"
+                                    title="Tersedia"></div>
+                                <div class="h-full bg-blue-400"
+                                    style="width: {{ ($ownershipBreakdown['leased']['in_use'] / $leasedTotal) * 100 }}%"
+                                    title="Dipakai"></div>
+                                <div class="h-full bg-amber-400"
+                                    style="width: {{ ($ownershipBreakdown['leased']['loaned'] / $leasedTotal) * 100 }}%"
+                                    title="Dipinjam"></div>
+                                <div class="h-full bg-orange-400"
+                                    style="width: {{ ($ownershipBreakdown['leased']['maintenance'] / $leasedTotal) * 100 }}%"
+                                    title="Perbaikan"></div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1 mt-2 text-[9px] text-slate-400">
+                                <span><span class="text-emerald-400">●</span>
+                                    {{ $ownershipBreakdown['leased']['available'] }}</span>
+                                <span><span class="text-blue-400">●</span>
+                                    {{ $ownershipBreakdown['leased']['in_use'] }}</span>
+                                <span><span class="text-amber-400">●</span>
+                                    {{ $ownershipBreakdown['leased']['loaned'] }}</span>
+                                <span><span class="text-orange-400">●</span>
+                                    {{ $ownershipBreakdown['leased']['maintenance'] }}</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            {{-- ============================================================ --}}
+            {{--  BREAKDOWN PER KATEGORI --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                    <div class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-violet-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-800">Breakdown per Kategori</h2>
+                        <p class="text-xs text-gray-500">
+                            Perbandingan Hak Milik & Sewa di setiap kategori
+                            @if ($hasFilter)
+                                <span class="text-indigo-600 font-semibold">(terfilter)</span>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+
+                @if ($categoryBreakdown->isEmpty())
+                    <p class="text-xs text-gray-400 italic text-center py-8">Belum ada data aset</p>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="border-b border-gray-200 text-gray-500">
+                                    <th class="text-left py-2 px-2 font-semibold">Kategori</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Total</th>
+                                    <th
+                                        class="text-center py-2 px-2 font-semibold bg-emerald-50 text-emerald-700 rounded-t-lg">
+                                        Hak Milik</th>
+                                    <th
+                                        class="text-center py-2 px-2 font-semibold bg-orange-50 text-orange-700 rounded-t-lg">
+                                        Sewa</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Tersedia</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Dipakai</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Perbaikan</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Distribusi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($categoryBreakdown as $row)
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-2 px-2 font-semibold text-gray-800">{{ $row['category'] }}</td>
+                                        <td class="py-2 px-2 text-center font-bold text-gray-800">{{ $row['total'] }}
+                                        </td>
+
+                                        <td class="py-2 px-2 text-center bg-emerald-50/50">
+                                            <span
+                                                class="font-bold text-emerald-700">{{ $row['owned']['total'] }}</span>
+                                            @if ($row['owned']['total'] > 0)
+                                                <div class="text-[9px] text-emerald-500 mt-0.5">
+                                                    {{ $row['owned']['available'] }} tersedia ·
+                                                    {{ $row['owned']['in_use'] }} dipakai
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <td class="py-2 px-2 text-center bg-orange-50/50">
+                                            <span
+                                                class="font-bold text-orange-700">{{ $row['leased']['total'] }}</span>
+                                            @if ($row['leased']['total'] > 0)
+                                                <div class="text-[9px] text-orange-500 mt-0.5">
+                                                    {{ $row['leased']['available'] }} tersedia ·
+                                                    {{ $row['leased']['in_use'] }} dipakai
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <td class="py-2 px-2 text-center text-emerald-700 font-semibold">
+                                            {{ $row['owned']['available'] + $row['leased']['available'] }}
+                                        </td>
+                                        <td class="py-2 px-2 text-center text-blue-700 font-semibold">
+                                            {{ $row['owned']['in_use'] + $row['leased']['in_use'] }}
+                                        </td>
+                                        <td class="py-2 px-2 text-center text-orange-700 font-semibold">
+                                            {{ $row['owned']['maintenance'] + $row['leased']['maintenance'] }}
+                                        </td>
+
+                                        <td class="py-2 px-2 w-32">
+                                            @php
+                                                $catTotal = max($row['total'], 1);
+                                                $ownedW = ($row['owned']['total'] / $catTotal) * 100;
+                                                $leasedW = ($row['leased']['total'] / $catTotal) * 100;
+                                            @endphp
+                                            <div class="h-2 rounded-full overflow-hidden flex bg-gray-100">
+                                                <div class="h-full bg-emerald-500"
+                                                    style="width: {{ $ownedW }}%"
+                                                    title="Hak Milik: {{ $row['owned']['total'] }}"></div>
+                                                <div class="h-full bg-orange-500" style="width: {{ $leasedW }}%"
+                                                    title="Sewa: {{ $row['leased']['total'] }}"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex items-center gap-4 mt-3 text-[10px] text-gray-500">
+                        <span class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded-sm bg-emerald-500"></span> Hak Milik
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded-sm bg-orange-500"></span> Sewa
+                        </span>
+                    </div>
+                @endif
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- BREAKDOWN PER MODEL / TYPE --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-800">Breakdown per Model / Type</h2>
+                        <p class="text-xs text-gray-500">
+                            Perbandingan Hak Milik & Sewa di setiap model (Top 15)
+                            @if ($hasFilter)
+                                <span class="text-indigo-600 font-semibold">(terfilter)</span>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+
+                @if ($modelBreakdown->isEmpty())
+                    <p class="text-xs text-gray-400 italic text-center py-8">Belum ada data aset</p>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="border-b border-gray-200 text-gray-500">
+                                    <th class="text-left py-2 px-2 font-semibold">Model</th>
+                                    <th class="text-left py-2 px-2 font-semibold">Brand</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Total</th>
+                                    <th
+                                        class="text-center py-2 px-2 font-semibold bg-emerald-50 text-emerald-700 rounded-t-lg">
+                                        Hak Milik</th>
+                                    <th
+                                        class="text-center py-2 px-2 font-semibold bg-orange-50 text-orange-700 rounded-t-lg">
+                                        Sewa</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Tersedia</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Dipakai</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Perbaikan</th>
+                                    <th class="text-center py-2 px-2 font-semibold">Distribusi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($modelBreakdown as $row)
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                        <td class="py-2 px-2 font-semibold text-gray-800">
+                                            {{ $row['model'] }}
+                                        </td>
+                                        <td class="py-2 px-2 text-gray-600">
+                                            {{ $row['brand'] }}
+                                        </td>
+                                        <td class="py-2 px-2 text-center font-bold text-gray-800">
+                                            {{ $row['total'] }}
+                                        </td>
+
+                                        <td class="py-2 px-2 text-center bg-emerald-50/50">
+                                            <span class="font-bold text-emerald-700">
+                                                {{ $row['owned']['total'] }}
+                                            </span>
+                                            @if ($row['owned']['total'] > 0)
+                                                <div class="text-[9px] text-emerald-500 mt-0.5">
+                                                    {{ $row['owned']['available'] }} tersedia ·
+                                                    {{ $row['owned']['in_use'] }} dipakai
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <td class="py-2 px-2 text-center bg-orange-50/50">
+                                            <span class="font-bold text-orange-700">
+                                                {{ $row['leased']['total'] }}
+                                            </span>
+                                            @if ($row['leased']['total'] > 0)
+                                                <div class="text-[9px] text-orange-500 mt-0.5">
+                                                    {{ $row['leased']['available'] }} tersedia ·
+                                                    {{ $row['leased']['in_use'] }} dipakai
+                                                </div>
+                                            @endif
+                                        </td>
+
+                                        <td class="py-2 px-2 text-center text-emerald-700 font-semibold">
+                                            {{ $row['owned']['available'] + $row['leased']['available'] }}
+                                        </td>
+                                        <td class="py-2 px-2 text-center text-blue-700 font-semibold">
+                                            {{ $row['owned']['in_use'] + $row['leased']['in_use'] }}
+                                        </td>
+                                        <td class="py-2 px-2 text-center text-orange-700 font-semibold">
+                                            {{ $row['owned']['maintenance'] + $row['leased']['maintenance'] }}
+                                        </td>
+
+                                        <td class="py-2 px-2 w-32">
+                                            @php
+                                                $modelTotal = max($row['total'], 1);
+                                                $ownedW = ($row['owned']['total'] / $modelTotal) * 100;
+                                                $leasedW = ($row['leased']['total'] / $modelTotal) * 100;
+                                            @endphp
+                                            <div class="h-2 rounded-full overflow-hidden flex bg-gray-100">
+                                                <div class="h-full bg-emerald-500"
+                                                    style="width: {{ $ownedW }}%"
+                                                    title="Hak Milik: {{ $row['owned']['total'] }}"></div>
+                                                <div class="h-full bg-orange-500" style="width: {{ $leasedW }}%"
+                                                    title="Sewa: {{ $row['leased']['total'] }}"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex items-center gap-4 mt-3 text-[10px] text-gray-500">
+                        <span class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded-sm bg-emerald-500"></span> Hak Milik
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded-sm bg-orange-500"></span> Sewa
+                        </span>
+                    </div>
+                @endif
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- CHART: OWNED vs LEASED (Doughnut + Per Kategori) --}}
+            {{-- ============================================================ --}}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                {{-- Doughnut Owned vs Leased --}}
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-gray-800">Komposisi Kepemilikan</h2>
+                            <p class="text-xs text-gray-500">
+                                Hak Milik vs Sewa
+                                @if ($hasFilter)
+                                    <span class="text-indigo-600 font-semibold">(terfilter)</span>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="chartOwnership"></canvas>
+                    </div>
+                </div>
+
+                {{-- Stacked bar Owned vs Leased per Kategori --}}
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                        <div class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-violet-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-gray-800">Per Kategori</h2>
+                            <p class="text-xs text-gray-500">
+                                Hak Milik vs Sewa tiap kategori
+                                @if ($hasFilter)
+                                    <span class="text-indigo-600 font-semibold">(terfilter)</span>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="chartCategoryOwnership"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- CHART: OWNED vs LEASED per MODEL (FULL WIDTH) --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-800">Per Model / Type</h2>
+                        <p class="text-xs text-gray-500">
+                            Hak Milik vs Sewa tiap model (Top 15)
+                            @if ($hasFilter)
+                                <span class="text-indigo-600 font-semibold">(terfilter)</span>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+                <div class="h-72">
+                    <canvas id="chartModelOwnership"></canvas>
+                </div>
             </div>
 
             {{-- ============================================================ --}}
@@ -42,7 +679,12 @@
                     </div>
                     <div>
                         <h2 class="font-bold text-gray-800">Ringkasan Aset</h2>
-                        <p class="text-xs text-gray-500">Total {{ $assetStats['total'] }} unit aset</p>
+                        <p class="text-xs text-gray-500">
+                            Total {{ $assetStats['total'] }} unit aset
+                            @if ($hasFilter)
+                                <span class="text-indigo-600 font-semibold">(terfilter)</span>
+                            @endif
+                        </p>
                     </div>
                 </div>
 
@@ -296,6 +938,33 @@
             {{-- ============================================================ --}}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
+                {{-- Chart Status Aset --}}
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-gray-800">Aset per Status</h2>
+                            <p class="text-xs text-gray-500">
+                                @if ($hasFilter)
+                                    Difilter — Total {{ $assetStats['total'] }} unit
+                                @else
+                                    Distribusi status
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="chartStatus"></canvas>
+                    </div>
+                </div>
+
+                {{-- Chart Aset per Kategori --}}
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                     <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                         <div class="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
@@ -307,7 +976,13 @@
                         </div>
                         <div>
                             <h2 class="font-bold text-gray-800">Aset per Kategori</h2>
-                            <p class="text-xs text-gray-500">Distribusi aset</p>
+                            <p class="text-xs text-gray-500">
+                                @if ($hasFilter)
+                                    Difilter
+                                @else
+                                    Distribusi aset
+                                @endif
+                            </p>
                         </div>
                     </div>
                     <div class="h-64">
@@ -315,6 +990,27 @@
                     </div>
                 </div>
 
+                {{-- Chart Aset per Tahun --}}
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                        <div class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-violet-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-gray-800">Aset per Tahun Pembelian</h2>
+                            <p class="text-xs text-gray-500">Tren pengadaan aset</p>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="chartYear"></canvas>
+                    </div>
+                </div>
+
+                {{-- Chart Tren Perbaikan --}}
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                     <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                         <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
@@ -426,7 +1122,6 @@
                             @endphp
                             <div class="p-2 rounded-lg hover:bg-teal-50 transition">
                                 <div class="flex items-center gap-2 mb-0.5">
-                                    {{-- 🆕 FLAG SERAH / KEMBALI --}}
                                     @if ($isReturn)
                                         <span
                                             class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-700">
@@ -710,6 +1405,62 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <script>
+        // ============================================================
+        // CHART: Status Aset (Doughnut)
+        // ============================================================
+        const statusCtx = document.getElementById('chartStatus');
+        if (statusCtx) {
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: @json($statusLabels),
+                    datasets: [{
+                        data: @json($statusData),
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.85)',
+                            'rgba(59, 130, 246, 0.85)',
+                            'rgba(245, 158, 11, 0.85)',
+                            'rgba(249, 115, 22, 0.85)',
+                            'rgba(107, 114, 128, 0.85)',
+                            'rgba(239, 68, 68, 0.85)',
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11
+                                },
+                                padding: 10,
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    const val = ctx.parsed;
+                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                    return ` ${ctx.label}: ${val} unit (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // CHART: Aset per Kategori (Bar)
+        // ============================================================
         const categoryCtx = document.getElementById('chartCategory');
         if (categoryCtx) {
             new Chart(categoryCtx, {
@@ -745,6 +1496,47 @@
             });
         }
 
+        // ============================================================
+        // CHART: Aset per Tahun (Bar)
+        // ============================================================
+        const yearCtx = document.getElementById('chartYear');
+        if (yearCtx) {
+            new Chart(yearCtx, {
+                type: 'bar',
+                data: {
+                    labels: @json($yearLabels),
+                    datasets: [{
+                        label: 'Jumlah Aset',
+                        data: @json($yearData),
+                        backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                        borderColor: 'rgb(139, 92, 246)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // CHART: Tren Perbaikan (Line)
+        // ============================================================
         const maintenanceCtx = document.getElementById('chartMaintenance');
         if (maintenanceCtx) {
             new Chart(maintenanceCtx, {
@@ -783,6 +1575,217 @@
             });
         }
 
+        // ============================================================
+        // CHART: Komposisi Kepemilikan (Doughnut)
+        // ============================================================
+        const ownershipCtx = document.getElementById('chartOwnership');
+        if (ownershipCtx) {
+            new Chart(ownershipCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: @json($ownershipLabels),
+                    datasets: [{
+                        data: @json($ownershipData),
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.9)',
+                            'rgba(249, 115, 22, 0.9)',
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 3,
+                        hoverOffset: 8,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 14,
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                },
+                                padding: 15,
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    const val = ctx.parsed;
+                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                    return ` ${ctx.label}: ${val} unit (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // CHART: Owned vs Leased per Kategori (Stacked Bar)
+        // ============================================================
+        const catOwnershipCtx = document.getElementById('chartCategoryOwnership');
+        if (catOwnershipCtx) {
+            new Chart(catOwnershipCtx, {
+                type: 'bar',
+                data: {
+                    labels: @json($catBreakdownLabels),
+                    datasets: [{
+                            label: 'Hak Milik',
+                            data: @json($catBreakdownOwned),
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: 'rgb(16, 185, 129)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Sewa',
+                            data: @json($catBreakdownLeased),
+                            backgroundColor: 'rgba(249, 115, 22, 0.85)',
+                            borderColor: 'rgb(249, 115, 22)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                },
+                                padding: 10,
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // CHART: Owned vs Leased per Model (Stacked Bar)
+        // ============================================================
+        const modelOwnershipCtx = document.getElementById('chartModelOwnership');
+        if (modelOwnershipCtx) {
+            new Chart(modelOwnershipCtx, {
+                type: 'bar',
+                data: {
+                    labels: @json($modelBreakdownLabels),
+                    datasets: [{
+                            label: 'Hak Milik',
+                            data: @json($modelBreakdownOwned),
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: 'rgb(16, 185, 129)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Sewa',
+                            data: @json($modelBreakdownLeased),
+                            backgroundColor: 'rgba(249, 115, 22, 0.85)',
+                            borderColor: 'rgb(249, 115, 22)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                },
+                                padding: 10,
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                maxRotation: 45,
+                                minRotation: 0,
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // AUTO-SUBMIT FILTER (reset model saat category/brand berubah)
+        // ============================================================
+        const filterForm = document.getElementById('filterForm');
+        const modelSelect = document.getElementById('filterModel');
+
+        if (filterForm) {
+            filterForm.querySelectorAll('select').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    // Reset model kalau kategori/brand berubah
+                    const resetModelNames = ['category_id', 'brand'];
+                    if (resetModelNames.includes(e.target.name) && modelSelect) {
+                        modelSelect.value = '';
+                    }
+                    filterForm.submit();
+                });
+            });
+        }
+
+        // ============================================================
+        // LAYOUT: Sidebar collapse
+        // ============================================================
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
