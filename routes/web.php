@@ -22,6 +22,10 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ConsumableController;
 use App\Http\Controllers\ConsumableTransactionController;
 use App\Http\Controllers\SiamDashboardController;
+
+
+
+
 Route::post('/admin/login', [LoginController::class, 'login'])->name('admin.login');
 Route::post('/admin/logout', [LoginController::class, 'logout'])->name('admin.logout');
 Route::get('/login', function () {
@@ -104,6 +108,11 @@ Route::middleware(['auth'])->group(function () {
             Route::resource('asset-types', AssetTypeController::class);
         });
 
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/ai/ask', [\App\Http\Controllers\AiAssetController::class, 'ask'])
+        ->name('ai.ask');
 });
 Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
 Route::post('/chat/send', [ChatController::class, 'send'])

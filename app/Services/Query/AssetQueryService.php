@@ -171,137 +171,49 @@ class AssetQueryService
         'spidol',
     ];
 
+    /**
+     * 🆕 Kata umum untuk konsumable (termasuk typo umum).
+     */
+    protected array $consumableGeneralKeywords = [
+        'konsumable',
+        'consumable',
+        'kosumable',
+        'konsumebel',
+        'konsumebel',
+        'consumebel',
+        'habis pakai',
+        'barang habis pakai',
+        'atk',
+        'alat tulis',
+    ];
+
     protected array $sisHardwareMap = [
-        'papan ketik' => [
-            'title' => 'Keyboard',
-            'emoji' => '⌨️',
-            'desc' => 'Keyboard fisik (USB/Bluetooth) atau keyboard bawaan laptop.',
-        ],
-        'flash disk' => [
-            'title' => 'Flashdisk',
-            'emoji' => '🔌',
-            'desc' => 'USB flash drive untuk transfer data.',
-        ],
-        'hard disk' => [
-            'title' => 'Hard Disk',
-            'emoji' => '💽',
-            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
-        ],
-        'hardisk' => [
-            'title' => 'Hard Disk',
-            'emoji' => '💽',
-            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
-        ],
-        'kabel lan' => [
-            'title' => 'Kabel LAN',
-            'emoji' => '🔗',
-            'desc' => 'Kabel jaringan Ethernet.',
-        ],
-        'kabel hdmi' => [
-            'title' => 'Kabel HDMI',
-            'emoji' => '🔗',
-            'desc' => 'Kabel HDMI untuk display.',
-        ],
-        'keyboard' => [
-            'title' => 'Keyboard',
-            'emoji' => '⌨️',
-            'desc' => 'Keyboard fisik (USB/Bluetooth) atau keyboard bawaan laptop.',
-        ],
-        'flashdisk' => [
-            'title' => 'Flashdisk',
-            'emoji' => '🔌',
-            'desc' => 'USB flash drive untuk transfer data.',
-        ],
-        'harddisk' => [
-            'title' => 'Hard Disk',
-            'emoji' => '💽',
-            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
-        ],
-        'trackpad' => [
-            'title' => 'Touchpad',
-            'emoji' => '🖱️',
-            'desc' => 'Touchpad bawaan laptop.',
-        ],
-        'touchpad' => [
-            'title' => 'Touchpad',
-            'emoji' => '🖱️',
-            'desc' => 'Touchpad bawaan laptop.',
-        ],
-        'mouse' => [
-            'title' => 'Mouse',
-            'emoji' => '🖱️',
-            'desc' => 'Mouse USB, wireless, atau touchpad laptop.',
-        ],
-        'hdd' => [
-            'title' => 'HDD',
-            'emoji' => '💽',
-            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
-        ],
-        'ssd' => [
-            'title' => 'SSD',
-            'emoji' => '💾',
-            'desc' => 'Solid State Drive untuk penyimpanan cepat.',
-        ],
-        'usb' => [
-            'title' => 'USB',
-            'emoji' => '🔌',
-            'desc' => 'USB drive / perangkat USB.',
-        ],
-        'monitor' => [
-            'title' => 'Monitor',
-            'emoji' => '🖥️',
-            'desc' => 'Monitor eksternal / layar tambahan.',
-        ],
-        'printer' => [
-            'title' => 'Printer',
-            'emoji' => '🖨️',
-            'desc' => 'Printer untuk cetak dokumen.',
-        ],
-        'scanner' => [
-            'title' => 'Scanner',
-            'emoji' => '📠',
-            'desc' => 'Scanner dokumen.',
-        ],
-        'webcam' => [
-            'title' => 'Webcam',
-            'emoji' => '📷',
-            'desc' => 'Kamera untuk video call / meeting.',
-        ],
-        'headset' => [
-            'title' => 'Headset',
-            'emoji' => '🎧',
-            'desc' => 'Headset / earphone untuk audio.',
-        ],
-        'speaker' => [
-            'title' => 'Speaker',
-            'emoji' => '🔊',
-            'desc' => 'Speaker eksternal.',
-        ],
-        'ups' => [
-            'title' => 'UPS',
-            'emoji' => '🔋',
-            'desc' => 'Uninterruptible Power Supply untuk backup daya.',
-        ],
-        'charger' => [
-            'title' => 'Charger',
-            'emoji' => '🔌',
-            'desc' => 'Adaptor / charger perangkat.',
-        ],
-        'kabel' => [
-            'title' => 'Kabel',
-            'emoji' => '🔗',
-            'desc' => 'Kabel data / power (HDMI, VGA, USB, LAN, dll).',
-        ],
-        'lan' => [
-            'title' => 'Kabel LAN',
-            'emoji' => '🔗',
-            'desc' => 'Kabel jaringan Ethernet.',
-        ],
-        'hdmi' => [
-            'title' => 'Kabel HDMI',
-            'emoji' => '🔗',
-            'desc' => 'Kabel HDMI untuk display.',
-        ],
+        'papan ketik' => ['title' => 'Keyboard', 'emoji' => '⌨️', 'desc' => 'Keyboard fisik (USB/Bluetooth) atau keyboard bawaan laptop.'],
+        'flash disk' => ['title' => 'Flashdisk', 'emoji' => '🔌', 'desc' => 'USB flash drive untuk transfer data.'],
+        'hard disk' => ['title' => 'Hard Disk', 'emoji' => '💽', 'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.'],
+        'hardisk' => ['title' => 'Hard Disk', 'emoji' => '💽', 'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.'],
+        'kabel lan' => ['title' => 'Kabel LAN', 'emoji' => '🔗', 'desc' => 'Kabel jaringan Ethernet.'],
+        'kabel hdmi' => ['title' => 'Kabel HDMI', 'emoji' => '🔗', 'desc' => 'Kabel HDMI untuk display.'],
+        'keyboard' => ['title' => 'Keyboard', 'emoji' => '⌨️', 'desc' => 'Keyboard fisik (USB/Bluetooth) atau keyboard bawaan laptop.'],
+        'flashdisk' => ['title' => 'Flashdisk', 'emoji' => '🔌', 'desc' => 'USB flash drive untuk transfer data.'],
+        'harddisk' => ['title' => 'Hard Disk', 'emoji' => '💽', 'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.'],
+        'trackpad' => ['title' => 'Touchpad', 'emoji' => '🖱️', 'desc' => 'Touchpad bawaan laptop.'],
+        'touchpad' => ['title' => 'Touchpad', 'emoji' => '🖱️', 'desc' => 'Touchpad bawaan laptop.'],
+        'mouse' => ['title' => 'Mouse', 'emoji' => '🖱️', 'desc' => 'Mouse USB, wireless, atau touchpad laptop.'],
+        'hdd' => ['title' => 'HDD', 'emoji' => '💽', 'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.'],
+        'ssd' => ['title' => 'SSD', 'emoji' => '💾', 'desc' => 'Solid State Drive untuk penyimpanan cepat.'],
+        'usb' => ['title' => 'USB', 'emoji' => '🔌', 'desc' => 'USB drive / perangkat USB.'],
+        'monitor' => ['title' => 'Monitor', 'emoji' => '🖥️', 'desc' => 'Monitor eksternal / layar tambahan.'],
+        'printer' => ['title' => 'Printer', 'emoji' => '🖨️', 'desc' => 'Printer untuk cetak dokumen.'],
+        'scanner' => ['title' => 'Scanner', 'emoji' => '📠', 'desc' => 'Scanner dokumen.'],
+        'webcam' => ['title' => 'Webcam', 'emoji' => '📷', 'desc' => 'Kamera untuk video call / meeting.'],
+        'headset' => ['title' => 'Headset', 'emoji' => '🎧', 'desc' => 'Headset / earphone untuk audio.'],
+        'speaker' => ['title' => 'Speaker', 'emoji' => '🔊', 'desc' => 'Speaker eksternal.'],
+        'ups' => ['title' => 'UPS', 'emoji' => '🔋', 'desc' => 'Uninterruptible Power Supply untuk backup daya.'],
+        'charger' => ['title' => 'Charger', 'emoji' => '🔌', 'desc' => 'Adaptor / charger perangkat.'],
+        'kabel' => ['title' => 'Kabel', 'emoji' => '🔗', 'desc' => 'Kabel data / power (HDMI, VGA, USB, LAN, dll).'],
+        'lan' => ['title' => 'Kabel LAN', 'emoji' => '🔗', 'desc' => 'Kabel jaringan Ethernet.'],
+        'hdmi' => ['title' => 'Kabel HDMI', 'emoji' => '🔗', 'desc' => 'Kabel HDMI untuk display.'],
     ];
 
     public function tryAnswer(string $pesan): ?array
@@ -377,7 +289,30 @@ class AssetQueryService
         }
 
         // ============================================================
-        // 4. "Siapa yang pakai X?" — KHUSUS ADMIN/SUPPORT
+        // 4. KONSUMABLE UMUM (PRIORITAS SEBELUM CEK STATUS ASET)
+        // ============================================================
+        if ($this->matchAny($lower, $this->consumableGeneralKeywords)) {
+            // Cek low stock?
+            if ($this->matchAny($lower, ['stok rendah', 'stok habis', 'low stock', 'stok minim', 'habis', 'rendah', 'kosong', 'low'])) {
+                return $this->listLowStockConsumable();
+            }
+
+            // Cek "siapa yang pakai"?
+            if ($this->matchAny($lower, ['siapa', 'pakai', 'pemakai', 'gunakan', 'pengguna'])) {
+                return $this->listConsumableUsers($lower);
+            }
+
+            // Cek "ready" / "tersedia"?
+            if ($this->matchAny($lower, ['ready', 'tersedia', 'available', 'ada', 'stok ada'])) {
+                return $this->listAvailableConsumables();
+            }
+
+            // Default: tampilkan semua konsumable
+            return $this->listAllConsumables();
+        }
+
+        // ============================================================
+        // 5. "Siapa yang pakai X?" — KHUSUS ADMIN/SUPPORT
         // ============================================================
         if (
             $this->matchAny($lower, ['siapa', 'siapa saja', 'siapa aja', 'user', 'pegawai', 'karyawan']) &&
@@ -391,7 +326,6 @@ class AssetQueryService
                 ];
             }
 
-            // 🆕 Deteksi: consumable atau aset?
             $consumableKeywords = [];
             foreach ($this->consumableKeywords as $kw) {
                 if ($this->matchWord($lower, $kw)) {
@@ -401,17 +335,14 @@ class AssetQueryService
 
             $assetCategory = $this->detectCategory($lower);
 
-            // Kalau ada keyword consumable → cek consumable
             if (!empty($consumableKeywords)) {
                 return $this->listConsumableUsers($lower);
             }
 
-            // Kalau ada kategori aset → cek pemegang aset
             if ($assetCategory) {
                 return $this->listAssetHoldersByCategory($assetCategory);
             }
 
-            // Tidak ada keyword spesifik → tanya balik
             return [
                 "Mau cek pemakai apa? Sebutkan lebih spesifik ya.\n\n"
                 . "**Contoh:**\n"
@@ -424,21 +355,11 @@ class AssetQueryService
         }
 
         // ============================================================
-        // 5. CONSUMABLE SPESIFIK
+        // 6. CONSUMABLE SPESIFIK (keyboard, mouse, dll)
         // ============================================================
         $consumableResult = $this->tryAnswerConsumable($lower);
         if ($consumableResult) {
             return $consumableResult;
-        }
-
-        // ============================================================
-        // 6. STOK RENDAH
-        // ============================================================
-        if (
-            $this->matchAny($lower, ['konsumable', 'consumable', 'atk', 'habis pakai']) &&
-            $this->matchAny($lower, ['habis', 'stok', 'stock', 'low', 'rendah', 'kosong'])
-        ) {
-            return $this->listLowStockConsumable();
         }
 
         // ============================================================
@@ -512,7 +433,6 @@ class AssetQueryService
         ) {
             return $this->countMaintenance();
         }
-        // 🆕 Guard harga/nilai aset
         if ($this->matchAny($lower, ['nilai', 'harga total', 'total pembelian', 'harga aset'])) {
             if (!$this->isPrivileged()) {
                 return [
@@ -589,7 +509,6 @@ class AssetQueryService
         if ($this->matchAny($lower, ['aset per tahun', 'aset tiap tahun', 'pengadaan per tahun', 'pembelian per tahun'])) {
             return $this->assetsByYearSummary();
         }
-        // 🆕 Guard user pemegang aset
         if (
             $this->matchAny($lower, ['pegang', 'memegang', 'punya', 'pakai', 'gunakan', 'dipegang', 'pengang'])
             && !$this->matchAny($lower, ['berapa', 'jumlah', 'total', 'top', 'terbanyak', 'paling', 'list', 'daftar'])
@@ -628,6 +547,12 @@ class AssetQueryService
             $this->matchAny($lower, ['kontrak', 'sewa', 'lease']) &&
             $this->matchAny($lower, ['berakhir', 'habis', 'selesai'])
         ) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "Maaf, data kontrak sewa hanya bisa diakses oleh **Admin** atau **Support**.",
+                    'database'
+                ];
+            }
             return $this->assetsExpiringContract();
         }
         if (
@@ -636,7 +561,6 @@ class AssetQueryService
         ) {
             return $this->assetsNeedingRetire();
         }
-        // 🆕 Guard perbandingan ownership (ada nilai Rp)
         if (
             $this->matchAny($lower, ['bandingkan', 'perbandingan', 'compare', 'vs', 'dibanding']) &&
             $this->matchAny($lower, ['hak milik', 'owned', 'milik']) &&
@@ -650,7 +574,6 @@ class AssetQueryService
             }
             return $this->compareOwnership($lower);
         }
-        // 🆕 Guard top user
         if (
             $this->matchAny($lower, ['top', 'terbanyak', 'paling banyak', 'mayoritas']) &&
             $this->matchAny($lower, ['user', 'pegawai', 'karyawan']) &&
@@ -677,7 +600,6 @@ class AssetQueryService
         ) {
             return $this->totalStatusSummary();
         }
-        // 🆕 Guard vendor
         if (
             $this->matchAny($lower, ['vendor', 'supplier']) &&
             $this->matchAny($lower, ['aset', 'asset', 'punya', 'dari'])
@@ -692,6 +614,80 @@ class AssetQueryService
         }
 
         return null;
+    }
+
+    /**
+     * 🆕 List semua konsumable (default).
+     */
+    protected function listAllConsumables(): array
+    {
+        $q = Consumable::orderBy('name');
+        $total = $q->count();
+        $items = (clone $q)->limit(20)->get();
+
+        if ($items->isEmpty()) {
+            return ["Belum ada konsumable terdaftar di sistem.", 'database'];
+        }
+
+        $jawaban = "📦 **Daftar Konsumable** ({$total} item):\n\n";
+        foreach ($items as $c) {
+            $stok = (int) ($c->stock_available ?? 0);
+            $min = (int) ($c->stock_minimum ?? 0);
+            $unit = $c->unit ?? 'pcs';
+
+            $status = '✅';
+            if ($stok === 0) {
+                $status = '⚠️ Habis';
+            } elseif ($stok <= $min) {
+                $status = '🟡 Rendah';
+            }
+
+            $jawaban .= "• **{$c->name}**";
+            if ($c->brand) {
+                $jawaban .= " ({$c->brand})";
+            }
+            $jawaban .= " — Stok: **{$stok}** {$unit} {$status}\n";
+        }
+
+        if ($total > 20) {
+            $jawaban .= "\n_Menampilkan 20 pertama dari {$total}._";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    /**
+     * 🆕 List konsumable yang tersedia (stock_available > 0).
+     */
+    protected function listAvailableConsumables(): array
+    {
+        $q = Consumable::where('stock_available', '>', 0)
+            ->orderBy('name');
+
+        $total = $q->count();
+        $items = (clone $q)->limit(20)->get();
+
+        if ($items->isEmpty()) {
+            return ["Tidak ada konsumable yang tersedia saat ini.", 'database'];
+        }
+
+        $jawaban = "📦 **{$total} Konsumable Tersedia:**\n\n";
+        foreach ($items as $c) {
+            $stok = (int) ($c->stock_available ?? 0);
+            $unit = $c->unit ?? 'pcs';
+
+            $jawaban .= "• **{$c->name}**";
+            if ($c->brand) {
+                $jawaban .= " ({$c->brand})";
+            }
+            $jawaban .= " — Stok: **{$stok}** {$unit}\n";
+        }
+
+        if ($total > 20) {
+            $jawaban .= "\n_Menampilkan 20 pertama dari {$total}._";
+        }
+
+        return [$jawaban, 'database'];
     }
 
     /**
@@ -753,7 +749,7 @@ class AssetQueryService
     }
 
     /**
-     * 🆕 Coba jawab pertanyaan consumable spesifik.
+     * 🆕 Coba jawab pertanyaan consumable spesifik (keyboard, mouse, dll).
      */
     protected function tryAnswerConsumable(string $lower): ?array
     {
@@ -848,7 +844,6 @@ class AssetQueryService
             . "• Stok total: {$stockTotal} {$unit}\n"
             . "• Minimum stok: {$stockMinimum} {$unit}\n";
 
-        // 🆕 Harga hanya untuk admin/support
         if ($this->isPrivileged()) {
             $harga = '-';
             if (!empty($c->last_price)) {
@@ -1046,16 +1041,53 @@ class AssetQueryService
 
     protected function extractUserName(string $pesan): ?string
     {
+        $skip = [
+            'yang',
+            'dan',
+            'atau',
+            'di',
+            'ke',
+            'dari',
+            'aset',
+            'laptop',
+            'pc',
+            'printer',
+            'monitor',
+            'siapa',
+            'saya',
+            'kan',
+            'bertanya',
+            'user'
+        ];
+
         if (preg_match('/\b([a-z]+(?:\s+[a-z]+)?)\s+(pegang|memegang|punya|pakai|gunakan|pengang|dipegang)\b/i', $pesan, $m)) {
             $nama = trim($m[1]);
-            $skip = ['yang', 'dan', 'atau', 'di', 'ke', 'dari', 'aset', 'laptop', 'pc', 'printer', 'monitor', 'siapa'];
             if (!in_array(strtolower($nama), $skip, true) && strlen($nama) >= 3) {
-                return $nama;
+                if (\App\Models\User::where('name', 'like', "%{$nama}%")->exists()) {
+                    return $nama;
+                }
             }
         }
-        if (preg_match('/(?:user|pegawai|karyawan|oleh|dari|pak|bu|mas|mbak|sdr|sdri)\s+([a-z]+(?:\s+[a-z]+)?)/i', $pesan, $m)) {
-            return trim($m[1]);
+
+        if (preg_match('/^([a-z]+(?:\s+[a-z]+)?)\s+(?:sn|serial|hostname|asset\s?code|nya)/i', $pesan, $m)) {
+            $nama = trim($m[1]);
+            if (!in_array(strtolower($nama), $skip, true) && strlen($nama) >= 3) {
+                if (\App\Models\User::where('name', 'like', "%{$nama}%")->exists()) {
+                    return $nama;
+                }
+            }
         }
+
+        $words = preg_split('/\s+/', strtolower(trim($pesan)));
+        for ($i = 0; $i < count($words) - 1; $i++) {
+            $kandidat = $words[$i] . ' ' . $words[$i + 1];
+            if (strlen($kandidat) < 5)
+                continue;
+            if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
+                return $kandidat;
+            }
+        }
+
         return null;
     }
 
@@ -1246,7 +1278,7 @@ class AssetQueryService
             return ["Semua konsumable stoknya aman. ✅", 'database'];
         }
 
-        $jawaban = "**{$total} konsumable** stoknya rendah:\n\n";
+        $jawaban = "⚠️ **{$total} konsumable** stoknya rendah:\n\n";
         foreach ($items as $c) {
             $jawaban .= "• {$c->name}: {$c->stock_available}/{$c->stock_minimum} {$c->unit}\n";
         }
@@ -1506,7 +1538,18 @@ class AssetQueryService
             $jawaban .= ($i + 1) . ". **{$nama}** — {$count} unit ({$percent}%)\n";
         }
 
-        return [$jawaban, 'database'];
+        return [
+            $jawaban,
+            'database',
+            [
+                'type' => 'top_asset_by_model',
+                'model' => $results->first()->$groupBy ?? null,
+                'group_by' => $groupBy,
+                'category' => $category,
+                'status' => $status,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
     }
 
     protected function listAssetsByCategory(string $lower): array
@@ -2095,10 +2138,7 @@ class AssetQueryService
 
         return [$jawaban, 'database'];
     }
-    /**
-     * 🆕 List pemegang aset berdasarkan kategori (khusus admin/support).
-     * Contoh: "siapa aja yang pakai laptop"
-     */
+
     protected function listAssetHoldersByCategory(string $category): array
     {
         try {
@@ -2107,7 +2147,7 @@ class AssetQueryService
                     $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
                         ->orWhere('model', 'like', "%{$category}%");
                 })
-                ->whereHas('currentUser')  // hanya yang ada pemegangnya
+                ->whereHas('currentUser')
                 ->limit(50)
                 ->get();
         } catch (\Throwable $e) {
@@ -2122,7 +2162,6 @@ class AssetQueryService
             ];
         }
 
-        // Group by pemegang
         $grouped = [];
         foreach ($assets as $a) {
             $userName = $a->currentUser?->name ?? 'Tidak diketahui';
@@ -2156,6 +2195,7 @@ class AssetQueryService
 
         return [$jawaban, 'database'];
     }
+
     protected function containsSnPattern(string $pesan): bool
     {
         return (bool) preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan);

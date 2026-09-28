@@ -145,6 +145,10 @@ class ChatController extends Controller
         'orang itu',
         'itu',
         'tadi',
+        'pegang',
+        'dipegang',
+        'pemegang',
+        'yang pakai',
     ];
 
     private const CONTEXT_TTL = 30;
@@ -174,13 +178,21 @@ class ChatController extends Controller
 
         $memory = new ChatMemoryService($sessionId);
 
-        $followUp = $this->handleFollowUp($pesan, $request, $memory);
-
-        if ($followUp) {
-            [$jawaban, $sumber] = $followUp;
+        // 🛡️ Guard: tolak intent tulis
+        if ($this->isWriteIntent($pesan)) {
+            $jawaban = '🔒 Maaf, saya hanya bisa **membaca** data. '
+                . 'Untuk mengubah data, silakan gunakan menu **Aset Management** di SIAM.';
+            $sumber = 'readonly_guard';
             $file = null;
         } else {
-            [$jawaban, $sumber, $file] = $this->cariJawaban($pesan, $memory);
+            $followUp = $this->handleFollowUp($pesan, $request, $memory);
+
+            if ($followUp) {
+                [$jawaban, $sumber] = $followUp;
+                $file = null;
+            } else {
+                [$jawaban, $sumber, $file] = $this->cariJawaban($pesan, $memory);
+            }
         }
 
         if ($sumber === 'ai' && strlen($jawaban) > 30) {
@@ -220,16 +232,93 @@ class ChatController extends Controller
         ]);
     }
 
+    private function isWriteIntent(string $pesan): bool
+    {
+        $lower = Str::lower($pesan);
+        return (bool) preg_match(
+            '/\b(hapus|delete|ubah|update|edit|ganti|tambah|create|insert|'
+            . 'pindah|move|set|reset|hilangkan|buang|remove|drop|truncate)\b/i',
+            $lower
+        );
+    }
+
     private function handleFollowUp(string $pesan, Request $request, ChatMemoryService $memory): ?array
     {
         $lower = Str::lower(trim($pesan));
-        $field = $this->detectFieldQuery($lower);
-        if ($field) {
-            $lastAsset = $memory->recall('asset');
-            if ($lastAsset && isset($lastAsset['asset_id'])) {
-                return $this->answerAssetField((int) $lastAsset['asset_id'], $field, $memory);
+
+        // PRIORITAS 0: User + "pegang/punya/pakai"
+        $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
+        if ($userAssetsByName) {
+            return $userAssetsByName;
+        }
+
+        // PRIORITAS 1: SN/hostname BARU di pesan
+        if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
+            $identifier = strtoupper($m[1]);
+            $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang'];
+
+            if (!in_array(strtolower($identifier), $blacklist, true)) {
+                $asset = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
+                    ->where(function ($q) use ($identifier) {
+                        $q->where('hostname', 'like', "%{$identifier}%")
+                            ->orWhere('serial_number', 'like', "%{$identifier}%")
+                            ->orWhere('asset_code', 'like', "%{$identifier}%");
+                    })
+                    ->first();
+
+                if ($asset) {
+                    $memory->remember('asset', [
+                        'asset_id' => $asset->id,
+                        'serial_number' => $asset->serial_number,
+                        'hostname' => $asset->hostname,
+                    ], 30, "Aset {$asset->hostname}");
+
+                    if ($this->matchAny($lower, ['siapa', 'pegang', 'memegang', 'pakai', 'gunakan', 'dipegang', 'pemakai', 'pemegang', 'yang pakai'])) {
+                        return $this->answerWhoHoldsAsset($asset, $memory);
+                    }
+
+                    $field = $this->detectFieldQuery($lower);
+                    if ($field) {
+                        return $this->answerAssetField($asset->id, $field, $memory);
+                    }
+
+                    return $this->answerAssetShort($asset, $memory);
+                }
             }
         }
+
+        // PRIORITAS 2: Field query dari memory asset terakhir
+        $field = $this->detectFieldQuery($lower);
+        if ($field) {
+            // 🆕 Skip kalau ada nama user di pesan
+            $hasUserNameInMessage = false;
+            $cleanPesan = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $pesan);
+            $words = explode(' ', $cleanPesan);
+            for ($i = 0; $i < count($words) - 1; $i++) {
+                $kandidat = $words[$i] . ' ' . $words[$i + 1];
+                if (strlen($kandidat) < 5)
+                    continue;
+                if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
+                    $hasUserNameInMessage = true;
+                    break;
+                }
+            }
+
+            if (!$hasUserNameInMessage) {
+                $lastAsset = $memory->recall('asset');
+                if ($lastAsset && isset($lastAsset['asset_id'])) {
+                    return $this->answerAssetField((int) $lastAsset['asset_id'], $field, $memory);
+                }
+
+                // Fallback: cek context user_assets
+                $userCtx = $memory->recall('user_assets');
+                if ($userCtx && isset($userCtx['asset_id'])) {
+                    return $this->answerAssetField((int) $userCtx['asset_id'], $field, $memory);
+                }
+            }
+        }
+
+        // PRIORITAS 3: Resolve reference
         $ref = $this->resolveReference($lower, $memory);
         if ($ref) {
             if (isset($ref['user_id']) && $this->matchAny($lower, ['aset', 'pegang', 'punya', 'pakai'])) {
@@ -239,6 +328,20 @@ class ChatController extends Controller
                 return $this->answerAssetField((int) $ref['asset_id'], 'full', $memory);
             }
         }
+
+        // PRIORITAS 3.5: Follow-up "di pegang siapa" dari top_asset_by_model
+        $ctxTopAsset = $memory->recall('top_asset_by_model');
+        if ($ctxTopAsset && $this->matchAny($lower, ['pegang', 'dipegang', 'pemegang', 'yang pakai', 'siapa yang pakai'])) {
+            return $this->followUpTopAssetByModel($ctxTopAsset, 0, 10, $memory);
+        }
+
+        // 🆕 PRIORITAS 3.6: "kalau dewi" / "dewi" — panggil user + asetnya
+        $implicitUser = $this->tryAnswerImplicitUser($pesan, $memory);
+        if ($implicitUser) {
+            return $implicitUser;
+        }
+
+        // PRIORITAS 4: Question words → bukan follow-up
         foreach (self::QUESTION_WORDS as $qw) {
             if (str_contains($lower, $qw)) {
                 if ($field) {
@@ -247,6 +350,8 @@ class ChatController extends Controller
                 return null;
             }
         }
+
+        // PRIORITAS 5: Follow-up keyword
         $isFollowUp = false;
         foreach (self::FOLLOWUP_KEYWORDS as $kw) {
             if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $lower)) {
@@ -258,8 +363,8 @@ class ChatController extends Controller
         if (!$isFollowUp) {
             return null;
         }
-        $ctx = $memory->recall();
 
+        $ctx = $memory->recall();
         if (!$ctx) {
             return null;
         }
@@ -274,6 +379,8 @@ class ChatController extends Controller
         $limit = 10;
 
         return match ($type) {
+            'top_asset_by_model' => $this->followUpTopAssetByModel($ctx, $offset, $limit, $memory),
+            'user_assets' => $this->followUpUserAssets($ctx, $offset, $limit, $memory),
             'asset_by_status',
             'list_asset_by_status' => $this->followUpAssetByStatus($ctx, $offset, $limit, $memory),
             'asset_by_ownership' => $this->followUpAssetByOwnership($ctx, $offset, $limit, $memory),
@@ -283,6 +390,124 @@ class ChatController extends Controller
             'active_assignments' => $this->followUpActiveAssignments($ctx, $offset, $limit, $memory),
             default => null,
         };
+    }
+
+    private function followUpTopAssetByModel(array $ctx, int $offset, int $limit, ChatMemoryService $memory): ?array
+    {
+        $model = $ctx['model'] ?? null;
+        if (!$model) {
+            return null;
+        }
+
+        $assets = \App\Models\Asset::with(['currentUser', 'category', 'currentLocation'])
+            ->where('model', 'like', "%{$model}%")
+            ->whereHas('currentUser')
+            ->limit(50)
+            ->get();
+
+        if ($assets->isEmpty()) {
+            return [
+                "Tidak ada aset **{$model}** yang sedang dipegang siapa pun.",
+                'database',
+            ];
+        }
+
+        $grouped = [];
+        foreach ($assets as $a) {
+            $name = $a->currentUser?->name ?? 'Tidak diketahui';
+            $grouped[$name][] = $a;
+        }
+
+        $total = $assets->count();
+        $userCount = count($grouped);
+
+        $jawaban = "👥 **Pemegang aset {$model}**\n"
+            . "({$total} unit dipegang oleh {$userCount} orang):\n\n";
+
+        $i = 0;
+        foreach ($grouped as $name => $items) {
+            if ($i >= 10) {
+                $jawaban .= "\n_... dan " . (count($grouped) - 10) . " orang lainnya._";
+                break;
+            }
+
+            $jawaban .= "👤 **{$name}** — " . count($items) . " unit\n";
+            foreach ($items as $a) {
+                $jawaban .= "  • {$a->hostname}";
+                if ($a->serial_number && $a->serial_number !== $a->hostname) {
+                    $jawaban .= " (SN: `{$a->serial_number}`)";
+                }
+                $jawaban .= "\n";
+            }
+            $jawaban .= "\n";
+            $i++;
+        }
+
+        return [trim($jawaban), 'database'];
+    }
+
+    private function followUpUserAssets(array $ctx, int $offset, int $limit, ChatMemoryService $memory): ?array
+    {
+        $userId = $ctx['user_id'] ?? null;
+        $assetId = $ctx['asset_id'] ?? null;
+
+        if (!$userId) {
+            return null;
+        }
+
+        $user = \App\Models\User::find($userId);
+        if (!$user) {
+            return null;
+        }
+
+        if ($assetId) {
+            $asset = \App\Models\Asset::with(['category', 'currentLocation'])
+                ->find($assetId);
+
+            if ($asset) {
+                $jawaban = "📋 **{$asset->hostname}**";
+                if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
+                    $jawaban .= " (SN: `{$asset->serial_number}`)";
+                }
+                $jawaban .= "\n\n"
+                    . "• Brand/Model: {$asset->brand} {$asset->model}\n"
+                    . "• Kategori: " . ($asset->category?->name ?? '-') . "\n"
+                    . "• Status: {$asset->status}\n"
+                    . "• Tanggal Beli: " . ($asset->purchase_date?->format('d M Y') ?? '-') . "\n"
+                    . "• Garansi: " . ($asset->warranty_expire?->format('d M Y') ?? '-') . "\n";
+
+                if ($asset->purchase_price) {
+                    $jawaban .= "• Harga: Rp " . number_format($asset->purchase_price, 0, ',', '.') . "\n";
+                }
+
+                $memory->remember('asset', [
+                    'asset_id' => $asset->id,
+                    'serial_number' => $asset->serial_number,
+                    'hostname' => $asset->hostname,
+                ], 30, "Aset {$asset->hostname}");
+
+                return [$jawaban, 'database'];
+            }
+        }
+
+        $assets = $user->currentAssets()->with('category')->get();
+
+        if ($assets->isEmpty()) {
+            return ["User **{$user->name}** sedang tidak memegang aset.", 'database'];
+        }
+
+        $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+        foreach ($assets as $a) {
+            $jawaban .= "• **{$a->hostname}**";
+            if ($a->serial_number && $a->serial_number !== $a->hostname) {
+                $jawaban .= " (SN: `{$a->serial_number}`)";
+            }
+            $jawaban .= "\n"
+                . "  • Beli: " . ($a->purchase_date?->format('d M Y') ?? '-') . "\n"
+                . "  • Status: {$a->status}\n\n";
+        }
+
+        return [trim($jawaban), 'database'];
     }
 
     private function detectFieldQuery(string $lower): ?string
@@ -303,7 +528,20 @@ class ChatController extends Controller
             'spec' => ['spek', 'spesifikasi', 'spec', 'ram', 'prosesor', 'processor', 'ssd', 'harddisk', 'hdd', 'vga', 'jeroan', 'dapur pacu'],
             'os' => ['os', 'sistem operasi', 'windows', 'linux', 'mac', 'macos', 'ubuntu', 'operating system', 'win 10', 'win 11'],
             'garansi' => ['garansi', 'warranty', 'masa garansi', 'expired garansi', 'garansi sampai kapan', 'abis garansi'],
-            'tanggal_beli' => ['tanggal beli', 'tanggal pembelian', 'kapan dibeli', 'tgl beli', 'tahun beli', 'kapan pengadaan', 'nota beli', 'tgl pengadaan'],
+            'tanggal_beli' => [
+                'tanggal beli',
+                'tanggal pembelian',
+                'kapan dibeli',
+                'tgl beli',
+                'kapan pengadaan',
+                'nota beli',
+                'tgl pengadaan',
+                'tanggal berapa',
+                'dari tanggal',
+                'tanggal',
+                'tgl',
+            ],
+            'tahun_beli' => ['tahun beli', 'tahun pembelian', 'tahun pengadaan', 'tahun berapa beli', 'tahun berapa dibeli', 'beli tahun berapa', 'tahun perolehan', 'dibeli tahun', 'dibeli kapan'],
             'full' => ['detail lengkap', 'semua info', 'info lengkap', 'full detail', 'semuanya', 'tampilkan semua', 'all info', 'selengkapnya', 'profil aset'],
             'assigned_at' => ['sejak kapan', 'semenjak kapan', 'semenjak', 'dari kapan', 'kapan dipegang', 'mulai kapan', 'kapan di-assign', 'kapan diassign', 'kapan dipegang', 'sejak dipegang', 'dari dipegang', 'kapan mulai', 'sejak kapan dipegang', 'semenjak kapan dipegang', 'tgl serah terima', 'kapan dikasih ke', 'mulai pakai'],
             'returned_at' => ['kapan dikembalikan', 'kapan selesai', 'kapan return', 'kapan kembali', 'tgl pengembalian', 'kapan dibalikin', 'dibalikin kapan'],
@@ -320,6 +558,7 @@ class ChatController extends Controller
             'movement' => ['riwayat movement', 'riwayat perpindahan', 'pernah dipindah', 'riwayat pindah', 'mutasi aset', 'riwayat mutasi', 'pindah dari mana', 'log perpindahan'],
             'umur' => ['umur aset', 'umur laptop', 'berapa umur', 'usia aset', 'sudah berapa tahun', 'laptop tahun berapa', 'sudah tua belum'],
             'nilai_buku' => ['nilai buku', 'harga sekarang', 'nilai saat ini', 'nilai jual', 'penyusutan', 'depresiasi', 'sisa harga', 'harga pasaran', 'valuasi'],
+            'harga' => ['harga', 'harga beli', 'harga aset', 'harga perolehan', 'harga barang', 'harga pembelian', 'harganya', 'brp harganya', 'berapa harga', 'price'],
             'bandingkan' => ['bandingkan dengan', 'bedanya dengan', 'perbandingan dengan', 'komparasi', 'bagusan mana', 'vs', 'mending mana'],
             'konsumable_stock' => ['stok konsumable', 'stok consumable', 'stok barang habis pakai', 'sisa stok', 'stok sisa berapa', 'masih ada berapa', 'ketersediaan barang', 'stok gudang'],
             'konsumable_last' => ['terakhir dipakai siapa', 'terakhir pakai', 'terakhir keluar', 'siapa yang terakhir ambil', 'terakhir diambil siapa', 'pengambilan terakhir'],
@@ -327,7 +566,6 @@ class ChatController extends Controller
             'vendor_assets' => ['aset dari vendor', 'vendor punya aset', 'aset vendor', 'vendor mana', 'beli di vendor mana', 'toko mana', 'distributor mana', 'supplier mana', 'dibeli dari'],
             'vendor_contact' => ['kontak vendor', 'telepon vendor', 'phone vendor', 'nomor vendor', 'no telp vendor', 'email vendor', 'hubungi vendor', 'cp vendor', 'contact person vendor'],
         ];
-
 
         foreach ($fieldMap as $field => $keywords) {
             foreach ($keywords as $kw) {
@@ -351,6 +589,7 @@ class ChatController extends Controller
         if (!$asset) {
             return ["Aset tidak ditemukan.", 'database'];
         }
+
         $memory->remember('asset', [
             'asset_id' => $asset->id,
             'serial_number' => $asset->serial_number,
@@ -381,6 +620,7 @@ class ChatController extends Controller
             'os' => $header . "**OS:** " . ($asset->os ?? '-') . "\n**Lisensi:** " . ($asset->os_license ?? '-'),
             'garansi' => $header . "**Garansi:** " . ($asset->warranty_expire?->format('d M Y') ?? '-'),
             'tanggal_beli' => $header . "**Tanggal Pembelian:** " . ($asset->purchase_date?->format('d M Y') ?? '-'),
+            'tahun_beli' => $header . "**Tahun Pembelian:** " . ($asset->purchase_date?->format('Y') ?? '*tidak tercatat*'),
             'assigned_at' => $header . $this->formatAssignedInfo($asset),
             'returned_at' => $header . $this->formatReturnedInfo($asset),
             'riwayat' => $header . $this->formatFullHistory($asset),
@@ -396,7 +636,9 @@ class ChatController extends Controller
             'movement' => $header . $this->formatMovementHistory($asset),
             'umur' => $header . $this->formatAssetAge($asset),
             'nilai_buku' => $header . $this->formatBookValue($asset),
-
+            'harga' => $header . "**Harga Beli:** " . ($asset->purchase_price
+                ? 'Rp ' . number_format($asset->purchase_price, 0, ',', '.')
+                : '*tidak tercatat*'),
             default => $header . "Field **{$field}** tidak dikenali.",
         };
 
@@ -552,6 +794,7 @@ class ChatController extends Controller
             }
             $jawaban .= "\n";
         }
+
         $loans = \App\Models\AssetLoan::where('asset_id', $asset->id)
             ->with('user')
             ->orderByDesc('loan_date')
@@ -567,6 +810,7 @@ class ChatController extends Controller
             }
             $jawaban .= "\n";
         }
+
         $maintenances = \App\Models\AssetMaintenance::where('asset_id', $asset->id)
             ->orderByDesc('start_date')
             ->get();
@@ -920,7 +1164,7 @@ class ChatController extends Controller
 
         $price = $asset->purchase_price;
         $years = $asset->purchase_date->diffInYears(now());
-        $depresiasi = min(0.8 * $years, 0.9); // max 90% depresiasi
+        $depresiasi = min(0.8 * $years, 0.9);
         $currentValue = $price * (1 - $depresiasi);
 
         $jawaban = "**💵 Nilai Buku Aset**\n"
@@ -976,9 +1220,9 @@ class ChatController extends Controller
 
         $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
         foreach ($assets as $a) {
-            $jawaban .= "• **{$a->serial_number}**";
-            if ($a->hostname) {
-                $jawaban .= " ({$a->hostname})";
+            $jawaban .= "• **{$a->hostname}**";
+            if ($a->serial_number && $a->serial_number !== $a->hostname) {
+                $jawaban .= " (SN: `{$a->serial_number}`)";
             }
             $jawaban .= "\n  {$a->brand} {$a->model}\n";
             if ($a->category) {
@@ -987,11 +1231,342 @@ class ChatController extends Controller
             $jawaban .= "\n";
         }
 
-        if ($assets->count() > 1) {
-            $jawaban .= "_Ketik \"detail yang pertama\" untuk info lengkap._";
+        return [trim($jawaban), 'database'];
+    }
+
+    private function answerWhoHoldsAsset($asset, ChatMemoryService $memory): array
+    {
+        $header = "🔍 **{$asset->hostname}**";
+        if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
+            $header .= "\nSN: `{$asset->serial_number}`";
+        }
+        $header .= "\n\n";
+
+        $jawaban = $header
+            . "• Brand/Model: {$asset->brand} {$asset->model}\n"
+            . "• Kategori: " . ($asset->category?->name ?? '-') . "\n"
+            . "• Status: {$asset->status}\n";
+
+        if ($asset->currentUser) {
+            $jawaban .= "\n👤 **Pemegang:** **{$asset->currentUser->name}**";
+            if ($asset->currentUser->position) {
+                $jawaban .= " ({$asset->currentUser->position})";
+            }
+            $jawaban .= "\n";
+        } else {
+            $jawaban .= "\n👤 **Pemegang:** *tidak ada* (aset tersedia)\n";
         }
 
-        return [trim($jawaban), 'database'];
+        if ($asset->currentLocation) {
+            $jawaban .= "📍 **Lokasi:** {$asset->currentLocation->full_name}";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    private function answerAssetShort($asset, ChatMemoryService $memory): array
+    {
+        $header = "🔍 **{$asset->hostname}**";
+        if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
+            $header .= "\nSN: `{$asset->serial_number}`";
+        }
+        $header .= "\n\n";
+
+        $jawaban = $header
+            . "• Brand/Model: {$asset->brand} {$asset->model}\n"
+            . "• Kategori: " . ($asset->category?->name ?? '-') . "\n"
+            . "• Status: {$asset->status}\n"
+            . "• Hak Kepemilikan: " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa') . "\n";
+
+        if ($asset->currentUser) {
+            $jawaban .= "\n👤 **Pemegang saat ini:** {$asset->currentUser->name}";
+            if ($asset->currentUser->position) {
+                $jawaban .= " ({$asset->currentUser->position})";
+            }
+        } else {
+            $jawaban .= "\n👤 **Pemegang saat ini:** *tidak ada* (aset tersedia)";
+        }
+
+        if ($asset->currentLocation) {
+            $jawaban .= "\n📍 **Lokasi:** {$asset->currentLocation->full_name}";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    private function tryAnswerUserAssetsByName(string $pesan, ChatMemoryService $memory): ?array
+    {
+        $lower = Str::lower($pesan);
+
+        $skipPatterns = [
+            'siapa yang pakai',
+            'siapa saja yang pakai',
+            'siapa aja yang pakai',
+            'top user',
+            'top pegawai',
+            'paling banyak pegang',
+            'aset apa saja',
+            'laptop apa saja',
+        ];
+        foreach ($skipPatterns as $pattern) {
+            if (str_contains($lower, $pattern)) {
+                return null;
+            }
+        }
+
+        // Harus ada kata kerja "pegang/punya/pakai/memegang/pinjam"
+        if (!$this->matchAny($lower, ['pegang', 'memegang', 'punya', 'pakai', 'gunakan', 'dipegang', 'pinjam', 'dipinjam'])) {
+            return null;
+        }
+
+        $userName = null;
+
+        if (
+            preg_match(
+                '/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:pegang|memegang|punya|pakai|gunakan|dipegang|menggunakan|pinjam|dipinjam)/i',
+                $pesan,
+                $m
+            )
+        ) {
+            $kandidat = trim($m[1]);
+            // Validasi: kandidat harus benar-benar user di DB
+            if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
+                $userName = $kandidat;
+            }
+        }
+
+        if (!$userName) {
+            $words = preg_split('/\s+/', $pesan);
+            for ($i = 0; $i < count($words) - 1; $i++) {
+                $kandidat = $words[$i] . ' ' . $words[$i + 1];
+                if (strlen($kandidat) < 5)
+                    continue;
+                if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
+                    $userName = $kandidat;
+                    break;
+                }
+            }
+        }
+
+        if (!$userName) {
+            foreach (preg_split('/\s+/', $pesan) as $word) {
+                if (strlen($word) < 4)
+                    continue;
+                if (in_array(strtolower($word), ['yang', 'aset', 'laptop', 'pegang', 'punya', 'pakai', 'siapa', 'pinjam'], true)) {
+                    continue;
+                }
+                if (\App\Models\User::where('name', 'like', "%{$word}%")->exists()) {
+                    $userName = $word;
+                    break;
+                }
+            }
+        }
+
+        if (!$userName || strlen($userName) < 3) {
+            return null;
+        }
+
+        $user = \App\Models\User::where('name', 'like', "%{$userName}%")->first();
+        if (!$user) {
+            return null;
+        }
+
+        $assets = $user->currentAssets()->with('category')->get();
+
+        if ($assets->isEmpty()) {
+            return [
+                "User **{$user->name}** sedang tidak memegang aset.",
+                'database',
+                null,
+            ];
+        }
+
+        // 🆕 Cek field spesifik atau filter status
+        $field = $this->detectFieldQuery($lower);
+        $statusFilter = null;
+
+        if (str_contains($lower, 'dipinjam') || str_contains($lower, 'pinjam')) {
+            $statusFilter = 'loaned';
+        } elseif (str_contains($lower, 'dipakai') || str_contains($lower, 'digunakan')) {
+            $statusFilter = 'in_use';
+        } elseif (str_contains($lower, 'tersedia') || str_contains($lower, 'available')) {
+            $statusFilter = 'available';
+        } elseif (str_contains($lower, 'rusak') || str_contains($lower, 'perbaikan')) {
+            $statusFilter = 'maintenance';
+        }
+
+        // Filter aset berdasarkan status
+        if ($statusFilter) {
+            $assets = $assets->filter(fn($a) => $a->status === $statusFilter);
+        }
+
+        // Kalau ada filter status atau field spesifik, tampilkan dengan format berbeda
+        if ($statusFilter || $field) {
+            $statusLabel = $statusFilter ? ucfirst($statusFilter) : null;
+            $jawaban = "👤 **{$user->name}**";
+            if ($statusFilter) {
+                $jawaban .= " — aset **{$statusLabel}**";
+            }
+            $jawaban .= ":\n\n";
+
+            if ($assets->isEmpty()) {
+                return [
+                    "User **{$user->name}** tidak memiliki aset dengan filter tersebut.",
+                    'database',
+                    null,
+                ];
+            }
+
+            foreach ($assets as $a) {
+                $jawaban .= "• **{$a->hostname}**";
+                if ($a->serial_number && $a->serial_number !== $a->hostname) {
+                    $jawaban .= " (SN: `{$a->serial_number}`)";
+                }
+                $jawaban .= "\n";
+
+                if ($field) {
+                    $fieldValue = $this->getFieldValue($a, $field);
+                    $fieldLabel = $this->getFieldLabel($field);
+                    $jawaban .= "  {$fieldLabel}: {$fieldValue}\n";
+                } else {
+                    $jawaban .= "  • Status: {$a->status}\n";
+                    $jawaban .= "  • Brand/Model: {$a->brand} {$a->model}\n";
+                }
+                $jawaban .= "\n";
+            }
+
+            return [trim($jawaban), 'database', null];
+        }
+
+        // Hapus memory asset lama biar tidak nyangkut
+        $memory->forget('asset');
+
+        $memory->remember('user', [
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'position' => $user->position,
+        ], 30, "User {$user->name}");
+
+        if ($assets->count() === 1) {
+            $a = $assets->first();
+            $memory->remember('asset', [
+                'asset_id' => $a->id,
+                'serial_number' => $a->serial_number,
+                'hostname' => $a->hostname,
+            ], 30, "Aset {$a->hostname}");
+        }
+
+        $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+        foreach ($assets as $a) {
+            $jawaban .= "• **{$a->hostname}**";
+            if ($a->serial_number && $a->serial_number !== $a->hostname) {
+                $jawaban .= " (SN: `{$a->serial_number}`)";
+            }
+            $jawaban .= "\n  {$a->brand} {$a->model}\n";
+            if ($a->category) {
+                $jawaban .= "  Kategori: {$a->category->name}\n";
+            }
+            $jawaban .= "\n";
+        }
+
+        return [
+            trim($jawaban),
+            'database',
+            [
+                'type' => 'user_assets',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'asset_id' => $assets->first()->id,
+                'serial_number' => $assets->first()->serial_number,
+                'hostname' => $assets->first()->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
+    }
+
+    /**
+     * 🆕 Ambil nilai field dari aset.
+     */
+    private function getFieldValue($asset, string $field): string
+    {
+        return match ($field) {
+            'serial_number' => $asset->serial_number ?? '-',
+            'hostname' => $asset->hostname ?? '-',
+            'asset_code' => $asset->asset_code ?? '-',
+            'brand' => $asset->brand ?? '-',
+            'model' => $asset->model ?? '-',
+            'status' => $asset->status ?? '-',
+            'ownership' => $asset->ownership_type === 'owned' ? 'Hak Milik' : 'Sewa',
+            'location' => $asset->currentLocation?->full_name ?? '-',
+            'user' => $asset->currentUser?->name ?? '-',
+            'garansi' => $asset->warranty_expire?->format('d M Y') ?? '-',
+            'tanggal_beli' => $asset->purchase_date?->format('d M Y') ?? '-',
+            'tahun_beli' => $asset->purchase_date?->format('Y') ?? '-',
+            'harga' => $asset->purchase_price
+                ? 'Rp ' . number_format($asset->purchase_price, 0, ',', '.')
+                : '-',
+            'umur' => $asset->purchase_date
+                ? floor($asset->purchase_date->diffInDays(now()) / 365) . ' tahun'
+                : '-',
+            default => '-',
+        };
+    }
+
+    /**
+     * 🆕 Label untuk field.
+     */
+    private function getFieldLabel(string $field): string
+    {
+        return match ($field) {
+            'serial_number' => 'Serial Number',
+            'hostname' => 'Hostname',
+            'asset_code' => 'Asset Code',
+            'brand' => 'Brand',
+            'model' => 'Model',
+            'status' => 'Status',
+            'ownership' => 'Hak Kepemilikan',
+            'location' => 'Lokasi',
+            'user' => 'Pemegang',
+            'garansi' => 'Garansi',
+            'tanggal_beli' => 'Tanggal Beli',
+            'tahun_beli' => 'Tahun Beli',
+            'harga' => 'Harga',
+            'umur' => 'Umur',
+            default => ucfirst($field),
+        };
+    }
+
+    /**
+     * 🆕 Handle "kalau dewi" / "dewi" / "dewi lestari"
+     */
+    private function tryAnswerImplicitUser(string $pesan, ChatMemoryService $memory): ?array
+    {
+        $lower = Str::lower(trim($pesan));
+
+        if ($this->matchAny($lower, ['pegang', 'punya', 'pakai', 'dipegang', 'pinjam', 'loan', 'berapa', 'apa', 'siapa', 'kapan'])) {
+            return null;
+        }
+
+        $words = preg_split('/\s+/', $lower);
+        if (count($words) > 4) {
+            return null;
+        }
+
+        foreach (preg_split('/\s+/', $pesan) as $word) {
+            $clean = preg_replace('/[^\p{L}\p{N}]/u', '', $word);
+            if (strlen($clean) < 4)
+                continue;
+            if (in_array(strtolower($clean), ['kalau', 'nya', 'yang', 'dan', 'atau', 'untuk', 'apa', 'siapa'], true)) {
+                continue;
+            }
+
+            $user = \App\Models\User::where('name', 'like', "%{$clean}%")->first();
+            if ($user) {
+                return $this->answerUserAssets($user->id, $memory);
+            }
+        }
+
+        return null;
     }
 
     private function followUpAssetByStatus(array $ctx, int $offset, int $limit, ChatMemoryService $memory): array
@@ -1298,6 +1873,7 @@ class ChatController extends Controller
 
     private function cariJawaban(string $pesan, ChatMemoryService $memory): array
     {
+        // 1️⃣ Regex-based QueryRouter
         $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
         if ($dbAnswer) {
             if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
@@ -1307,15 +1883,28 @@ class ChatController extends Controller
             }
             return [$dbAnswer[0], 'database', null];
         }
+
+        // 2️⃣ Intent parser via Ollama
+        $intent = app(\App\Services\Ai\OllamaIntentParser::class)->parse($pesan);
+        if ($intent && ($intent['intent'] ?? 'other') !== 'other') {
+            $result = app(\App\Services\Ai\IntentExecutor::class)->execute($intent);
+            if ($result) {
+                return [$result['answer'], 'database', null];
+            }
+        }
+
+        // 3️⃣ SN pattern fallback
         if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
             $identifier = strtoupper($m[1]);
 
             $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang'];
             if (!in_array(strtolower($identifier), $blacklist, true)) {
                 $asset = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
-                    ->where('serial_number', 'like', "%{$identifier}%")
-                    ->orWhere('hostname', 'like', "%{$identifier}%")
-                    ->orWhere('asset_code', 'like', "%{$identifier}%")
+                    ->where(function ($q) use ($identifier) {
+                        $q->where('hostname', 'like', "%{$identifier}%")
+                            ->orWhere('serial_number', 'like', "%{$identifier}%")
+                            ->orWhere('asset_code', 'like', "%{$identifier}%");
+                    })
                     ->first();
 
                 if ($asset) {
@@ -1352,6 +1941,23 @@ class ChatController extends Controller
                 }
             }
         }
+
+        // 3.5️⃣ Field aset spesifik dari user
+        $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
+        if ($userAssetAnswer) {
+            return $userAssetAnswer;
+        }
+
+        // 3.6️⃣ Fallback: user + "pegang apa"
+        $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
+        if ($userAssetsByName) {
+            if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
+                $memory->remember('user_assets', $userAssetsByName[2], 30);
+            }
+            return $userAssetsByName;
+        }
+
+        // 4️⃣ AutoLearning
         $learning = app(AutoLearningService::class);
         $learned = $learning->findAnswer($pesan);
 
@@ -1359,6 +1965,8 @@ class ChatController extends Controller
             $learned->increment('frequency');
             return [$learned->answer, 'learned', null];
         }
+
+        // 5️⃣ Knowledge
         $pesanBersih = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($pesan));
         $pesanBersih = preg_replace('/\s+/', ' ', trim($pesanBersih));
 
@@ -1384,6 +1992,8 @@ class ChatController extends Controller
                 ];
             }
         }
+
+        // 6️⃣ Ollama fallback (Q&A umum)
         $jawaban = $this->tanyaOllama($pesan);
 
         if (strlen($jawaban) >= 50 && !str_contains($jawaban, 'Maaf,')) {
@@ -1391,6 +2001,108 @@ class ChatController extends Controller
         }
 
         return [$jawaban, 'ai', null];
+    }
+
+    private function tryAnswerUserAssetField(string $pesan, ChatMemoryService $memory): ?array
+    {
+        $lower = Str::lower($pesan);
+
+        $field = null;
+        if (preg_match('/\bsn\b|\bserial\b/i', $lower)) {
+            $field = 'serial_number';
+        } elseif (preg_match('/\bhostname\b/i', $lower)) {
+            $field = 'hostname';
+        } elseif (preg_match('/\basset\s?code\b|\bkode aset\b/i', $lower)) {
+            $field = 'asset_code';
+        }
+
+        if (!$field) {
+            return null;
+        }
+
+        $userName = null;
+
+        if (
+            preg_match(
+                '/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:sn|serial|hostname|asset\s?code)/i',
+                $pesan,
+                $m
+            )
+        ) {
+            $kandidat = trim($m[1]);
+            if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
+                $userName = $kandidat;
+            }
+        }
+
+        if (
+            !$userName && preg_match(
+                '/(?:sn|serial|hostname|asset\s?code)\s+(?:nya\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i',
+                $pesan,
+                $m
+            )
+        ) {
+            $kandidat = trim($m[1]);
+            if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
+                $userName = $kandidat;
+            }
+        }
+
+        if (!$userName || strlen($userName) < 3) {
+            return null;
+        }
+
+        $user = \App\Models\User::where('name', 'like', "%{$userName}%")->first();
+        if (!$user) {
+            return null;
+        }
+
+        $assets = $user->currentAssets()->with('category')->get();
+
+        if ($assets->isEmpty()) {
+            return [
+                "User **{$user->name}** sedang tidak memegang aset.",
+                'database',
+                null,
+            ];
+        }
+
+        $memory->remember('user', [
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'position' => $user->position,
+        ], 30, "User {$user->name}");
+
+        if ($assets->count() === 1) {
+            $a = $assets->first();
+            $memory->remember('asset', [
+                'asset_id' => $a->id,
+                'serial_number' => $a->serial_number,
+                'hostname' => $a->hostname,
+            ], 30, "Aset {$a->serial_number}");
+        }
+
+        $fieldLabels = [
+            'serial_number' => 'Serial Number',
+            'hostname' => 'Hostname',
+            'asset_code' => 'Asset Code',
+        ];
+
+        $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+        foreach ($assets as $a) {
+            $value = $a->{$field} ?? null;
+            $label = $fieldLabels[$field] ?? $field;
+
+            $jawaban .= "• **{$a->hostname}**";
+            if ($a->serial_number && $field !== 'serial_number' && $a->serial_number !== $a->hostname) {
+                $jawaban .= " (SN: `{$a->serial_number}`)";
+            }
+            $jawaban .= "\n"
+                . "  {$label}: `" . ($value ?: '-') . "`\n"
+                . "  {$a->brand} {$a->model}\n\n";
+        }
+
+        return [trim($jawaban), 'database', null];
     }
 
     private function pickBestMatch($candidates, string $pesanBersih): ?Knowledge
@@ -1435,7 +2147,6 @@ class ChatController extends Controller
             }
 
             $score = $matched / count($pesanWords);
-
             $lengthRatio = min(count($keyWords), count($pesanWords)) /
                 max(count($keyWords), count($pesanWords));
             $score = $score * (0.7 + 0.3 * $lengthRatio);
@@ -1540,7 +2251,6 @@ class ChatController extends Controller
             }
 
             return 'Maaf, saya belum bisa menjawab pertanyaan itu.';
-
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::error('Ollama connection error: ' . $e->getMessage());
             return 'Maaf, layanan AI tidak dapat dihubungi. Cek apakah Ollama berjalan.';

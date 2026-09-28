@@ -2,6 +2,8 @@
 
 namespace App\Services\Query;
 
+use Illuminate\Support\Facades\DB;
+
 class QueryRouter
 {
     /**
@@ -19,6 +21,7 @@ class QueryRouter
             app(LocationQueryService::class),
             app(VendorQueryService::class),
             app(ReportQueryService::class),
+            app(ActivityQueryService::class),
         ];
 
         // 🆕 Inject user ke service yang butuh
@@ -29,11 +32,20 @@ class QueryRouter
             }
         }
 
-        foreach ($services as $service) {
-            $result = $service->tryAnswer($pesan);
-            if ($result) {
-                return $result;
+        // 🆕 Paksa koneksi read-only selama query service AI berjalan
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('ai_readonly');
+
+        try {
+            foreach ($services as $service) {
+                $result = $service->tryAnswer($pesan);
+                if ($result) {
+                    return $result;
+                }
             }
+        } finally {
+            // Selalu restore — apapun yang terjadi
+            DB::setDefaultConnection($original);
         }
 
         return null;

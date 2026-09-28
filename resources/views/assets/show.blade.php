@@ -196,14 +196,30 @@
                                         class="flex items-start gap-3 p-3 rounded-xl border
                                         {{ $a->is_active ? 'border-blue-300 bg-blue-50' : 'border-gray-200' }}">
                                         <div class="flex-shrink-0">
-                                            <div
-                                                class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">
-                                                {{ strtoupper(substr($a->user?->name ?? '?', 0, 1)) }}
-                                            </div>
+                                            @if ($a->user)
+                                                <a href="{{ route('users.show', $a->user) }}">
+                                                    <div
+                                                        class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold hover:bg-indigo-700 transition">
+                                                        {{ strtoupper(substr($a->user->name, 0, 1)) }}
+                                                    </div>
+                                                </a>
+                                            @else
+                                                <div
+                                                    class="w-10 h-10 rounded-full bg-gray-400 text-white flex items-center justify-center font-bold">
+                                                    ?
+                                                </div>
+                                            @endif
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <span class="font-medium">{{ $a->user?->name ?? '-' }}</span>
+                                                @if ($a->user)
+                                                    <a href="{{ route('users.show', $a->user) }}"
+                                                        class="font-medium text-indigo-600 hover:underline hover:text-indigo-800">
+                                                        {{ $a->user->name }}
+                                                    </a>
+                                                @else
+                                                    <span class="font-medium">-</span>
+                                                @endif
                                                 @if ($a->is_active)
                                                     <span class="px-2 py-0.5 text-xs rounded bg-blue-600 text-white">
                                                         Sedang Dipakai
@@ -280,7 +296,14 @@
                                     <li
                                         class="border-l-2 {{ $loan->is_overdue ? 'border-red-500' : 'border-blue-400' }} pl-3">
                                         <div class="flex items-center gap-2 flex-wrap">
-                                            <span class="font-medium text-sm">{{ $loan->user?->name ?? '-' }}</span>
+                                            @if ($loan->user)
+                                                <a href="{{ route('users.show', $loan->user) }}"
+                                                    class="font-medium text-sm text-indigo-600 hover:underline hover:text-indigo-800">
+                                                    {{ $loan->user->name }}
+                                                </a>
+                                            @else
+                                                <span class="font-medium text-sm">-</span>
+                                            @endif
                                             <span
                                                 class="px-2 py-0.5 text-xs rounded
                                                 {{ $loan->status === 'returned'
@@ -378,12 +401,17 @@
                         <h2 class="font-semibold text-gray-800 mb-3">Pemakai Saat Ini</h2>
                         @if ($asset->currentUser)
                             <div class="flex items-center gap-3">
-                                <div
-                                    class="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-bold">
-                                    {{ $asset->currentUser->initial ?? strtoupper(substr($asset->currentUser->name, 0, 1)) }}
-                                </div>
+                                <a href="{{ route('users.show', $asset->currentUser) }}" class="block shrink-0">
+                                    <div
+                                        class="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-bold hover:bg-indigo-700 transition">
+                                        {{ $asset->currentUser->initial ?? strtoupper(substr($asset->currentUser->name, 0, 1)) }}
+                                    </div>
+                                </a>
                                 <div class="min-w-0">
-                                    <div class="font-medium truncate">{{ $asset->currentUser->name }}</div>
+                                    <a href="{{ route('users.show', $asset->currentUser) }}"
+                                        class="font-medium truncate block text-indigo-600 hover:underline hover:text-indigo-800">
+                                        {{ $asset->currentUser->name }}
+                                    </a>
                                     <div class="text-xs text-gray-500 truncate">{{ $asset->currentUser->position }}
                                     </div>
                                     <div class="text-xs text-gray-500 truncate">
