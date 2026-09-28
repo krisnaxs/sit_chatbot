@@ -23,8 +23,6 @@ class Location extends Model
     {
         return ['is_active' => 'boolean'];
     }
-
-    // Auto-generate full_name
     protected static function booted(): void
     {
         static::saving(function (Location $location) {

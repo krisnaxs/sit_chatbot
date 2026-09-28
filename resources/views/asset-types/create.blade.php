@@ -173,8 +173,6 @@
                 get isNewBrand() {
                     return this.selectedBrand === '__new__';
                 },
-
-                // Nilai final yang akan dikirim ke backend
                 get finalBrand() {
                     if (this.isNewBrand) {
                         return this.newBrand;

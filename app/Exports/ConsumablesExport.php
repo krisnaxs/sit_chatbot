@@ -28,7 +28,6 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
 
     public function query(): Builder
     {
-        // 🆕 Eager load total_out & total_return dari transaksi
         $query = Consumable::with('category')
             ->withSum([
                 'transactions as total_out' => function ($q) {
@@ -90,8 +89,6 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
             $c->is_low_stock => 'LOW STOCK',
             default => 'TERSEDIA',
         };
-
-        // 🆕 Net keluar = total out - total return
         $jumlahKeluar = ($c->total_out ?? 0) - ($c->total_return ?? 0);
 
         return [
@@ -127,11 +124,7 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $lastCol = 'M'; // 🆕 13 kolom (A-M)
-    
-                // Insert 3 baris untuk judul
                 $sheet->insertNewRowBefore(1, 3);
-
-                // === Judul (baris 1) ===
                 $sheet->mergeCells("A1:{$lastCol}1");
                 $sheet->setCellValue('A1', 'STOK KONSUMABLE — SIAM');
                 $sheet->getStyle('A1')->applyFromArray([
@@ -142,8 +135,6 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
                     ],
                 ]);
                 $sheet->getRowDimension(1)->setRowHeight(28);
-
-                // === Sub-judul (baris 2) ===
                 $sheet->mergeCells("A2:{$lastCol}2");
                 $waktu = now()->format('d/m/Y H:i') . ' WIB';
                 $subtitle = "Diexport pada: {$waktu}";
@@ -162,11 +153,7 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
                     ],
                 ]);
                 $sheet->getRowDimension(2)->setRowHeight(18);
-
-                // === Spacer (baris 3) ===
                 $sheet->getRowDimension(3)->setRowHeight(6);
-
-                // === Header (baris 4) ===
                 $headerRange = "A4:{$lastCol}4";
                 $sheet->getStyle($headerRange)->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
@@ -180,8 +167,6 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
                     ],
                 ]);
                 $sheet->getRowDimension(4)->setRowHeight(24);
-
-                // === Border ===
                 $highestRow = $sheet->getHighestRow();
                 $sheet->getStyle("A4:{$lastCol}{$highestRow}")->applyFromArray([
                     'borders' => [
@@ -191,8 +176,6 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
                         ],
                     ],
                 ]);
-
-                // 🆕 Highlight kolom "Jumlah Keluar" (kolom I) — amber tipis
                 $sheet->getStyle("I5:I{$highestRow}")->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => '92400E']],
                     'fill' => [
@@ -203,11 +186,7 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
                         'horizontal' => Alignment::HORIZONTAL_CENTER,
                     ],
                 ]);
-
-                // === Freeze pane ===
                 $sheet->freezePane('A5');
-
-                // === Auto filter ===
                 $sheet->setAutoFilter("A4:{$lastCol}{$highestRow}");
             },
         ];

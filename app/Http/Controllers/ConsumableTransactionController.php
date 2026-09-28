@@ -74,14 +74,11 @@ class ConsumableTransactionController extends Controller
      */
     public function create(Request $request)
     {
-        // 🆕 Pre-load dengan total_out & total_return
         $consumable = $request->filled('consumable_id')
             ? Consumable::withSum(['transactions as total_out' => fn($q) => $q->where('type', 'out')], 'quantity')
                 ->withSum(['transactions as total_return' => fn($q) => $q->where('type', 'return')], 'quantity')
                 ->find($request->consumable_id)
             : null;
-
-        // 🆕 Type default dari query string
         $defaultType = $request->get('type', 'out');
 
         $consumables = Consumable::orderBy('name')->get();
@@ -117,8 +114,6 @@ class ConsumableTransactionController extends Controller
         ]);
 
         $consumable = Consumable::findOrFail($validated['consumable_id']);
-
-        // Validasi stok untuk transaksi 'out'
         if ($validated['type'] === 'out') {
             if ($consumable->stock_available < $validated['quantity']) {
                 return back()
@@ -126,8 +121,6 @@ class ConsumableTransactionController extends Controller
                     ->with('error', "Stok tidak cukup. Tersedia: {$consumable->stock_available} {$consumable->unit}.");
             }
         }
-
-        // Validasi untuk 'return'
         if ($validated['type'] === 'return') {
             $maxReturn = $consumable->stock_total - $consumable->stock_available;
             if ($validated['quantity'] > $maxReturn) {
@@ -141,24 +134,18 @@ class ConsumableTransactionController extends Controller
         $validated['approved_by'] = auth()->id();
 
         DB::transaction(function () use ($validated, $consumable) {
-            // Simpan transaksi
             ConsumableTransaction::create($validated);
-
-            // Update stok sesuai tipe transaksi
             switch ($validated['type']) {
                 case 'in':
-                    // Barang masuk: total & available naik
                     $consumable->increment('stock_total', $validated['quantity']);
                     $consumable->increment('stock_available', $validated['quantity']);
                     break;
 
                 case 'out':
-                    // Barang keluar: available turun (total tetap)
                     $consumable->decrement('stock_available', $validated['quantity']);
                     break;
 
                 case 'return':
-                    // Barang kembali: available naik (total tetap)
                     $consumable->increment('stock_available', $validated['quantity']);
                     break;
             }
@@ -217,8 +204,6 @@ class ConsumableTransactionController extends Controller
             'requestedBy',
             'approvedBy',
         ]);
-
-        // Terapkan filter sama seperti index()
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
@@ -258,22 +243,17 @@ class ConsumableTransactionController extends Controller
     {
         DB::transaction(function () use ($transaction) {
             $consumable = $transaction->consumable;
-
-            // Rollback stok (kebalikan dari store)
             switch ($transaction->type) {
                 case 'in':
-                    // Batalkan barang masuk
                     $consumable->decrement('stock_total', $transaction->quantity);
                     $consumable->decrement('stock_available', $transaction->quantity);
                     break;
 
                 case 'out':
-                    // Batalkan barang keluar → kembalikan ke available
                     $consumable->increment('stock_available', $transaction->quantity);
                     break;
 
                 case 'return':
-                    // Batalkan return → kurangi available
                     $consumable->decrement('stock_available', $transaction->quantity);
                     break;
             }

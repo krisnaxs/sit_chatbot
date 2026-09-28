@@ -1,7 +1,6 @@
 @props(['app', 'index' => 0])
 
 @php
-    // === Palet warna — tiap card beda ===
     $palette = [
         'rgba(37,99,235,0.45)', // blue
         'rgba(147,51,234,0.45)', // purple
@@ -19,8 +18,6 @@
         'rgba(14,165,233,0.45)', // sky
         'rgba(79,70,229,0.45)', // indigo
     ];
-
-    // Pilih warna berdasarkan index card → tiap card beda warna
     $overlayColor = $palette[$index % count($palette)];
 @endphp
 

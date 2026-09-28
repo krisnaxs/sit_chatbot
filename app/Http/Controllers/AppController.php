@@ -70,8 +70,6 @@ class AppController extends Controller
             'is_active' => $isActive,
         ]);
 
-        // ✅ Log otomatis dari middleware LogUserActivity
-
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil ditambahkan!');
     }
 
@@ -127,8 +125,6 @@ class AppController extends Controller
         $app->is_active = $request->has('is_active');
         $app->save();
 
-        // ✅ Log otomatis dari middleware LogUserActivity
-
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil diperbarui!');
     }
 
@@ -145,14 +141,8 @@ class AppController extends Controller
 
         $app->delete();
 
-        // ✅ Log otomatis dari middleware LogUserActivity
-
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil dihapus!');
     }
-
-    // ============================================================
-    // AUTHORIZATION HELPERS
-    // ============================================================
 
     /**
      * 🔒 Hanya admin.

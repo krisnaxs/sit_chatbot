@@ -20,8 +20,6 @@ class AssetTransactionSeeder extends Seeder
         $this->seedMaintenances();
         $this->seedMovements();
     }
-
-    // ================================================================
     private function seedAssignments(): void
     {
         $admin = User::where('email', 'admin@admin.com')->first();
@@ -87,8 +85,6 @@ class AssetTransactionSeeder extends Seeder
 
         $this->command->info('✅ Assignments: ' . count($assignments) . ' records');
     }
-
-    // ================================================================
     private function seedLoans(): void
     {
         $admin = User::where('email', 'admin@admin.com')->first();
@@ -145,8 +141,6 @@ class AssetTransactionSeeder extends Seeder
 
         $this->command->info('✅ Loans: ' . count($data) . ' records');
     }
-
-    // ================================================================
     private function seedMaintenances(): void
     {
         $mitraVendor = Vendor::where('name', 'CV Mitra Office Supply')->first();
@@ -194,8 +188,6 @@ class AssetTransactionSeeder extends Seeder
 
         $this->command->info('✅ Maintenances: ' . count($data) . ' records');
     }
-
-    // ================================================================
     private function seedMovements(): void
     {
         $admin = User::where('email', 'admin@admin.com')->first();

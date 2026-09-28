@@ -211,7 +211,6 @@
     </div>
 
     <script>
-        // Auto-submit filter saat berubah
         document.querySelectorAll('[data-auto-submit]').forEach(el => {
             el.addEventListener('change', () => el.closest('form').submit());
         });

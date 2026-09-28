@@ -381,8 +381,6 @@
 
             searchInput.addEventListener('keyup', function() {
                 var keyword = this.value.toLowerCase();
-
-                // Loop setiap group
                 var groups = document.querySelectorAll('[data-group]');
                 for (var g = 0; g < groups.length; g++) {
                     var group = groups[g];
@@ -400,8 +398,6 @@
                             item.style.display = 'none';
                         }
                     }
-
-                    // Sembunyikan group kalau tidak ada hasil
                     if (visibleCount === 0 && keyword !== '') {
                         group.style.display = 'none';
                     } else {

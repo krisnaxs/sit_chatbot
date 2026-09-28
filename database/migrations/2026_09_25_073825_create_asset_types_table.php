@@ -14,8 +14,6 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-
-            // Index & unique
             $table->unique(['brand', 'model']);    // tidak boleh brand+model sama
             $table->index('brand');
             $table->index('is_active');

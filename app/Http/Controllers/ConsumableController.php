@@ -16,7 +16,6 @@ class ConsumableController extends Controller
      */
     public function index(Request $request)
     {
-        // 🆕 Eager load total_out & total_return dari transaksi
         $query = Consumable::with('category')
             ->withSum([
                 'transactions as total_out' => function ($q) {
@@ -28,8 +27,6 @@ class ConsumableController extends Controller
                     $q->where('type', 'return');
                 }
             ], 'quantity');
-
-        // Search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -37,21 +34,15 @@ class ConsumableController extends Controller
                     ->orWhere('model', 'like', '%' . $request->search . '%');
             });
         }
-
-        // Filter kategori
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
-
-        // Filter low stock
         if ($request->filled('low_stock')) {
             $query->lowStock();
         }
 
         $consumables = $query->orderBy('name')->paginate(25)->withQueryString();
         $categories = AssetCategory::consumable()->orderBy('name')->get();
-
-        // Statistik
         $stats = [
             'total' => Consumable::count(),
             'low_stock' => Consumable::lowStock()->count(),
@@ -169,7 +160,6 @@ class ConsumableController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        // 🆕 Eager load total_out & total_return
         $query = Consumable::with('category')
             ->withSum([
                 'transactions as total_out' => function ($q) {
@@ -181,8 +171,6 @@ class ConsumableController extends Controller
                     $q->where('type', 'return');
                 }
             ], 'quantity');
-
-        // Terapkan filter sama seperti index()
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -218,7 +206,6 @@ class ConsumableController extends Controller
      */
     public function destroy(Consumable $consumable)
     {
-        // Cek apakah ada transaksi
         if ($consumable->transactions()->count() > 0) {
             return back()->with('error', 'Konsumable tidak bisa dihapus karena ada history transaksi.');
         }

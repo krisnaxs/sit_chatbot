@@ -12,20 +12,12 @@ class AssetMaintenanceController extends Controller
     public function index(Request $request)
     {
         $query = AssetMaintenance::with(['asset.currentUser', 'asset.category', 'vendor']);
-
-        // Filter status
         if ($request->filled('status'))
             $query->where('status', $request->status);
-
-        // Filter type
         if ($request->filled('type'))
             $query->where('type', $request->type);
-
-        // Filter asset_id (exact)
         if ($request->filled('asset_id'))
             $query->where('asset_id', $request->asset_id);
-
-        // 🆕 Filter search: SN aset ATAU nama user pemakai
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -43,8 +35,6 @@ class AssetMaintenanceController extends Controller
         $maintenances = $query->orderByDesc('start_date')
             ->paginate($request->get('per_page', 25))
             ->withQueryString();
-
-        // Data dropdown filter
         $assets = Asset::with('currentUser')
             ->orderBy('serial_number')
             ->get();
@@ -55,8 +45,6 @@ class AssetMaintenanceController extends Controller
     public function create(Request $request)
     {
         $asset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
-
-        // 🆕 Filter aset berdasarkan search (SN / brand / model / nama user)
         $assetsQuery = Asset::with('currentUser')->orderBy('serial_number');
 
         if ($request->filled('search')) {
@@ -96,8 +84,6 @@ class AssetMaintenanceController extends Controller
         ]);
 
         $maintenance = AssetMaintenance::create($validated);
-
-        // Update asset status
         if (in_array($validated['status'], ['open', 'in_progress'])) {
             $maintenance->asset->update(['status' => 'maintenance']);
         } else {
@@ -111,7 +97,6 @@ class AssetMaintenanceController extends Controller
 
     public function show(AssetMaintenance $maintenance)
     {
-        // 🆕 Load relasi termasuk currentUser dari asset
         $maintenance->load([
             'asset.category',
             'asset.currentUser',
@@ -144,8 +129,6 @@ class AssetMaintenanceController extends Controller
         ]);
 
         $maintenance->update($validated);
-
-        // Update asset status berdasarkan status maintenance
         $asset = $maintenance->asset;
 
         if ($validated['status'] === 'done') {

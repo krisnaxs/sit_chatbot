@@ -11,34 +11,25 @@ class UserQueryService
     public function tryAnswer(string $pesan): ?array
     {
         $lower = Str::lower($pesan);
-
-        // 1. Jumlah user
         if (
             $this->matchAny($lower, ['user', 'pegawai', 'karyawan', 'pengguna']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'total'])
         ) {
             return $this->countUsers($lower);
         }
-
-        // 2. Daftar user aktif
         if (
             $this->matchAny($lower, ['user', 'pegawai', 'karyawan', 'pengguna']) &&
             $this->matchAny($lower, ['aktif', 'daftar', 'list', 'siapa'])
         ) {
             return $this->listActiveUsers();
         }
-
-        // 3. Jumlah departemen
         if (
             $this->matchAny($lower, ['departemen', 'department', 'divisi', 'division']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'total', 'daftar'])
         ) {
             return $this->countDepartments();
         }
-
-        // 4. Info user tertentu by nama
         if (preg_match('/(?:user|pegawai|karyawan)\s+([a-z\s]+)/i', $pesan, $m)) {
-            // Hanya match kalau ada kata kunci
             if ($this->matchAny($lower, ['siapa', 'cari', 'info', 'detail'])) {
                 return $this->findUserByName(trim($m[1]));
             }

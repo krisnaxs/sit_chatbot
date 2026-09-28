@@ -264,8 +264,6 @@
 
             preview.classList.remove('hidden');
             nameEl.textContent = file.name;
-
-            // Format size
             let size = file.size;
             const units = ['B', 'KB', 'MB', 'GB'];
             let i = 0;
@@ -274,8 +272,6 @@
                 i++;
             }
             sizeEl.textContent = size.toFixed(1) + ' ' + units[i];
-
-            // Reset semua preview
             imgEl.classList.add('hidden');
             pdfEl.classList.add('hidden');
             docEl.classList.add('hidden');
@@ -319,7 +315,6 @@
             }
         }
 
-        // 🆕 pageLayout — handle sidebar collapse
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',

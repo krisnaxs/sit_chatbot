@@ -13,8 +13,6 @@ class PortalController extends Controller
     public function index(Request $request)
     {
         $slides = $this->getSlides();
-
-        // Deteksi browser legacy
         $view = $this->isLegacyBrowser($request)
             ? 'portal-legacy'
             : 'portal';
@@ -38,8 +36,6 @@ class PortalController extends Controller
     public function click($id)
     {
         $app = App::findOrFail($id);
-
-        // hitung klik
         $app->increment('clicks');
 
         return redirect()->away($app->url);
@@ -64,27 +60,19 @@ class PortalController extends Controller
     private function isLegacyBrowser(Request $request): bool
     {
         $ua = $request->header('User-Agent', '');
-
-        // Firefox < 60
         if (preg_match('/Firefox\/(\d+)/', $ua, $m)) {
             if ((int) $m[1] < 60)
                 return true;
         }
-
-        // Chrome < 60 (kecuali Edge Chromium)
         if (preg_match('/Chrome\/(\d+)/', $ua, $m)) {
             if ((int) $m[1] < 60 && strpos($ua, 'Edg') === false) {
                 return true;
             }
         }
-
-        // Safari < 11
         if (preg_match('/Version\/(\d+).*Safari/', $ua, $m)) {
             if ((int) $m[1] < 11)
                 return true;
         }
-
-        // IE apa pun
         if (preg_match('/MSIE|Trident/', $ua)) {
             return true;
         }

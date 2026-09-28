@@ -135,8 +135,6 @@ class KnowledgeController extends Controller
             'jawaban.required' => 'Jawaban wajib diisi.',
             'file.max' => 'File maksimal 10 MB.',
         ]);
-
-        // Hapus file jika user centang "hapus file"
         if ($request->boolean('remove_file')) {
             if ($knowledge->file_path) {
                 Storage::disk('public')->delete($knowledge->file_path);
@@ -146,8 +144,6 @@ class KnowledgeController extends Controller
             $knowledge->file_type = null;
             $knowledge->file_size = null;
         }
-
-        // Upload file baru
         if ($request->hasFile('file')) {
             if ($knowledge->file_path) {
                 Storage::disk('public')->delete($knowledge->file_path);
@@ -205,10 +201,6 @@ class KnowledgeController extends Controller
             'file_size' => $uploaded->getSize(),
         ];
     }
-
-    // ============================================================
-    // AUTHORIZATION HELPERS
-    // ============================================================
 
     /**
      * 🔒 Hanya admin & support.

@@ -13,9 +13,6 @@ class AppSeeder extends Seeder
     public function run(): void
     {
         $apps = [
-            // ============================================================
-            // SLIDE: APP SURALAYA INFORMATION
-            // ============================================================
             ['nama' => 'FIREWALL', 'gambar' => 'apps/tzaup66dBN6mTmjnqMqk8EaEKimXDqEKXpyAdP3M.png', 'url' => 'http://192.168.101.252:1000/logout?', 'clicks' => 2, 'is_active' => true, 'slide' => 'APP SURALAYA INFORMATION', 'urutan' => 1],
             ['nama' => 'HELPDESK', 'gambar' => 'apps/8mWyJHjCUmAwdi0BVP8WWeeDpqC6GJb19yZVzazQ.png', 'url' => 'http://helpdesk.plnindonesiapower.co.id/', 'clicks' => 2, 'is_active' => true, 'slide' => 'APP SURALAYA INFORMATION', 'urutan' => 1],
             ['nama' => 'MAXIMO PROD', 'gambar' => 'apps/iCe8B0zS5Yv6spR6CDUkn8076HPJANnfBrM0CTsU.jpg', 'url' => 'http://10.8.10.36:9083/maximo/ui/login', 'clicks' => 1, 'is_active' => true, 'slide' => 'APP SURALAYA INFORMATION', 'urutan' => 1],
@@ -44,10 +41,6 @@ class AppSeeder extends Seeder
             ['nama' => 'Tableau', 'gambar' => 'apps/1SvwtmY91cdh76yEb2VY6VAP5hP2u4SpS0ySe7bJ.png', 'url' => 'https://tableau.plnindonesiapower.co.id/', 'clicks' => 0, 'is_active' => true, 'slide' => 'APP SURALAYA INFORMATION', 'urutan' => 1],
             ['nama' => 'ICMS', 'gambar' => 'apps/x8ZkDuyGDR03j8fdboEHwIeTO3uvtFXaiiHwdWgf.png', 'url' => 'https://proeip.plnindonesiapower.co.id/ICMS/Icms.html', 'clicks' => 1, 'is_active' => true, 'slide' => 'APP SURALAYA INFORMATION', 'urutan' => 1],
             ['nama' => 'Dispatch REOC', 'gambar' => 'apps/PWEOdJ90Hctl4V2NK8AfgQU0EShUGwBrmLYafZKw.png', 'url' => 'http://dispatch.plnindonesiapower.co.id/', 'clicks' => 0, 'is_active' => true, 'slide' => 'APP SURALAYA INFORMATION', 'urutan' => 1],
-
-            // ============================================================
-            // SLIDE: PLN APP
-            // ============================================================
             ['nama' => 'HDKS', 'gambar' => null, 'url' => 'http://10.6.1.61/app4/login.php', 'clicks' => 1, 'is_active' => true, 'slide' => 'PLN APP', 'urutan' => 1],
             ['nama' => 'PLN Web', 'gambar' => 'apps/7Ws0W9pb6h8iiG75EpRuDkXbiZkdxmKb5YaUh7qm.png', 'url' => 'http://www.pln.co.id/', 'clicks' => 1, 'is_active' => true, 'slide' => 'PLN APP', 'urutan' => 1],
             ['nama' => 'NERGI', 'gambar' => null, 'url' => 'http://202.162.216.197/~neapp', 'clicks' => 0, 'is_active' => true, 'slide' => 'PLN APP', 'urutan' => 1],
@@ -55,10 +48,6 @@ class AppSeeder extends Seeder
             ['nama' => 'PORTAL', 'gambar' => null, 'url' => 'http://10.10.0.20/Portal/', 'clicks' => 1, 'is_active' => true, 'slide' => 'PLN APP', 'urutan' => 1],
             ['nama' => 'SI-UJO', 'gambar' => null, 'url' => 'http://10.10.0.20/siujopbj/?nav=user', 'clicks' => 0, 'is_active' => true, 'slide' => 'PLN APP', 'urutan' => 1],
             ['nama' => 'SNIPE', 'gambar' => null, 'url' => 'http://10.50.1.21/main.asp', 'clicks' => 0, 'is_active' => true, 'slide' => 'PLN APP', 'urutan' => 1],
-
-            // ============================================================
-            // SLIDE: SIS SURALAYA
-            // ============================================================
             ['nama' => 'FORTINET ADMIN', 'gambar' => null, 'url' => 'https://192.168.101.252:5645/', 'clicks' => 3, 'is_active' => true, 'slide' => 'SIS SURALAYA', 'urutan' => 1],
             ['nama' => 'ZABBIX', 'gambar' => null, 'url' => 'http://192.168.101.15/zabbix', 'clicks' => 0, 'is_active' => true, 'slide' => 'SIS SURALAYA', 'urutan' => 1],
             ['nama' => 'KASPERSKY', 'gambar' => null, 'url' => 'https://192.168.101.38:8080/', 'clicks' => 0, 'is_active' => true, 'slide' => 'SIS SURALAYA', 'urutan' => 1],
@@ -72,10 +61,6 @@ class AppSeeder extends Seeder
             ['nama' => 'WLC', 'gambar' => null, 'url' => 'http://192.168.211.81/', 'clicks' => 0, 'is_active' => true, 'slide' => 'SIS SURALAYA', 'urutan' => 1],
             ['nama' => 'PRTG', 'gambar' => null, 'url' => 'http://192.168.101.22/welcome.htm', 'clicks' => 0, 'is_active' => true, 'slide' => 'SIS SURALAYA', 'urutan' => 1],
             ['nama' => 'UNIFI', 'gambar' => null, 'url' => 'https://192.168.112.10/', 'clicks' => 0, 'is_active' => true, 'slide' => 'SIS SURALAYA', 'urutan' => 1],
-
-            // ============================================================
-            // SLIDE: UBP Suralaya
-            // ============================================================
             ['nama' => 'Simulasi Interaktif Turbin Control Oil', 'gambar' => 'apps/p4uStNREa1ZjB75vSMHNzCEClbtXHU6oSHmRX3IH.png', 'url' => 'https://steamturbine-control-oil.netlify.app/', 'clicks' => 0, 'is_active' => true, 'slide' => 'UBP Suralaya', 'urutan' => 1],
             ['nama' => 'PPLS + PRODSLA', 'gambar' => 'apps/zLo1BCPO6lQlbBHKk9LH3CMf1VeuGfPZ3E6HBj21.png', 'url' => 'http://192.168.101.36/ppls//', 'clicks' => 0, 'is_active' => true, 'slide' => 'UBP Suralaya', 'urutan' => 1],
             ['nama' => 'LIQUID', 'gambar' => 'apps/B6AkcEfuJcHh3nUyA3oWktqK119hzif8oxpAKiSg.jpg', 'url' => 'https://liquid.plnindonesiapower.co.id/loginUser.html', 'clicks' => 1, 'is_active' => true, 'slide' => 'UBP Suralaya', 'urutan' => 1],

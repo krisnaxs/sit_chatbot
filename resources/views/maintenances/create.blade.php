@@ -249,7 +249,6 @@
             }
         }
 
-        // 🆕 Filter aset — reload halaman dengan query search
         function filterAset() {
             const search = document.getElementById('assetSearch').value;
             const url = new URL(window.location.href);
@@ -262,8 +261,6 @@
 
             window.location.href = url.toString();
         }
-
-        // Enter di input search → trigger filter
         document.getElementById('assetSearch').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();

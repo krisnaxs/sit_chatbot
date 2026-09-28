@@ -22,7 +22,6 @@ return new class extends Migration {
             $table->timestamps();
             $table->index(['slide', 'urutan']);
             $table->index('is_active');
-            // $table->unique(['slide', 'urutan']); // opsional
         });
 
 

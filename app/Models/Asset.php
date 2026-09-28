@@ -43,8 +43,6 @@ class Asset extends Model
             'purchase_price' => 'decimal:2',
         ];
     }
-
-    // ============ AUTO-GENERATE asset_code ============
     protected static function booted(): void
     {
         static::creating(function (Asset $asset) {
@@ -70,8 +68,6 @@ class Asset extends Model
 
         return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
-
-    // ============ RELASI ============
     public function category()
     {
         return $this->belongsTo(AssetCategory::class, 'category_id');
@@ -142,8 +138,6 @@ class Asset extends Model
     {
         return $this->hasMany(ConsumableTransaction::class);
     }
-
-    // ============ SCOPE ============
     public function scopeStatus($query, string $status)
     {
         return $query->where('status', $status);
@@ -183,8 +177,6 @@ class Asset extends Model
                 ->orWhere('model', 'like', "%{$keyword}%");
         });
     }
-
-    // ============ ACCESSOR ============
     public function getFullNameAttribute(): string
     {
         return trim("{$this->brand} {$this->model}");

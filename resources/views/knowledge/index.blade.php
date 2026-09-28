@@ -420,8 +420,6 @@
                     @if (session('error'))
                         this.showToast(@json(session('error')), 'error');
                     @endif
-
-                    // SEARCH
                     const searchInput = document.getElementById('searchInput');
                     const table = document.getElementById('knowledgeTable');
                     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');

@@ -24,14 +24,9 @@ class AssetAssignmentController extends Controller
             'department',
             'assignedBy',
         ]);
-
-        // ============================================================
-        // SEARCH: SN / brand / model / hostname / nama user
-        // ============================================================
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                // 🆕 Cari di assignment hostname
                 $q->where('hostname', 'like', "%{$search}%")
                     ->orWhereHas('asset', function ($qa) use ($search) {
                         $qa->where('serial_number', 'like', "%{$search}%")
@@ -44,10 +39,6 @@ class AssetAssignmentController extends Controller
                     });
             });
         }
-
-        // ============================================================
-        // FILTER
-        // ============================================================
         if ($request->filled('brand')) {
             $query->whereHas('asset', function ($q) use ($request) {
                 $q->where('brand', $request->brand);
@@ -79,10 +70,6 @@ class AssetAssignmentController extends Controller
                 $query->whereNotNull('returned_at');
             }
         }
-
-        // ============================================================
-        // SUMMARY: dari tabel ASSETS (bukan assignment)
-        // ============================================================
         $assetSummaryQuery = Asset::query();
 
         if ($request->filled('search')) {
@@ -115,10 +102,6 @@ class AssetAssignmentController extends Controller
             'retired' => (clone $assetSummaryQuery)->where('status', 'retired')->count(),
             'lost' => (clone $assetSummaryQuery)->where('status', 'lost')->count(),
         ];
-
-        // ============================================================
-        // Apakah ada filter aktif?
-        // ============================================================
         $hasFilter = $request->filled('search')
             || $request->filled('asset_id')
             || $request->filled('brand')
@@ -126,29 +109,17 @@ class AssetAssignmentController extends Controller
             || $request->filled('user_id')
             || $request->filled('location_id')
             || $request->filled('status');
-
-        // ============================================================
-        // SORT & PAGINATION
-        // ============================================================
         $assignments = $query->orderByDesc('assigned_at')
             ->paginate($request->get('per_page', 25))
             ->withQueryString();
-
-        // ============================================================
-        // Dropdown data
-        // ============================================================
         $assets = Asset::orderBy('serial_number')->get();
         $users = User::active()->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
-
-        // Brand unik dari tabel aset
         $brands = Asset::select('brand')
             ->distinct()
             ->whereNotNull('brand')
             ->orderBy('brand')
             ->pluck('brand');
-
-        // Model + jumlah unit (difilter by brand kalau ada)
         $models = Asset::select('model', 'brand', DB::raw('COUNT(*) as total'))
             ->whereNotNull('model')
             ->when($request->filled('brand'), function ($q) use ($request) {
@@ -206,8 +177,6 @@ class AssetAssignmentController extends Controller
         $validated['received_by'] = $request->user_id;
 
         $assignment = AssetAssignment::create($validated);
-
-        // Update asset — termasuk hostname
         $updateData = [
             'status' => 'in_use',
             'current_user_id' => $assignment->user_id,
@@ -238,15 +207,11 @@ class AssetAssignmentController extends Controller
         ]);
 
         $assignment->update($validated);
-
-        // Update asset → available
         $assetUpdateData = [
             'status' => 'available',
             'current_user_id' => null,
             'current_location_id' => null,
         ];
-
-        // 🆕 Update hostname kalau diisi
         if ($request->filled('hostname')) {
             $assetUpdateData['hostname'] = $request->hostname;
         }

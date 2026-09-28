@@ -332,8 +332,6 @@
         });
 
         slideTitleEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-
-        // ===== SEARCH FUNCTION =====
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
             searchInput.addEventListener('keyup', function() {
@@ -366,7 +364,6 @@
             });
         }
 
-        // 🆕 pageLayout — handle sidebar collapse
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',

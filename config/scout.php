@@ -102,10 +102,6 @@ return [
         'id' => env('ALGOLIA_APP_ID', ''),
         'secret' => env('ALGOLIA_SECRET', ''),
         'index-settings' => [
-            // 'users' => [
-            //     'searchableAttributes' => ['id', 'name', 'email'],
-            //     'attributesForFaceting'=> ['filterOnly(email)'],
-            // ],
         ],
     ],
 
@@ -119,17 +115,8 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
-            // 'users' => [
-            //     'filterableAttributes' => ['id', 'name', 'email'],
-            // ],
         ],
         'model-settings' => [
-            // User::class => [
-            //     'embedding' => [
-            //         'embedder' => 'default',
-            //         'dimensions' => 1536,
-            //     ],
-            // ],
         ],
     ],
 
@@ -162,18 +149,6 @@ return [
             'retry_interval_seconds' => env('TYPESENSE_RETRY_INTERVAL_SECONDS', 1),
         ],
         'model-settings' => [
-            // User::class => [
-            //     'collection-schema' => [
-            //         'fields' => [
-            //             ['name' => 'id', 'type' => 'string'],
-            //             ['name' => 'name', 'type' => 'string'],
-            //         ],
-            //         'default_sorting_field' => 'created_at',
-            //     ],
-            //     'search-parameters' => [
-            //         'query_by' => 'name'
-            //     ],
-            // ],
         ],
         'import_action' => env('TYPESENSE_IMPORT_ACTION', 'upsert'),
     ],
@@ -192,12 +167,6 @@ return [
         'connect_timeout' => env('TURBOPUFFER_CONNECT_TIMEOUT', 5),
         'retries' => env('TURBOPUFFER_RETRIES', 3),
         'model-settings' => [
-            // User::class => [
-            //     'searchable-attributes' => [
-            //         'name' => 2,
-            //         'email' => 1,
-            //     ],
-            // ],
         ],
     ],
 

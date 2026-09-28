@@ -20,9 +20,6 @@ class SiamDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // ============================================================
-        // 0. FILTER DASHBOARD
-        // ============================================================
         $filters = [
             'category_id' => $request->get('category_id'),
             'brand' => $request->get('brand'),
@@ -32,10 +29,6 @@ class SiamDashboardController extends Controller
         ];
 
         $hasFilter = collect($filters)->filter()->isNotEmpty();
-
-        // ============================================================
-        // BASE QUERY — dipakai untuk semua summary & chart
-        // ============================================================
         $assetBaseQuery = Asset::query();
 
         if (!empty($filters['category_id'])) {
@@ -53,10 +46,6 @@ class SiamDashboardController extends Controller
         if (!empty($filters['ownership_type'])) {
             $assetBaseQuery->where('ownership_type', $filters['ownership_type']);
         }
-
-        // ============================================================
-        // 1. RINGKASAN ASET
-        // ============================================================
         $assetStats = [
             'total' => (clone $assetBaseQuery)->count(),
             'available' => (clone $assetBaseQuery)->where('status', 'available')->count(),
@@ -68,12 +57,6 @@ class SiamDashboardController extends Controller
             'owned' => (clone $assetBaseQuery)->where('ownership_type', 'owned')->count(),
             'leased' => (clone $assetBaseQuery)->where('ownership_type', 'leased')->count(),
         ];
-
-        // ============================================================
-        // 2. NILAI ASET (dibatasi filter yg relevan)
-        // ============================================================
-        // Catatan: kalau filter ownership_type = 'leased', maka total_purchase = 0
-        //           kalau filter ownership_type = 'owned', maka monthly_lease = 0
         $skipPurchase = ($filters['ownership_type'] === 'leased');
         $skipMonthly = ($filters['ownership_type'] === 'owned');
 
@@ -101,10 +84,6 @@ class SiamDashboardController extends Controller
                     })
                     ->sum('monthly_cost') ?? 0,
         ];
-
-        // ============================================================
-        // 3. BREAKDOWN PER HAK KEPEMILIKAN
-        // ============================================================
         $ownershipBreakdown = [
             'owned' => [
                 'total' => (clone $assetBaseQuery)->where('ownership_type', 'owned')->count(),
@@ -144,10 +123,6 @@ class SiamDashboardController extends Controller
                         ->sum('monthly_cost') ?? 0,
             ],
         ];
-
-        // ============================================================
-        // 4. BREAKDOWN PER KATEGORI
-        // ============================================================
         $categoryBreakdown = (clone $assetBaseQuery)
             ->select('category_id', 'ownership_type', 'status', DB::raw('COUNT(*) as total'))
             ->with('category:id,name')
@@ -184,10 +159,6 @@ class SiamDashboardController extends Controller
         $catBreakdownLabels = $categoryBreakdown->pluck('category')->toArray();
         $catBreakdownOwned = $categoryBreakdown->pluck('owned.total')->toArray();
         $catBreakdownLeased = $categoryBreakdown->pluck('leased.total')->toArray();
-
-        // ============================================================
-        // 5. BREAKDOWN PER MODEL / TYPE
-        // ============================================================
         $modelBreakdown = (clone $assetBaseQuery)
             ->select('model', 'brand', 'ownership_type', 'status', DB::raw('COUNT(*) as total'))
             ->whereNotNull('model')
@@ -226,19 +197,11 @@ class SiamDashboardController extends Controller
         $modelBreakdownLabels = $modelBreakdown->pluck('model')->toArray();
         $modelBreakdownOwned = $modelBreakdown->pluck('owned.total')->toArray();
         $modelBreakdownLeased = $modelBreakdown->pluck('leased.total')->toArray();
-
-        // ============================================================
-        // 6. CHART: KOMPOSISI KEPEMILIKAN
-        // ============================================================
         $ownershipLabels = ['Hak Milik', 'Sewa'];
         $ownershipData = [
             $ownershipBreakdown['owned']['total'],
             $ownershipBreakdown['leased']['total'],
         ];
-
-        // ============================================================
-        // 7. CHART: ASET PER KATEGORI
-        // ============================================================
         $assetsByCategory = (clone $assetBaseQuery)
             ->select('category_id', DB::raw('COUNT(*) as total'))
             ->with('category:id,name')
@@ -249,17 +212,9 @@ class SiamDashboardController extends Controller
 
         $categoryLabels = $assetsByCategory->pluck('category.name')->toArray();
         $categoryData = $assetsByCategory->pluck('total')->toArray();
-
-        // ============================================================
-        // 8. CHART: ASET PER STATUS
-        // ============================================================
         $statusLabels = ['Tersedia', 'Dipakai', 'Dipinjam', 'Perbaikan', 'Pensiun', 'Hilang'];
         $statusKeys = ['available', 'in_use', 'loaned', 'maintenance', 'retired', 'lost'];
         $statusData = array_map(fn($k) => $assetStats[$k] ?? 0, $statusKeys);
-
-        // ============================================================
-        // 9. CHART: ASET PER TAHUN
-        // ============================================================
         $assetsByYear = (clone $assetBaseQuery)
             ->selectRaw('YEAR(purchase_date) as year, COUNT(*) as total')
             ->whereNotNull('purchase_date')
@@ -269,10 +224,6 @@ class SiamDashboardController extends Controller
 
         $yearLabels = $assetsByYear->keys()->toArray();
         $yearData = $assetsByYear->values()->toArray();
-
-        // ============================================================
-        // 10. ALERT / WARNING
-        // ============================================================
         $assetIds = (clone $assetBaseQuery)->pluck('id');
 
         $overdueLoans = AssetLoan::where('status', 'borrowed')
@@ -300,16 +251,10 @@ class SiamDashboardController extends Controller
             ->whereDate('warranty_expire', '<=', now()->addDays(60))
             ->limit(10)
             ->get();
-
-        // Konsumable tetap global
         $lowStockConsumables = Consumable::whereColumn('stock_available', '<=', 'stock_minimum')
             ->orderBy('stock_available')
             ->limit(10)
             ->get();
-
-        // ============================================================
-        // 11. TREN PERBAIKAN 6 BULAN
-        // ============================================================
         $maintenanceTrend = AssetMaintenance::select(
             DB::raw("DATE_FORMAT(start_date, '%Y-%m') as bulan"),
             DB::raw('COUNT(*) as total')
@@ -327,10 +272,6 @@ class SiamDashboardController extends Controller
             $maintenanceLabels[] = now()->subMonths($i)->format('M Y');
             $maintenanceData[] = $maintenanceTrend[$bulan] ?? 0;
         }
-
-        // ============================================================
-        // 12. AKTIVITAS TERBARU
-        // ============================================================
         $recentMaintenances = AssetMaintenance::with(['asset', 'vendor'])
             ->when($hasFilter, fn($q) => $q->whereIn('asset_id', $assetIds))
             ->orderByDesc('created_at')
@@ -368,10 +309,6 @@ class SiamDashboardController extends Controller
             ->orderByDesc('id')
             ->limit(5)
             ->get();
-
-        // ============================================================
-        // 13. KONSUMABLE STATS (global)
-        // ============================================================
         $consumableStats = [
             'total' => Consumable::count(),
             'low_stock' => Consumable::whereColumn('stock_available', '<=', 'stock_minimum')
@@ -381,10 +318,6 @@ class SiamDashboardController extends Controller
                 ->whereYear('transaction_date', now()->year)
                 ->count(),
         ];
-
-        // ============================================================
-        // 14. TOP STATISTIK
-        // ============================================================
         $topUsers = User::withCount([
             'currentAssets' => function ($q) use ($hasFilter, $assetIds) {
                 if ($hasFilter)
@@ -410,10 +343,6 @@ class SiamDashboardController extends Controller
             ->orderByDesc('total')
             ->limit(5)
             ->get();
-
-        // ============================================================
-        // 15. USER & VENDOR STATS
-        // ============================================================
         $userStats = [
             'total' => User::count(),
             'active' => User::where('is_active', true)->count(),
@@ -424,23 +353,15 @@ class SiamDashboardController extends Controller
             'total' => Vendor::count(),
             'active' => Vendor::where('is_active', true)->count(),
         ];
-
-        // ============================================================
-        // 16. DROPDOWN FILTER (dependent: category → brand → model)
-        // ============================================================
         $filterCategories = AssetCategory::where('is_consumable', false)
             ->orderBy('name')
             ->get(['id', 'name']);
-
-        // Brands: kalau category dipilih → filter by category
         $filterBrands = Asset::select('brand')
             ->when(!empty($filters['category_id']), fn($q) => $q->where('category_id', $filters['category_id']))
             ->whereNotNull('brand')
             ->distinct()
             ->orderBy('brand')
             ->pluck('brand');
-
-        // Models: kalau category & brand dipilih → filter by keduanya
         $filterModels = Asset::select('model', 'brand')
             ->whereNotNull('model')
             ->when(!empty($filters['category_id']), fn($q) => $q->where('category_id', $filters['category_id']))
@@ -448,8 +369,6 @@ class SiamDashboardController extends Controller
             ->distinct()
             ->orderBy('model')
             ->get();
-
-        // Years: filter by category/brand/model kalau ada
         $filterYears = Asset::selectRaw('YEAR(purchase_date) as year')
             ->whereNotNull('purchase_date')
             ->when(!empty($filters['category_id']), fn($q) => $q->where('category_id', $filters['category_id']))

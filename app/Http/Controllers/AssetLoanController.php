@@ -56,8 +56,6 @@ class AssetLoanController extends Controller
         $validated['approved_by'] = auth()->id();
 
         $loan = AssetLoan::create($validated);
-
-        // Update asset status
         $loan->asset->update(['status' => 'loaned']);
 
         return redirect()
@@ -81,8 +79,6 @@ class AssetLoanController extends Controller
 
         $validated['status'] = 'returned';
         $loan->update($validated);
-
-        // 🆕 Lepas current user saat aset dikembalikan
         $loan->asset->update([
             'status' => 'available',
             'current_user_id' => null,   // ✅ KUNCI PERBAIKAN

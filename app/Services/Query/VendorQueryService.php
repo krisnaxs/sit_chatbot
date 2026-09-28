@@ -11,32 +11,24 @@ class VendorQueryService
     public function tryAnswer(string $pesan): ?array
     {
         $lower = Str::lower($pesan);
-
-        // 1. Jumlah vendor
         if (
             $this->matchAny($lower, ['vendor', 'supplier', 'penyedia']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'total'])
         ) {
             return $this->countVendors();
         }
-
-        // 2. Daftar vendor
         if (
             $this->matchAny($lower, ['vendor', 'supplier', 'penyedia']) &&
             $this->matchAny($lower, ['daftar', 'list', 'tampilkan', 'siapa'])
         ) {
             return $this->listVendors();
         }
-
-        // 3. Kontrak sewa hampir berakhir
         if (
             $this->matchAny($lower, ['kontrak', 'sewa', 'lease']) &&
             $this->matchAny($lower, ['berakhir', 'habis', 'selesai', 'expired'])
         ) {
             return $this->expiringContracts();
         }
-
-        // 4. Total biaya sewa bulanan
         if (
             $this->matchAny($lower, ['biaya sewa', 'monthly cost', 'sewa bulanan'])
         ) {

@@ -388,13 +388,11 @@
                 },
 
                 onBrandChange() {
-                    // Reset model kalau tidak ada di brand baru
                     const stillValid = this.filteredModels.some(m => m.model === this.selectedModel);
                     if (!stillValid) this.selectedModel = '';
                 },
 
                 init() {
-                    // Jaga-jaga kalau ada old input setelah validasi gagal
                     if (this.selectedBrand) {
                         this.onBrandChange();
                     }

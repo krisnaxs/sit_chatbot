@@ -17,10 +17,6 @@ class CrossQueryService
         if (strlen($lower) < 5) {
             return null;
         }
-
-        // ============================================================
-        // 1. "SIAPA YANG PEGANG [ASET]?"
-        // ============================================================
         if (
             $this->matchAny($lower, ['siapa']) &&
             $this->matchAny($lower, ['pegang', 'memegang', 'punya', 'memakai', 'menggunakan']) &&
@@ -28,10 +24,6 @@ class CrossQueryService
         ) {
             return $this->whoHoldsAsset($pesan);
         }
-
-        // ============================================================
-        // 2. "[USER] PEGANG ASET APA SAJA?"
-        // ============================================================
         if (
             $this->matchAny($lower, ['aset apa', 'aset apa saja', 'pegang apa', 'punya apa']) &&
             $this->matchAny($lower, ['user', 'pegawai', 'karyawan', 'si ', 'pak ', 'bu ', 'mas ', 'mbak '])
@@ -44,7 +36,6 @@ class CrossQueryService
 
     private function whoHoldsAsset(string $pesan): array
     {
-        // Extract SN atau hostname dari pesan
         $keyword = $this->extractAssetKeyword($pesan);
 
         if (!$keyword) {
@@ -89,7 +80,6 @@ class CrossQueryService
 
     private function userAssets(string $pesan): array
     {
-        // Extract nama user (setelah "user", "pak", "bu", dll)
         $nama = $this->extractUserName($pesan);
 
         if (!$nama) {
@@ -127,11 +117,9 @@ class CrossQueryService
 
     private function extractAssetKeyword(string $pesan): ?string
     {
-        // Cari SN pattern (AST-2026-0001, T14-SN-0001, NB-T14-001)
         if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
             return $m[1];
         }
-        // Fallback: kata setelah "aset", "laptop", dll
         if (preg_match('/(?:aset|laptop|pc|printer|monitor)\s+([a-z0-9\-]+)/i', $pesan, $m)) {
             return $m[1];
         }
@@ -140,7 +128,6 @@ class CrossQueryService
 
     private function extractUserName(string $pesan): ?string
     {
-        // Setelah "user", "pak", "bu", dll
         if (preg_match('/(?:user|pegawai|karyawan|pak|bu|mas|mbak|sdr|sdri)\s+([a-z]+)/i', $pesan, $m)) {
             return $m[1];
         }

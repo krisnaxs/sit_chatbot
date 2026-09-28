@@ -14,39 +14,29 @@ class ReportQueryService
     public function tryAnswer(string $pesan): ?array
     {
         $lower = Str::lower($pesan);
-
-        // 1. Chat hari ini
         if (
             $this->matchAny($lower, ['chat', 'percakapan', 'chatbot']) &&
             $this->matchAny($lower, ['hari ini', 'today', 'berapa', 'jumlah'])
         ) {
             return $this->countChatToday();
         }
-
-        // 2. Knowledge
         if (
             $this->matchAny($lower, ['knowledge', 'pengetahuan']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'total'])
         ) {
             return $this->countKnowledge();
         }
-
-        // 3. Pending AI
         if (
             $this->matchAny($lower, ['pending', 'ai belum'])
         ) {
             return $this->countPendingAI();
         }
-
-        // 4. Transaksi konsumable bulan ini
         if (
             $this->matchAny($lower, ['transaksi', 'transaction']) &&
             $this->matchAny($lower, ['konsumable', 'consumable', 'bulan ini'])
         ) {
             return $this->countConsumableTransactions();
         }
-
-        // 5. Barang masuk/keluar bulan ini
         if (
             $this->matchAny($lower, ['barang masuk', 'stok masuk', 'in']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'bulan ini'])

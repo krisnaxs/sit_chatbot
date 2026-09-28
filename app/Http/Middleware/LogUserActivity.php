@@ -17,94 +17,54 @@ class LogUserActivity
      * Route yang TIDAK dicatat (biar tidak spam / tidak relevan / sudah di-handle observer).
      */
     protected array $skipRoutes = [
-        // ============================================================
-        // Auth & Chatbot
-        // ============================================================
         'admin.login',
         'admin.logout',
         'chat.send',
-
-        // ============================================================
-        // Activity Log sendiri (biar tidak loop / tidak spam)
-        // ============================================================
         'activity.index',
         'activity.show',
         'activity.clear',
         'activity.destroy',
-
-        // ============================================================
-        // 🆕 Route yang SUDAH di-handle Observer Global
-        // Skip biar tidak dobel log
-        // ============================================================
-
-        // App
         'apps.store',
         'apps.update',
         'apps.destroy',
-
-        // User
         'users.store',
         'users.update',
         'users.destroy',
-
-        // Knowledge
         'knowledge.store',
         'knowledge.update',
         'knowledge.destroy',
         'knowledge.pending.approve',
         'knowledge.pending.reject',
         'knowledge.pending.clear',
-
-        // SIAM — Aset
         'siam.assets.store',
         'siam.assets.update',
         'siam.assets.destroy',
-
-        // SIAM — Assignment
         'siam.assignments.store',
         'siam.assignments.return',
         'siam.assignments.destroy',
-
-        // SIAM — Loan
         'siam.loans.store',
         'siam.loans.return',
         'siam.loans.destroy',
-
-        // SIAM — Maintenance
         'siam.maintenances.store',
         'siam.maintenances.update',
         'siam.maintenances.destroy',
-
-        // SIAM — Category
         'siam.categories.store',
         'siam.categories.update',
         'siam.categories.destroy',
-
-        // SIAM — Asset Type (Brand & Model)
         'siam.asset-types.store',
         'siam.asset-types.update',
         'siam.asset-types.destroy',
-
-        // SIAM — Consumable
         'siam.consumables.store',
         'siam.consumables.update',
         'siam.consumables.destroy',
-
-        // SIAM — Consumable Transaction
         'siam.consumable-transactions.store',
         'siam.consumable-transactions.destroy',
-
-        // SIAM — Vendor
         'siam.vendors.store',
         'siam.vendors.update',
         'siam.vendors.destroy',
-
-        // SIAM — Department
         'siam.departments.store',
         'siam.departments.update',
         'siam.departments.destroy',
-
-        // SIAM — Location
         'siam.locations.store',
         'siam.locations.update',
         'siam.locations.destroy',
@@ -193,7 +153,6 @@ class LogUserActivity
      */
     protected function resolveEvent(string $routeName, string $method): string
     {
-        // Event khusus berdasarkan suffix route
         if (str_ends_with($routeName, '.return') || str_ends_with($routeName, '.returnAsset')) {
             return 'returned';
         }
@@ -209,8 +168,6 @@ class LogUserActivity
         if (str_ends_with($routeName, '.click')) {
             return 'clicked';
         }
-
-        // Default by HTTP method
         return match ($method) {
             'POST' => 'created',
             'PUT',
@@ -254,7 +211,6 @@ class LogUserActivity
             : $parts[0];
 
         $map = [
-            // SIAM
             'assets' => 'Aset',
             'asset-types' => 'Brand & Model',
             'categories' => 'Kategori',
@@ -266,16 +222,10 @@ class LogUserActivity
             'vendors' => 'Vendor',
             'departments' => 'Departemen',
             'locations' => 'Lokasi',
-
-            // User & App
             'users' => 'User',
             'apps' => 'Aplikasi',
-
-            // Knowledge
             'knowledge' => 'Knowledge',
             'pending' => 'Pending Knowledge',
-
-            // Activity
             'activity' => 'Activity Log',
         ];
 

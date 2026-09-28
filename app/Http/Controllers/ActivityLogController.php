@@ -13,26 +13,18 @@ class ActivityLogController extends Controller
     public function index(Request $request)
     {
         $query = Activity::with('causer')->latest();
-
-        // Filter: log_name
         if ($request->filled('log_name')) {
             $query->where('log_name', $request->log_name);
         }
-
-        // Filter: user (causer)
         if ($request->filled('causer_id')) {
             $query->where('causer_id', $request->causer_id);
         }
-
-        // Filter: date range
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-
-        // Filter: search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -42,8 +34,6 @@ class ActivityLogController extends Controller
         }
 
         $activities = $query->paginate(20)->withQueryString();
-
-        // Statistik
         $logNames = Activity::select('log_name')
             ->distinct()
             ->whereNotNull('log_name')
@@ -71,10 +61,7 @@ class ActivityLogController extends Controller
      */
     public function show(Activity $activity)
     {
-        // Load relasi causer & subject kalau ada
         $activity->load(['causer', 'subject']);
-
-        // Cari log sebelum & sesudah (untuk navigasi)
         $prev = Activity::where('id', '<', $activity->id)
             ->orderByDesc('id')
             ->first();

@@ -1,5 +1,4 @@
 <?php
-// database/migrations/2026_09_22_000002_create_chat_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -13,13 +12,9 @@ return new class extends Migration {
             $table->string('session_id', 100)->nullable()->index();
             $table->text('pesan');
             $table->text('jawaban');
-
-            // 🆕 Sumber jawaban: 'database' (KB) atau 'ai' (Ollama)
             $table->string('sumber', 20)->nullable()->index();
 
             $table->timestamp('waktu')->useCurrent();
-
-            // File attachment (dari knowledge)
             $table->string('file_path', 500)->nullable();
             $table->string('file_name', 255)->nullable();
             $table->string('file_type', 100)->nullable();

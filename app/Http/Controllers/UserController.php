@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -17,8 +18,6 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::with(['department', 'location']);
-
-        // Search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -27,13 +26,9 @@ class UserController extends Controller
                     ->orWhere('nip', 'like', '%' . $request->search . '%');
             });
         }
-
-        // Filter role
         if ($request->filled('role')) {
             $query->where('role', $request->role);
         }
-
-        // Filter department
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
         }
@@ -85,8 +80,6 @@ class UserController extends Controller
             'department_id.exists' => 'Departemen tidak valid.',
             'location_id.exists' => 'Lokasi tidak valid.',
         ]);
-
-        // Auto-generate username dari email
         $username = User::generateUsername($data['email']);
 
         User::create([
@@ -181,18 +174,9 @@ class UserController extends Controller
         $user->location_id = $data['location_id'] ?? null;
         $user->role = $data['role'];
         $user->is_active = $request->has('is_active');
-
-        // Update password hanya kalau diisi
         if (!empty($data['password'])) {
             $user->password = Hash::make($data['password']);
         }
-
-        // Catatan: username TIDAK diupdate otomatis.
-        // Kalau mau regenerate saat email berubah, atur di Model User (event updating).
-        // Atau aktifkan baris di bawah ini:
-        // if ($user->isDirty('email')) {
-        //     $user->username = User::generateUsername($user->email, $user->id);
-        // }
 
         $user->save();
 
@@ -202,11 +186,72 @@ class UserController extends Controller
     }
 
     /**
+     * Download template import user.
+     */
+    public function downloadTemplate()
+    {
+        $filename = 'template-import-user-' . now()->format('Ymd') . '.xlsx';
+        return Excel::download(new \App\Exports\UsersTemplateExport(), $filename);
+    }
+
+    /**
+     * Form import user.
+     */
+    public function importForm()
+    {
+        return view('users.import');
+    }
+
+    /**
+     * Proses import user dari Excel.
+     */
+    /**
+     * Proses import user dari Excel.
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+        ], [
+            'file.required' => 'File wajib dipilih.',
+            'file.mimes' => 'Format file harus: xlsx, xls, atau csv.',
+            'file.max' => 'Ukuran file maksimal 5MB.',
+        ]);
+
+        try {
+            $import = new \App\Imports\UsersImport();
+            Excel::import($import, $request->file('file'));
+
+            $success = $import->successCount;
+            $skipped = $import->skipCount;
+            $failed = count($import->failures());
+            $msg = "✅ Import selesai. Berhasil: {$success} user.";
+            if ($skipped > 0) {
+                $msg .= " Dilewati: {$skipped} (email sudah ada).";
+            }
+            if ($failed > 0) {
+                $msg .= " Gagal: {$failed} baris (lihat detail di bawah).";
+            }
+
+            return redirect()
+                ->route('users.index')
+                ->with('success', $msg)
+                ->with('import_failures', $import->failures());
+
+        } catch (\Exception $e) {
+            \Log::error('Import user error: ' . $e->getMessage());
+
+            return redirect()
+                ->route('users.import.form')
+                ->with('error', 'Gagal import: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Hapus user.
      */
     public function destroy(User $user)
     {
-        // Cegah admin hapus diri sendiri
         if ($user->id === auth()->id()) {
             return redirect()
                 ->route('users.index')

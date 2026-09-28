@@ -11,7 +11,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
     }
 
     /**
@@ -19,9 +18,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // ============================================================
-        // Daftarkan observer untuk semua model
-        // ============================================================
         \App\Models\AssetType::observe(\App\Observers\AssetTypeObserver::class);
     }
 }

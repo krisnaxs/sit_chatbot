@@ -513,7 +513,6 @@
                             });
 
                             @php
-                                // 🔑 Hitung data file di PHP, bukan di JavaScript
                                 $fileData = null;
                                 if ($chat->file_path) {
                                     $fileData = [
@@ -651,7 +650,6 @@
             }
         }
 
-        // 🆕 pageLayout — handle sidebar collapse
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',

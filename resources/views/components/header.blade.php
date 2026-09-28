@@ -387,7 +387,9 @@
 </div>
 
 {{-- Chat Widget --}}
-<x-chat-widget />
+@unless (request()->routeIs('chat.*') || request()->routeIs('chat'))
+    <x-chat-widget />
+@endunless
 
 {{-- Form Logout (hidden) --}}
 @auth
@@ -399,14 +401,11 @@
 <script>
     function headerApp() {
         return {
-            // Login modal (guest)
             showLogin: false,
             toast: {
                 show: false,
                 message: ''
             },
-
-            // Logout confirm modal (auth)
             showLogoutConfirm: false,
 
             showToast(message) {

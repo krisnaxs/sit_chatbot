@@ -120,11 +120,7 @@ class ConsumableTransactionsExport implements FromQuery, WithHeadings, WithMappi
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $lastCol = 'M'; // 13 kolom (A-M)
-    
-                // Insert 3 baris untuk judul
                 $sheet->insertNewRowBefore(1, 3);
-
-                // === Judul (baris 1) ===
                 $sheet->mergeCells("A1:{$lastCol}1");
                 $sheet->setCellValue('A1', 'TRANSAKSI KONSUMABLE — SIAM');
                 $sheet->getStyle('A1')->applyFromArray([
@@ -135,8 +131,6 @@ class ConsumableTransactionsExport implements FromQuery, WithHeadings, WithMappi
                     ],
                 ]);
                 $sheet->getRowDimension(1)->setRowHeight(28);
-
-                // === Sub-judul (baris 2) ===
                 $sheet->mergeCells("A2:{$lastCol}2");
                 $waktu = now()->format('d/m/Y H:i') . ' WIB';
                 $subtitle = "Diexport pada: {$waktu}";
@@ -155,11 +149,7 @@ class ConsumableTransactionsExport implements FromQuery, WithHeadings, WithMappi
                     ],
                 ]);
                 $sheet->getRowDimension(2)->setRowHeight(18);
-
-                // === Spacer (baris 3) ===
                 $sheet->getRowDimension(3)->setRowHeight(6);
-
-                // === Header (baris 4) ===
                 $headerRange = "A4:{$lastCol}4";
                 $sheet->getStyle($headerRange)->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
@@ -173,8 +163,6 @@ class ConsumableTransactionsExport implements FromQuery, WithHeadings, WithMappi
                     ],
                 ]);
                 $sheet->getRowDimension(4)->setRowHeight(24);
-
-                // === Border seluruh tabel ===
                 $highestRow = $sheet->getHighestRow();
                 $sheet->getStyle("A4:{$lastCol}{$highestRow}")->applyFromArray([
                     'borders' => [
@@ -184,11 +172,7 @@ class ConsumableTransactionsExport implements FromQuery, WithHeadings, WithMappi
                         ],
                     ],
                 ]);
-
-                // === Freeze pane ===
                 $sheet->freezePane('A5');
-
-                // === Auto filter ===
                 $sheet->setAutoFilter("A4:{$lastCol}{$highestRow}");
             },
         ];

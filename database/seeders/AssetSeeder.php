@@ -19,8 +19,6 @@ class AssetSeeder extends Seeder
         $mitraVendor = Vendor::where('name', 'CV Mitra Office Supply')->first();
 
         $counter = 0;
-
-        // ===== 40 Lenovo T14 =====
         for ($i = 1; $i <= 40; $i++) {
             $counter++;
             $isLeased = $i > 30;
@@ -62,8 +60,6 @@ class AssetSeeder extends Seeder
                 'pic_vendor' => $isLeased ? 'Bpk. Joko' : 'Ibu Rina',
             ]);
         }
-
-        // ===== 10 PC Desktop =====
         for ($i = 1; $i <= 10; $i++) {
             $counter++;
             $asset = Asset::create([
@@ -97,8 +93,6 @@ class AssetSeeder extends Seeder
                 'pic_vendor' => 'Bpk. Anton',
             ]);
         }
-
-        // ===== 5 Printer =====
         for ($i = 1; $i <= 5; $i++) {
             $counter++;
             $isLeased = $i > 3;

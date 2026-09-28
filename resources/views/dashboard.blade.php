@@ -651,7 +651,6 @@
     </div>
 
     <script>
-        // ===== Chart.js — Grafik Chat =====
         document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('chatChart');
             if (!ctx) return;
@@ -729,8 +728,6 @@
                 }
             });
         });
-
-        // ===== Chart.js — Grafik Pending Approval =====
         document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('chartPendingApproved');
             if (!ctx) return;
@@ -809,7 +806,6 @@
             });
         });
 
-        // ===== Sidebar collapse =====
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',

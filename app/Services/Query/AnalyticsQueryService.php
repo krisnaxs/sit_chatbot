@@ -20,10 +20,6 @@ class AnalyticsQueryService
         if (strlen($lower) < 5) {
             return null;
         }
-
-        // ============================================================
-        // 1. TOP USER PEGANG ASET
-        // ============================================================
         if (
             $this->matchAny($lower, ['user', 'pegawai', 'karyawan', 'orang']) &&
             $this->matchAny($lower, ['top', 'terbanyak', 'paling banyak', 'paling', 'mayoritas', 'paling sering']) &&
@@ -31,60 +27,36 @@ class AnalyticsQueryService
         ) {
             return $this->topUsersWithAssets();
         }
-
-        // ============================================================
-        // 2. TOP LOKASI DENGAN ASET TERBANYAK
-        // ============================================================
         if (
             $this->matchAny($lower, ['lokasi', 'ruangan', 'ruang', 'gedung']) &&
             $this->matchAny($lower, ['top', 'terbanyak', 'paling banyak', 'paling'])
         ) {
             return $this->topLocations();
         }
-
-        // ============================================================
-        // 3. TOP VENDOR DENGAN ASET TERBANYAK
-        // ============================================================
         if (
             $this->matchAny($lower, ['vendor', 'supplier', 'penyedia']) &&
             $this->matchAny($lower, ['top', 'terbanyak', 'paling banyak', 'paling'])
         ) {
             return $this->topVendors();
         }
-
-        // ============================================================
-        // 4. ASET PER TAHUN PEMBELIAN
-        // ============================================================
         if (
             $this->matchAny($lower, ['tahun', 'year', 'per tahun']) &&
             $this->matchAny($lower, ['aset', 'asset', 'pembelian', 'pengadaan'])
         ) {
             return $this->assetsByYear();
         }
-
-        // ============================================================
-        // 5. BANDINGKAN OWNED vs LEASED PER KATEGORI
-        // ============================================================
         if (
             $this->matchAny($lower, ['bandingkan', 'perbandingan', 'compare', 'vs']) &&
             $this->matchAny($lower, ['kategori', 'category'])
         ) {
             return $this->compareOwnershipByCategory();
         }
-
-        // ============================================================
-        // 6. ASET YANG HARUS PENSIUN (prediksi)
-        // ============================================================
         if (
             $this->matchAny($lower, ['pensiun', 'retire', 'tua', 'lama']) &&
             $this->matchAny($lower, ['harus', 'sebaiknya', 'perlu', 'prediksi', 'rekomendasi'])
         ) {
             return $this->assetsToRetire();
         }
-
-        // ============================================================
-        // 7. ASET YANG SERING RUSAK TAHUN INI
-        // ============================================================
         if (
             $this->matchAny($lower, ['sering', 'paling', 'top']) &&
             $this->matchAny($lower, ['rusak', 'perbaikan', 'maintenance']) &&
@@ -92,10 +64,6 @@ class AnalyticsQueryService
         ) {
             return $this->topMaintenancedThisYear();
         }
-
-        // ============================================================
-        // 8. GARANSI HAMPIR HABIS
-        // ============================================================
         if (
             $this->matchAny($lower, ['garansi', 'warranty']) &&
             $this->matchAny($lower, ['hampir', 'segera', 'berakhir', 'habis', 'expired'])
@@ -105,10 +73,6 @@ class AnalyticsQueryService
 
         return null;
     }
-
-    // ============================================================
-    // HANDLERS
-    // ============================================================
 
     private function topUsersWithAssets(): array
     {
@@ -231,7 +195,6 @@ class AnalyticsQueryService
 
     private function assetsToRetire(): array
     {
-        // Aset tua (>5 tahun) yang masih aktif
         $oldAssets = Asset::whereIn('status', ['available', 'in_use'])
             ->whereNotNull('purchase_date')
             ->whereDate('purchase_date', '<=', now()->subYears(5))

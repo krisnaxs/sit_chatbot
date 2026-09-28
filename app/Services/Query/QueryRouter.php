@@ -11,15 +11,23 @@ class QueryRouter
     public function tryAnswer(string $pesan): ?array
     {
         $services = [
+            app(AssetQueryService::class),
             app(CrossQueryService::class),
             app(AnalyticsQueryService::class),
             app(SiamQueryService::class),
-            app(AssetQueryService::class),
             app(UserQueryService::class),
             app(LocationQueryService::class),
             app(VendorQueryService::class),
             app(ReportQueryService::class),
         ];
+
+        // 🆕 Inject user ke service yang butuh
+        $user = auth()->user();
+        foreach ($services as $service) {
+            if (method_exists($service, 'setUser')) {
+                $service->setUser($user);
+            }
+        }
 
         foreach ($services as $service) {
             $result = $service->tryAnswer($pesan);

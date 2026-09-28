@@ -20,7 +20,6 @@ class LocationController extends Controller
 
     public function create()
     {
-        // 🆕 Ambil daftar departemen aktif untuk dropdown Divisi
         $departments = Department::active()->orderBy('name')->get();
 
         return view('locations.create', compact('departments'));
@@ -45,7 +44,6 @@ class LocationController extends Controller
 
     public function edit(Location $location)
     {
-        // 🆕 Ambil daftar departemen aktif untuk dropdown Divisi
         $departments = Department::active()->orderBy('name')->get();
 
         return view('locations.edit', compact('location', 'departments'));

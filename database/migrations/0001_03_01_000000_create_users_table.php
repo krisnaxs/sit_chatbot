@@ -9,8 +9,6 @@ return new class extends Migration {
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-
-            // ============ IDENTITAS ============
             $table->string('nip')->nullable()->unique();       // ✅ hapus ->after()
             $table->string('username')->unique();              // ✅ hapus ->after()
             $table->string('name');
@@ -19,8 +17,6 @@ return new class extends Migration {
             $table->string('password');
             $table->string('phone')->nullable();
             $table->string('photo_path')->nullable();
-
-            // ============ ORGANISASI ============
             $table->foreignId('department_id')->nullable()
                 ->constrained('departments')->nullOnDelete();
 
@@ -28,17 +24,11 @@ return new class extends Migration {
 
             $table->foreignId('location_id')->nullable()
                 ->constrained('locations')->nullOnDelete();
-
-            // ============ ROLE & STATUS ============
             $table->enum('role', ['admin', 'support', 'user'])->default('user');
             $table->boolean('is_active')->default(true);
-
-            // ============ AUTH ============
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
-
-            // ============ INDEX ============
             $table->index('role');
             $table->index('is_active');
         });

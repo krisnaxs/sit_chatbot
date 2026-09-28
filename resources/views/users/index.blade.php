@@ -26,22 +26,87 @@
                 <h1 class="text-2xl font-bold text-gray-900">Manajemen User</h1>
                 <p class="text-sm text-gray-500 mt-1">Kelola akun admin, support, dan user</p>
             </div>
-            <a href="{{ route('users.create') }}"
-                class="inline-flex items-center gap-2
-                       bg-gradient-to-br from-blue-500 to-violet-600
-                       hover:from-blue-600 hover:to-violet-700
-                       text-white px-5 py-2.5 rounded-xl
-                       font-semibold text-sm
-                       shadow-lg shadow-blue-500/30
-                       transition-all duration-300
-                       hover:scale-105 active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                Tambah User
-            </a>
+
+            {{-- 🆕 TOMBOL IMPORT + TAMBAH --}}
+            <div class="flex items-center gap-2 flex-wrap">
+                <a href="{{ route('users.import.form') }}"
+                    class="inline-flex items-center gap-2
+                           bg-emerald-600 hover:bg-emerald-700
+                           text-white px-4 py-2.5 rounded-xl
+                           font-semibold text-sm
+                           shadow-lg shadow-emerald-500/30
+                           transition-all duration-300
+                           hover:scale-105 active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    Import Excel
+                </a>
+
+                <a href="{{ route('users.create') }}"
+                    class="inline-flex items-center gap-2
+                           bg-gradient-to-br from-blue-500 to-violet-600
+                           hover:from-blue-600 hover:to-violet-700
+                           text-white px-5 py-2.5 rounded-xl
+                           font-semibold text-sm
+                           shadow-lg shadow-blue-500/30
+                           transition-all duration-300
+                           hover:scale-105 active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Tambah User
+                </a>
+            </div>
         </div>
+
+        {{-- 🆕 ALERT DETAIL GAGAL IMPORT --}}
+        @if (session('import_failures') && count(session('import_failures')) > 0)
+            <div class="mb-6 bg-red-50 border border-red-200 rounded-2xl p-5">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-red-800">
+                            {{ count(session('import_failures')) }} Baris Gagal Diimport
+                        </h3>
+                        <p class="text-xs text-red-600 mt-0.5">
+                            Periksa detail di bawah, perbaiki file Excel, lalu coba import lagi.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="max-h-60 overflow-y-auto space-y-1.5 bg-white rounded-lg p-2 border border-red-100">
+                    @foreach (session('import_failures') as $failure)
+                        <div class="text-xs text-red-700 p-2 rounded bg-red-50/50 border border-red-100">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="font-bold text-red-800">
+                                    Baris #{{ $failure->row() }}
+                                </span>
+                                @if (isset($failure->values()['email']))
+                                    <span class="text-red-500 font-mono text-[10px]">
+                                        {{ $failure->values()['email'] }}
+                                    </span>
+                                @endif
+                            </div>
+                            <ul class="list-disc list-inside ml-2 text-[11px]">
+                                @foreach ($failure->errors() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         {{-- STATS BAR --}}
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
@@ -217,7 +282,8 @@
                                         </div>
                                         <div>
                                             <p class="font-semibold text-gray-900">Belum ada user</p>
-                                            <p class="text-sm text-gray-500 mt-1">Tambahkan user pertama</p>
+                                            <p class="text-sm text-gray-500 mt-1">Tambahkan user pertama atau import
+                                                dari Excel</p>
                                         </div>
                                     </div>
                                 </td>
@@ -474,26 +540,19 @@
     <script>
         function userManager() {
             return {
-                // State modal user
                 showUserModal: false,
                 selectedUser: null,
-
-                // State modal delete
                 showDeleteModal: false,
                 deleteTarget: {
                     id: null,
                     name: '',
                     action: ''
                 },
-
-                // State toast
                 toast: {
                     show: false,
                     message: '',
                     type: 'success'
                 },
-
-                // ============ MODAL USER ============
                 openUserModal(user) {
                     this.selectedUser = user;
                     this.showUserModal = true;
@@ -503,8 +562,6 @@
                     this.showUserModal = false;
                     this.selectedUser = null;
                 },
-
-                // ============ MODAL DELETE ============
                 confirmDelete() {
                     this.deleteTarget = {
                         id: this.selectedUser.id,
@@ -520,8 +577,6 @@
                     form.action = this.deleteTarget.action;
                     form.submit();
                 },
-
-                // ============ TOAST ============
                 showToast(message, type = 'success') {
                     this.toast.message = message;
                     this.toast.type = type;
@@ -539,8 +594,6 @@
                     @if (session('error'))
                         this.showToast(@json(session('error')), 'error');
                     @endif
-
-                    // Search filter
                     const searchInput = document.getElementById('searchInput');
                     const table = document.getElementById('usersTable');
                     if (searchInput && table) {
@@ -561,8 +614,6 @@
                             });
                         });
                     }
-
-                    // ESC close modal
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
                             if (this.showDeleteModal) {

@@ -14,14 +14,10 @@ return new class extends Migration {
             $table->foreignId('vendor_id')->nullable()->constrained('vendors')->nullOnDelete();
 
             $table->enum('ownership_type', ['owned', 'leased']);
-
-            // Sewa
             $table->string('contract_number')->nullable();
             $table->date('contract_start')->nullable();
             $table->date('contract_end')->nullable();       // tanggal expire sewa
             $table->decimal('monthly_cost', 15, 2)->nullable();
-
-            // Beli
             $table->decimal('purchase_price', 15, 2)->nullable();
             $table->string('invoice_number')->nullable();
 

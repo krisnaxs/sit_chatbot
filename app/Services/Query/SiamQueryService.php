@@ -18,27 +18,16 @@ class SiamQueryService
     public function tryAnswer(string $pesan): ?array
     {
         $msg = Str::lower(trim($pesan));
-
-        // Skip kalau terlalu pendek
         if (strlen($msg) < 3) {
             return null;
         }
-
-        // ============================================================
-        // 1. TOTAL ASET / RINGKASAN
-        // ============================================================
         if ($this->match($msg, ['berapa', 'total', 'jumlah']) && $this->match($msg, ['aset', 'asset'])) {
-            // Hak milik
             if ($this->match($msg, ['hak milik', 'owned', 'milik sendiri', 'beli'])) {
                 return $this->ownershipBreakdown('owned');
             }
-
-            // Sewa
             if ($this->match($msg, ['sewa', 'lease', 'leased', 'rental'])) {
                 return $this->ownershipBreakdown('leased');
             }
-
-            // Status
             if ($this->match($msg, ['tersedia', 'available', 'siap dipakai'])) {
                 return $this->statusBreakdown('available');
             }
@@ -57,14 +46,8 @@ class SiamQueryService
             if ($this->match($msg, ['pensiun', 'retired'])) {
                 return $this->statusBreakdown('retired');
             }
-
-            // Total semua
             return $this->totalAssets();
         }
-
-        // ============================================================
-        // 2. KATEGORI / BRAND / MODEL
-        // ============================================================
         if ($this->match($msg, ['kategori', 'category']) && $this->match($msg, ['aset', 'asset', 'list', 'daftar'])) {
             return $this->byCategory();
         }
@@ -74,10 +57,6 @@ class SiamQueryService
         if ($this->match($msg, ['model', 'tipe', 'type']) && $this->match($msg, ['aset', 'asset', 'list', 'daftar'])) {
             return $this->byModel();
         }
-
-        // ============================================================
-        // 3. NILAI ASET
-        // ============================================================
         if (
             $this->match($msg, ['nilai', 'harga', 'total pembelian'])
             && $this->match($msg, ['pembelian', 'beli', 'aset', 'aset hak milik'])
@@ -91,37 +70,21 @@ class SiamQueryService
         ) {
             return $this->monthlyLeaseCost();
         }
-
-        // ============================================================
-        // 4. PEMINJAMAN
-        // ============================================================
         if ($this->match($msg, ['terlambat', 'overdue', 'telat']) && $this->match($msg, ['pinjam', 'loan', 'peminjaman'])) {
             return $this->overdueLoans();
         }
         if ($this->match($msg, ['berapa', 'total', 'jumlah']) && $this->match($msg, ['pinjam', 'loan', 'peminjaman'])) {
             return $this->totalLoans();
         }
-
-        // ============================================================
-        // 5. PERBAIKAN
-        // ============================================================
         if ($this->match($msg, ['sering', 'paling', 'top']) && $this->match($msg, ['rusak', 'perbaikan', 'maintenance'])) {
             return $this->topMaintenanced();
         }
-
-        // ============================================================
-        // 6. KONSUMABLE
-        // ============================================================
         if ($this->match($msg, ['low stock', 'stok rendah', 'stok habis', 'stok minim'])) {
             return $this->lowStockConsumables();
         }
         if ($this->match($msg, ['konsumable', 'consumable', 'barang habis pakai'])) {
             return $this->totalConsumables();
         }
-
-        // ============================================================
-        // 7. USER
-        // ============================================================
         if ($this->match($msg, ['berapa', 'total', 'jumlah']) && $this->match($msg, ['user', 'pegawai', 'karyawan'])) {
             return $this->totalUsers();
         }
@@ -135,10 +98,6 @@ class SiamQueryService
         return null;
     }
 
-    // ============================================================
-    // HELPERS
-    // ============================================================
-
     /**
      * Cek apakah $msg mengandung salah satu kata dari $keywords.
      */
@@ -151,10 +110,6 @@ class SiamQueryService
         }
         return false;
     }
-
-    // ============================================================
-    // HANDLERS
-    // ============================================================
 
     private function totalAssets(): array
     {

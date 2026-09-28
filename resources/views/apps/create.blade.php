@@ -151,7 +151,6 @@
             }
         }
 
-        // 🆕 pageLayout — handle collapse sidebar
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',

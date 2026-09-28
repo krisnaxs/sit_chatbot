@@ -15,10 +15,6 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $defaultPassword = 'password123';
-
-        // ============================================================
-        // DAFTAR USER DEFAULT
-        // ============================================================
         $users = [
             [
                 'nip' => '10000001',
@@ -45,16 +41,8 @@ class UserSeeder extends Seeder
                 'role' => 'user',
             ],
         ];
-
-        // ============================================================
-        // CREATE / UPDATE USER
-        // ============================================================
         foreach ($users as $data) {
-            // Generate username dari email sebelum @
-            // Contoh: admin@admin.com → admin
             $username = User::generateUsername($data['email']);
-
-            // Cek apakah user sudah ada (by email) — kalau ada, pakai username lama
             $existing = User::withTrashed()->where('email', $data['email'])->first();
             if ($existing) {
                 $username = $existing->username;

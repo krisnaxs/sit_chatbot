@@ -290,8 +290,6 @@
                         $c->is_low_stock => 'LOW',
                         default => 'TERSEDIA',
                     };
-
-                    // 🆕 Hitung net keluar dari transaksi
                     $keluar = ($c->total_out ?? 0) - ($c->total_return ?? 0);
                 @endphp
                 <tr>

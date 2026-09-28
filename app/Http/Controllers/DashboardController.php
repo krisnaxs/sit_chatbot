@@ -12,9 +12,6 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // ============================================================
-        // 1. STATISTIK UTAMA
-        // ============================================================
         $totalChat = Chat::count();
         $totalKnowledge = Knowledge::count();
         $chatHariIni = Chat::whereDate('waktu', today())->count();
@@ -35,18 +32,10 @@ class DashboardController extends Controller
             ])->count() / 7,
             1
         );
-
-        // ============================================================
-        // 2. TREN vs KEMARIN
-        // ============================================================
         $chatKemarin = Chat::whereDate('waktu', now()->subDay())->count();
         $trendHariIni = $chatKemarin > 0
             ? round((($chatHariIni - $chatKemarin) / $chatKemarin) * 100, 1)
             : ($chatHariIni > 0 ? 100 : 0);
-
-        // ============================================================
-        // 3. GRAFIK 7 HARI
-        // ============================================================
         $grafik = Chat::select(
             DB::raw('DATE(waktu) as tanggal'),
             DB::raw('COUNT(*) as total')
@@ -63,24 +52,12 @@ class DashboardController extends Controller
             $labels[] = now()->subDays($i)->format('d M');
             $data[] = $grafik[$tgl] ?? 0;
         }
-
-        // ============================================================
-        // 4. CHAT TERBARU
-        // ============================================================
         $chatTerbaru = Chat::orderByDesc('id')->limit(8)->get();
-
-        // ============================================================
-        // 5. TOP PERTANYAAN
-        // ============================================================
         $topPertanyaan = Chat::select('pesan', DB::raw('COUNT(*) as total'))
             ->groupBy('pesan')
             ->orderByDesc('total')
             ->limit(10)
             ->get();
-
-        // ============================================================
-        // 6. JAM SIBUK
-        // ============================================================
         $jamSibuk = Chat::select(
             DB::raw('HOUR(waktu) as jam'),
             DB::raw('COUNT(*) as total')
@@ -90,10 +67,6 @@ class DashboardController extends Controller
             ->orderByDesc('total')
             ->limit(5)
             ->get();
-
-        // ============================================================
-        // 7. KNOWLEDGE TIDAK TERPAKAI
-        // ============================================================
         $knowledgeUnused = Knowledge::select('id', 'kata_kunci')
             ->whereNotExists(function ($q) {
                 $q->select(DB::raw(1))
@@ -102,10 +75,6 @@ class DashboardController extends Controller
             })
             ->limit(5)
             ->get();
-
-        // ============================================================
-        // 8. DETEKSI KB vs AI
-        // ============================================================
         if (Schema::hasColumn('chat', 'sumber')) {
             $chatDariKB = Chat::where('sumber', 'database')->count();
             $chatDariAI = Chat::where('sumber', 'ai')->count();
@@ -128,10 +97,6 @@ class DashboardController extends Controller
         $totalDijawab = $chatDariKB + $chatDariAI;
         $persenKB = $totalDijawab > 0 ? round(($chatDariKB / $totalDijawab) * 100, 1) : 0;
         $persenAI = $totalDijawab > 0 ? round(($chatDariAI / $totalDijawab) * 100, 1) : 0;
-
-        // ============================================================
-        // 9. TOP KNOWLEDGE
-        // ============================================================
         $topKnowledge = DB::table('knowledge')
             ->join('chat', 'chat.jawaban', '=', 'knowledge.jawaban')
             ->select(
@@ -144,16 +109,9 @@ class DashboardController extends Controller
             ->orderByDesc('total')
             ->limit(5)
             ->get();
-
-        // ============================================================
-        // 10. STATISTIK PENDING KNOWLEDGE (AI yang sudah dipelajari)
-        // ============================================================
-        // Total per status
         $pendingTotal = PendingKnowledge::where('status', 'pending')->count();
         $pendingApproved = PendingKnowledge::where('status', 'approved')->count();
         $pendingRejected = PendingKnowledge::where('status', 'rejected')->count();
-
-        // Total semua + persentase sudah dipelajari
         $pendingTotalAll = $pendingApproved + $pendingRejected + $pendingTotal;
         $persenApproved = $pendingTotalAll > 0
             ? round(($pendingApproved / $pendingTotalAll) * 100, 1)
@@ -164,8 +122,6 @@ class DashboardController extends Controller
         $persenRejected = $pendingTotalAll > 0
             ? round(($pendingRejected / $pendingTotalAll) * 100, 1)
             : 0;
-
-        // Pending & approved hari ini
         $pendingHariIni = PendingKnowledge::where('status', 'pending')
             ->whereDate('created_at', today())
             ->count();
@@ -173,14 +129,10 @@ class DashboardController extends Controller
         $approvedHariIni = PendingKnowledge::where('status', 'approved')
             ->whereDate('updated_at', today())
             ->count();
-
-        // Top 5 pending yang paling sering ditanya (belum dipelajari)
         $topPending = PendingKnowledge::where('status', 'pending')
             ->orderByDesc('frequency')
             ->limit(5)
             ->get(['id', 'pesan_user', 'frequency', 'created_at']);
-
-        // Tren 7 hari terakhir: berapa yang di-approve per hari
         $approvedPerHari = PendingKnowledge::where('status', 'approved')
             ->where('updated_at', '>=', now()->subDays(6)->startOfDay())
             ->select(
@@ -200,34 +152,25 @@ class DashboardController extends Controller
         }
 
         return view('dashboard', compact(
-            // Statistik utama
             'totalChat',
             'totalKnowledge',
             'chatHariIni',
             'chatMingguIni',
             'knowledgeWithFile',
             'chatPerHari',
-
-            // Grafik
             'labels',
             'data',
-
-            // List
             'chatTerbaru',
             'topPertanyaan',
             'topKnowledge',
             'jamSibuk',
             'knowledgeUnused',
-
-            // Analisis
             'chatDariKB',
             'chatDariAI',
             'persenKB',
             'persenAI',
             'trendHariIni',
             'chatKemarin',
-
-            // Pending Knowledge stats
             'pendingTotal',
             'pendingApproved',
             'pendingRejected',

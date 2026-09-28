@@ -22,8 +22,6 @@ class MasterDataSeeder extends Seeder
         $this->seedCategories();
         $this->seedAssetTypes();
     }
-
-    // ================================================================
     private function seedDepartments(): void
     {
         $data = [
@@ -40,8 +38,6 @@ class MasterDataSeeder extends Seeder
 
         $this->command->info('✅ Departments: ' . count($data));
     }
-
-    // ================================================================
     private function seedLocations(): void
     {
         $data = [
@@ -62,8 +58,6 @@ class MasterDataSeeder extends Seeder
 
         $this->command->info('✅ Locations: ' . count($data));
     }
-
-    // ================================================================
     private function seedUsers(): void
     {
         $itDept = Department::where('code', 'IT')->first();
@@ -113,8 +107,6 @@ class MasterDataSeeder extends Seeder
 
         $this->command->info('✅ Users: ' . count($users) . ' pegawai');
     }
-
-    // ================================================================
     private function seedVendors(): void
     {
         $data = [
@@ -129,8 +121,6 @@ class MasterDataSeeder extends Seeder
 
         $this->command->info('✅ Vendors: ' . count($data));
     }
-
-    // ================================================================
     private function seedCategories(): void
     {
         $data = [
@@ -149,8 +139,6 @@ class MasterDataSeeder extends Seeder
 
         $this->command->info('✅ Categories: ' . count($data));
     }
-
-    // ================================================================
     private function seedAssetTypes(): void
     {
         $data = [

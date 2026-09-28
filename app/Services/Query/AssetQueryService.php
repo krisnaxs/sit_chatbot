@@ -14,26 +14,77 @@ use Illuminate\Support\Str;
 
 class AssetQueryService
 {
+    /**
+     * 🆕 User yang sedang login (null = guest).
+     */
+    protected ?\App\Models\User $user = null;
+
+    /**
+     * 🆕 Set user context untuk role-based filter.
+     */
+    public function setUser(?\App\Models\User $user): self
+    {
+        $this->user = $user;
+        return $this;
+    }
+
+    /**
+     * 🆕 Cek apakah user privileged (admin / support).
+     */
+    protected function isPrivileged(): bool
+    {
+        if (!$this->user) {
+            return false;
+        }
+        $role = $this->user->role ?? null;
+        return in_array($role, ['admin', 'support'], true);
+    }
+
     protected array $statusMap = [
         'ready' => 'available',
         'tersedia' => 'available',
         'available' => 'available',
-        'siap' => 'available',
+        'siap pakai' => 'available',
+        'siap dipakai' => 'available',
         'kosong' => 'available',
+        'idle' => 'available',
+        'free' => 'available',
+        'nganggur' => 'available',
+        'belum dipakai' => 'available',
+        'belum dipake' => 'available',
+        'di pakai' => 'in_use',
+        'di pake' => 'in_use',
+        'sedang dipakai' => 'in_use',
+        'lagi dipakai' => 'in_use',
+        'sedang dipake' => 'in_use',
         'dipakai' => 'in_use',
+        'dipake' => 'in_use',
+        'terpakai' => 'in_use',
+        'di gunakan' => 'in_use',
+        'digunakan' => 'in_use',
+        'digunain' => 'in_use',
         'in_use' => 'in_use',
         'in use' => 'in_use',
-        'digunakan' => 'in_use',
+        'di pinjam' => 'loaned',
+        'di pinjem' => 'loaned',
+        'sedang dipinjam' => 'loaned',
         'dipinjam' => 'loaned',
+        'dipinjem' => 'loaned',
         'pinjam' => 'loaned',
         'loaned' => 'loaned',
+        'di perbaiki' => 'maintenance',
+        'sedang diperbaiki' => 'maintenance',
+        'diperbaiki' => 'maintenance',
         'perbaikan' => 'maintenance',
         'maintenance' => 'maintenance',
         'rusak' => 'maintenance',
         'servis' => 'maintenance',
         'pensiun' => 'retired',
         'retired' => 'retired',
+        'tidak dipakai' => 'retired',
+        'tidak dipake' => 'retired',
         'hilang' => 'lost',
+        'ilang' => 'lost',
         'lost' => 'lost',
     ];
 
@@ -73,6 +124,12 @@ class AssetQueryService
         'tp-link',
         'cisco',
         'mikrotik',
+        'seagate',
+        'western digital',
+        'wd',
+        'sandisk',
+        'kingston',
+        'v-gen',
     ];
 
     protected array $ownershipMap = [
@@ -89,58 +146,294 @@ class AssetQueryService
         'kontrak' => 'leased',
     ];
 
+    protected array $consumableKeywords = [
+        'keyboard',
+        'mouse',
+        'hdd',
+        'harddisk',
+        'hard disk',
+        'hardisk',
+        'flashdisk',
+        'flash disk',
+        'ssd',
+        'usb',
+        'kabel',
+        'lan',
+        'hdmi',
+        'headset',
+        'charger',
+        'tinta',
+        'toner',
+        'kertas',
+        'atk',
+        'pulpen',
+        'pensil',
+        'spidol',
+    ];
+
+    protected array $sisHardwareMap = [
+        'papan ketik' => [
+            'title' => 'Keyboard',
+            'emoji' => '⌨️',
+            'desc' => 'Keyboard fisik (USB/Bluetooth) atau keyboard bawaan laptop.',
+        ],
+        'flash disk' => [
+            'title' => 'Flashdisk',
+            'emoji' => '🔌',
+            'desc' => 'USB flash drive untuk transfer data.',
+        ],
+        'hard disk' => [
+            'title' => 'Hard Disk',
+            'emoji' => '💽',
+            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
+        ],
+        'hardisk' => [
+            'title' => 'Hard Disk',
+            'emoji' => '💽',
+            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
+        ],
+        'kabel lan' => [
+            'title' => 'Kabel LAN',
+            'emoji' => '🔗',
+            'desc' => 'Kabel jaringan Ethernet.',
+        ],
+        'kabel hdmi' => [
+            'title' => 'Kabel HDMI',
+            'emoji' => '🔗',
+            'desc' => 'Kabel HDMI untuk display.',
+        ],
+        'keyboard' => [
+            'title' => 'Keyboard',
+            'emoji' => '⌨️',
+            'desc' => 'Keyboard fisik (USB/Bluetooth) atau keyboard bawaan laptop.',
+        ],
+        'flashdisk' => [
+            'title' => 'Flashdisk',
+            'emoji' => '🔌',
+            'desc' => 'USB flash drive untuk transfer data.',
+        ],
+        'harddisk' => [
+            'title' => 'Hard Disk',
+            'emoji' => '💽',
+            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
+        ],
+        'trackpad' => [
+            'title' => 'Touchpad',
+            'emoji' => '🖱️',
+            'desc' => 'Touchpad bawaan laptop.',
+        ],
+        'touchpad' => [
+            'title' => 'Touchpad',
+            'emoji' => '🖱️',
+            'desc' => 'Touchpad bawaan laptop.',
+        ],
+        'mouse' => [
+            'title' => 'Mouse',
+            'emoji' => '🖱️',
+            'desc' => 'Mouse USB, wireless, atau touchpad laptop.',
+        ],
+        'hdd' => [
+            'title' => 'HDD',
+            'emoji' => '💽',
+            'desc' => 'Hard disk eksternal/internal untuk penyimpanan data.',
+        ],
+        'ssd' => [
+            'title' => 'SSD',
+            'emoji' => '💾',
+            'desc' => 'Solid State Drive untuk penyimpanan cepat.',
+        ],
+        'usb' => [
+            'title' => 'USB',
+            'emoji' => '🔌',
+            'desc' => 'USB drive / perangkat USB.',
+        ],
+        'monitor' => [
+            'title' => 'Monitor',
+            'emoji' => '🖥️',
+            'desc' => 'Monitor eksternal / layar tambahan.',
+        ],
+        'printer' => [
+            'title' => 'Printer',
+            'emoji' => '🖨️',
+            'desc' => 'Printer untuk cetak dokumen.',
+        ],
+        'scanner' => [
+            'title' => 'Scanner',
+            'emoji' => '📠',
+            'desc' => 'Scanner dokumen.',
+        ],
+        'webcam' => [
+            'title' => 'Webcam',
+            'emoji' => '📷',
+            'desc' => 'Kamera untuk video call / meeting.',
+        ],
+        'headset' => [
+            'title' => 'Headset',
+            'emoji' => '🎧',
+            'desc' => 'Headset / earphone untuk audio.',
+        ],
+        'speaker' => [
+            'title' => 'Speaker',
+            'emoji' => '🔊',
+            'desc' => 'Speaker eksternal.',
+        ],
+        'ups' => [
+            'title' => 'UPS',
+            'emoji' => '🔋',
+            'desc' => 'Uninterruptible Power Supply untuk backup daya.',
+        ],
+        'charger' => [
+            'title' => 'Charger',
+            'emoji' => '🔌',
+            'desc' => 'Adaptor / charger perangkat.',
+        ],
+        'kabel' => [
+            'title' => 'Kabel',
+            'emoji' => '🔗',
+            'desc' => 'Kabel data / power (HDMI, VGA, USB, LAN, dll).',
+        ],
+        'lan' => [
+            'title' => 'Kabel LAN',
+            'emoji' => '🔗',
+            'desc' => 'Kabel jaringan Ethernet.',
+        ],
+        'hdmi' => [
+            'title' => 'Kabel HDMI',
+            'emoji' => '🔗',
+            'desc' => 'Kabel HDMI untuk display.',
+        ],
+    ];
+
     public function tryAnswer(string $pesan): ?array
     {
         $lower = Str::lower($pesan);
 
-        // 1. Jumlah aset by status
-        if (
-            $this->matchAny($lower, ['berapa', 'ada berapa', 'jumlah', 'total']) &&
-            $this->matchAny($lower, array_keys($this->statusMap))
-        ) {
-            return $this->countAssetByStatus($lower);
-        }
-
-        // 2. Daftar aset by status
-        if (
-            $this->matchAny($lower, ['apa saja', 'sebutkan', 'daftar', 'list', 'tampilkan', 'lihat']) &&
-            $this->matchAny($lower, array_keys($this->statusMap))
-        ) {
-            return $this->listAssetByStatus($lower);
-        }
-
-        // 3. Aset by serial / hostname
+        // ============================================================
+        // 1. SN/HOSTNAME PATTERN
+        // ============================================================
         if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
             $identifier = strtoupper($m[1]);
+            $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang', 'dan', 'atau'];
+            if (!in_array(strtolower($identifier), $blacklist, true)) {
+                $exists = Asset::where('serial_number', 'like', "%{$identifier}%")
+                    ->orWhere('hostname', 'like', "%{$identifier}%")
+                    ->orWhere('asset_code', 'like', "%{$identifier}%")
+                    ->exists();
 
-            // Cek dulu apakah identifier ini benar-benar ada di database
-            $exists = Asset::where('serial_number', 'like', "%{$identifier}%")
-                ->orWhere('hostname', 'like', "%{$identifier}%")
-                ->orWhere('asset_code', 'like', "%{$identifier}%")
-                ->exists();
-
-            if ($exists) {
-                // Kalau ada pertanyaan "siapa yang pegang?" → jawab dengan handler khusus
-                if ($this->matchAny($lower, ['siapa', 'pegang', 'memegang', 'pakai', 'gunakan', 'dipegang', 'pemakai'])) {
-                    return $this->whoHoldsAsset($identifier);
+                if ($exists) {
+                    return $this->handleAssetLookup($identifier, $lower);
                 }
-                // Kalau tidak, tampilkan detail aset
-                return $this->findAssetBySerial($identifier);
             }
         }
 
         // ============================================================
-        // 3b. Explicit prefix (SN:, serial:, hostname:)
+        // 2. "sn: xxx" EKSPLISIT
         // ============================================================
         if (preg_match('/(?:sn|serial|hostname|asset_code)[\s:]+([A-Z0-9\-_]+)/i', $pesan, $m)) {
             $identifier = $m[1];
-            if ($this->matchAny($lower, ['siapa', 'pegang', 'memegang', 'pakai', 'gunakan', 'dipegang'])) {
-                return $this->whoHoldsAsset($identifier);
+            $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang'];
+            if (!in_array(strtolower($identifier), $blacklist, true)) {
+                return $this->handleAssetLookup($identifier, $lower);
             }
-            return $this->findAssetBySerial($identifier);
         }
 
-        // 4. Konsumable low stock
+        // ============================================================
+        // 3. SIS/SIAM HARDWARE (PRIORITAS TINGGI)
+        // ============================================================
+        $isSisContext = $this->matchAny($lower, ['sis', 'siam', 'aplikasi', 'sistem', 'web', 'aplikasinya']);
+
+        if ($isSisContext) {
+            $matchedHardware = $this->detectHardware($lower);
+
+            if ($matchedHardware) {
+                return [
+                    "{$matchedHardware['emoji']} **Tentang {$matchedHardware['title']} di SIS/SIAM**\n\n"
+                    . "SIS dan SIAM adalah **aplikasi web**, bukan aplikasi desktop.\n\n"
+                    . "• **Tidak ada {$matchedHardware['title']} virtual khusus** di dalam SIS/SIAM.\n"
+                    . "• Kamu pakai **{$matchedHardware['title']}** milik perangkat sendiri (laptop/HP).\n"
+                    . "• {$matchedHardware['desc']}\n"
+                    . "• Kalau {$matchedHardware['title']} perangkatmu bermasalah, itu masalah **hardware** — bukan masalah SIS/SIAM.\n\n"
+                    . "💡 Kalau butuh **{$matchedHardware['title']}** untuk kerja, ajukan permintaan ke **IT Support** atau cek stok di menu **Aset/Consumable**.",
+                    'database'
+                ];
+            }
+
+            if ($this->matchAny($lower, ['hardware', 'perangkat', 'peripheral', 'periferal', 'alat'])) {
+                return [
+                    "🖥️ **Hardware & Peripheral di SIS/SIAM**\n\n"
+                    . "SIS dan SIAM adalah **aplikasi web**. Semua hardware yang kamu pakai adalah **perangkat fisik** milikmu sendiri atau aset kantor.\n\n"
+                    . "**Yang sering ditanyakan:**\n"
+                    . "• ⌨️ Keyboard — pakai keyboard perangkat sendiri\n"
+                    . "• 🖱️ Mouse / Touchpad — pakai mouse/touchpad perangkat sendiri\n"
+                    . "• 💽 HDD / SSD — penyimpanan internal perangkat\n"
+                    . "• 🔌 Flashdisk / USB — untuk transfer data\n"
+                    . "• 🖥️ Monitor — layar utama atau tambahan\n"
+                    . "• 🖨️ Printer / Scanner — untuk cetak & scan dokumen\n"
+                    . "• 🎧 Headset / Webcam — untuk meeting online\n\n"
+                    . "**Tidak ada hardware virtual** di dalam SIS/SIAM. Kalau ada hardware bermasalah, itu urusan **IT Support**, bukan aplikasi.",
+                    'database'
+                ];
+            }
+        }
+
+        // ============================================================
+        // 4. "Siapa yang pakai X?" — KHUSUS ADMIN/SUPPORT
+        // ============================================================
+        if (
+            $this->matchAny($lower, ['siapa', 'siapa saja', 'siapa aja', 'user', 'pegawai', 'karyawan']) &&
+            $this->matchAny($lower, ['pakai', 'memakai', 'gunakan', 'menggunakan', 'pegang', 'pinjam'])
+        ) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "🔒 Maaf, data pemakai hanya bisa diakses oleh **Admin** atau **Support**.\n\n"
+                    . "Kalau kamu butuh info ini untuk keperluan kerja, hubungi **IT Support** ya.",
+                    'database'
+                ];
+            }
+
+            // 🆕 Deteksi: consumable atau aset?
+            $consumableKeywords = [];
+            foreach ($this->consumableKeywords as $kw) {
+                if ($this->matchWord($lower, $kw)) {
+                    $consumableKeywords[] = $kw;
+                }
+            }
+
+            $assetCategory = $this->detectCategory($lower);
+
+            // Kalau ada keyword consumable → cek consumable
+            if (!empty($consumableKeywords)) {
+                return $this->listConsumableUsers($lower);
+            }
+
+            // Kalau ada kategori aset → cek pemegang aset
+            if ($assetCategory) {
+                return $this->listAssetHoldersByCategory($assetCategory);
+            }
+
+            // Tidak ada keyword spesifik → tanya balik
+            return [
+                "Mau cek pemakai apa? Sebutkan lebih spesifik ya.\n\n"
+                . "**Contoh:**\n"
+                . "• \"siapa saja yang pakai laptop\"\n"
+                . "• \"siapa saja yang pakai mouse\"\n"
+                . "• \"siapa saja yang pakai keyboard\"\n"
+                . "• \"siapa saja yang pakai printer\"",
+                'database'
+            ];
+        }
+
+        // ============================================================
+        // 5. CONSUMABLE SPESIFIK
+        // ============================================================
+        $consumableResult = $this->tryAnswerConsumable($lower);
+        if ($consumableResult) {
+            return $consumableResult;
+        }
+
+        // ============================================================
+        // 6. STOK RENDAH
+        // ============================================================
         if (
             $this->matchAny($lower, ['konsumable', 'consumable', 'atk', 'habis pakai']) &&
             $this->matchAny($lower, ['habis', 'stok', 'stock', 'low', 'rendah', 'kosong'])
@@ -148,68 +441,117 @@ class AssetQueryService
             return $this->listLowStockConsumable();
         }
 
-        // 5. Peminjaman terlambat
+        // ============================================================
+        // 7. QUERY ASSET
+        // ============================================================
+        if (
+            $this->matchAny($lower, ['berapa', 'ada berapa', 'jumlah', 'total']) &&
+            $this->matchAny($lower, array_keys($this->statusMap))
+        ) {
+            return $this->countAssetByStatus($lower);
+        }
+        if (
+            $this->matchAny($lower, ['apa saja', 'sebutkan', 'daftar', 'list', 'tampilkan', 'lihat']) &&
+            $this->matchAny($lower, array_keys($this->statusMap))
+        ) {
+            return $this->listAssetByStatus($lower);
+        }
+        if (
+            $this->matchAny($lower, array_keys($this->statusMap)) &&
+            $this->detectCategory($lower) &&
+            !$this->matchAny($lower, ['berapa', 'jumlah', 'total', 'top', 'terbanyak', 'paling'])
+        ) {
+            return $this->countAssetByStatus($lower);
+        }
+        if (
+            $this->matchAny($lower, array_keys($this->statusMap)) &&
+            strlen($lower) < 40 &&
+            !$this->matchAny($lower, ['berapa', 'jumlah', 'total', 'top', 'terbanyak', 'list', 'daftar']) &&
+            !$this->containsSnPattern($pesan)
+        ) {
+            $hasOtherIntent = $this->matchAny($lower, [
+                'top',
+                'terbanyak',
+                'paling',
+                'brand',
+                'merek',
+                'model',
+                'tipe',
+                'user',
+                'pegawai',
+                'lokasi',
+                'ruangan',
+                'kategori',
+                'pinjam',
+                'loan',
+                'maintenance',
+                'perbaikan',
+                'garansi',
+                'kontrak',
+                'sewa',
+                'siapa',
+                'pegang',
+                'memegang',
+                'dipegang',
+                'pemakai',
+            ]);
+
+            if (!$hasOtherIntent) {
+                return $this->countAssetByStatus($lower);
+            }
+        }
         if (
             $this->matchAny($lower, ['pinjam', 'peminjaman', 'loan']) &&
             $this->matchAny($lower, ['telat', 'terlambat', 'overdue', 'lewat'])
         ) {
             return $this->listOverdueLoans();
         }
-
-        // 6. Berapa aset sedang diperbaiki
         if (
             $this->matchAny($lower, ['perbaikan', 'maintenance', 'servis', 'rusak']) &&
             $this->matchAny($lower, ['berapa', 'ada', 'sedang', 'lagi', 'jumlah'])
         ) {
             return $this->countMaintenance();
         }
-
-        // 7. Nilai total aset
+        // 🆕 Guard harga/nilai aset
         if ($this->matchAny($lower, ['nilai', 'harga total', 'total pembelian', 'harga aset'])) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "🔒 Maaf, data nilai / harga aset hanya bisa diakses oleh **Admin** atau **Support**.",
+                    'database'
+                ];
+            }
             return $this->totalAssetValue();
         }
-
-        // 8. Peminjaman aktif
         if (
             $this->matchAny($lower, ['pinjam', 'peminjaman', 'loan']) &&
             $this->matchAny($lower, ['aktif', 'sedang', 'berjalan', 'berapa', 'daftar'])
         ) {
             return $this->listActiveLoans();
         }
-
-        // 9. Serah terima aktif
         if (
             $this->matchAny($lower, ['serah terima', 'assignment', 'pegang']) &&
             $this->matchAny($lower, ['aktif', 'sedang', 'berapa', 'daftar', 'siapa'])
         ) {
             return $this->listActiveAssignments();
         }
-
-        // 10. Jumlah kategori
         if (
             $this->matchAny($lower, ['kategori', 'category']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'total', 'daftar'])
         ) {
             return $this->countCategories();
         }
-
-        // 11. Brand & model (asset types)
         if (
             $this->matchAny($lower, ['brand', 'merek', 'model', 'tipe', 'type']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'daftar', 'list'])
         ) {
             return $this->countAssetTypes();
         }
-
-        // 11b. Jumlah aset by ownership (hak milik / sewa)
         if (
             $this->matchAny($lower, ['berapa', 'ada berapa', 'jumlah', 'total']) &&
             $this->matchAny($lower, array_keys($this->ownershipMap))
         ) {
             return $this->countAssetByOwnership($lower);
         }
-
-        // 12. Tipe/model/brand terbanyak — JANGAN match kalau ada "berapa"/"sewa"/"hak milik"
         if (
             $this->matchAny($lower, ['terbanyak', 'paling banyak', 'top', 'tertinggi', 'mayoritas', 'paling sering', 'sering dipakai']) &&
             $this->matchAny($lower, ['type', 'tipe', 'model', 'brand', 'merek', 'merk', 'laptop', 'komputer', 'aset', 'asset', 'barang']) &&
@@ -217,9 +559,6 @@ class AssetQueryService
         ) {
             return $this->topAssetBy($lower);
         }
-        // ============================================================
-        // 13. LIST ASET PER KATEGORI / BRAND / OWNERSHIP
-        // ============================================================
         if (
             $this->matchAny($lower, ['list', 'daftar', 'sebutkan', 'tampilkan', 'apa saja', 'lihat']) &&
             $this->matchAny($lower, ['kategori', 'category']) &&
@@ -227,7 +566,6 @@ class AssetQueryService
         ) {
             return $this->listAssetsByCategory($lower);
         }
-
         if (
             $this->matchAny($lower, ['list', 'daftar', 'sebutkan', 'tampilkan', 'apa saja', 'lihat']) &&
             $this->matchAny($lower, ['brand', 'merek', 'merk']) &&
@@ -235,17 +573,12 @@ class AssetQueryService
         ) {
             return $this->listAssetsByBrand($lower);
         }
-
         if (
             $this->matchAny($lower, ['list', 'daftar', 'sebutkan', 'tampilkan', 'apa saja', 'lihat']) &&
             $this->detectOwnership($lower)
         ) {
             return $this->listAssetsByOwnership($lower);
         }
-
-        // ============================================================
-        // 14. ASET PER TAHUN
-        // ============================================================
         if (
             $this->matchAny($lower, ['tahun', 'year']) &&
             preg_match('/\b(20\d{2})\b/', $lower, $ym) &&
@@ -253,84 +586,84 @@ class AssetQueryService
         ) {
             return $this->assetsByYear((int) $ym[1]);
         }
-
-        if (
-            $this->matchAny($lower, ['aset per tahun', 'aset tiap tahun', 'pengadaan per tahun', 'pembelian per tahun'])
-        ) {
+        if ($this->matchAny($lower, ['aset per tahun', 'aset tiap tahun', 'pengadaan per tahun', 'pembelian per tahun'])) {
             return $this->assetsByYearSummary();
         }
-
-        // ============================================================
-        // 15. ASET BY USER / LOCATION
-        // ============================================================
+        // 🆕 Guard user pemegang aset
         if (
-            $this->matchAny($lower, ['aset', 'asset']) &&
-            $this->matchAny($lower, ['dipegang', 'pegang', 'memegang', 'pakai', 'gunakan']) &&
+            $this->matchAny($lower, ['pegang', 'memegang', 'punya', 'pakai', 'gunakan', 'dipegang', 'pengang'])
+            && !$this->matchAny($lower, ['berapa', 'jumlah', 'total', 'top', 'terbanyak', 'paling', 'list', 'daftar'])
+        ) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "🔒 Maaf, data pemegang aset hanya bisa diakses oleh **Admin** atau **Support**.",
+                    'database'
+                ];
+            }
+            $userName = $this->extractUserName($pesan);
+            if ($userName) {
+                return $this->listAssetsByUser($pesan);
+            }
+        }
+        if (
+            $this->matchAny($lower, ['aset', 'asset', 'laptop', 'printer', 'monitor', 'pc']) &&
+            $this->matchAny($lower, ['dipegang', 'pegang', 'memegang', 'pakai', 'gunakan', 'pengang']) &&
             $this->matchAny($lower, ['user', 'pegawai', 'karyawan', 'orang'])
         ) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "🔒 Maaf, data pemegang aset hanya bisa diakses oleh **Admin** atau **Support**.",
+                    'database'
+                ];
+            }
             return $this->listAssetsByUser($pesan);
         }
-
-        if (
-            $this->matchAny($lower, ['aset', 'asset']) &&
-            $this->matchAny($lower, ['di ', 'lokasi', 'ruang', 'gedung', 'ruangan']) &&
-            !$this->matchAny($lower, ['dipegang', 'dipegang siapa'])
-        ) {
-            return $this->listAssetsByLocation($pesan);
-        }
-
-        // ============================================================
-        // 16. GARANSI HAMPIR HABIS
-        // ============================================================
         if (
             $this->matchAny($lower, ['garansi', 'warranty']) &&
             $this->matchAny($lower, ['hampir', 'segera', 'berakhir', 'habis', 'expired'])
         ) {
             return $this->assetsExpiringWarranty();
         }
-
-        // ============================================================
-        // 17. KONTRAK SEWA HAMPIR BERAKHIR
-        // ============================================================
         if (
             $this->matchAny($lower, ['kontrak', 'sewa', 'lease']) &&
             $this->matchAny($lower, ['berakhir', 'habis', 'selesai'])
         ) {
             return $this->assetsExpiringContract();
         }
-
-        // ============================================================
-        // 18. ASET TUA / REKOMENDASI PENSIUN
-        // ============================================================
         if (
             $this->matchAny($lower, ['tua', 'lama', 'pensiun', 'retire']) &&
             $this->matchAny($lower, ['aset', 'asset', 'rekomendasi', 'harus', 'sebaiknya'])
         ) {
             return $this->assetsNeedingRetire();
         }
-
-        // ============================================================
-        // 19. BANDINGKAN OWNED vs LEASED
-        // ============================================================
+        // 🆕 Guard perbandingan ownership (ada nilai Rp)
         if (
             $this->matchAny($lower, ['bandingkan', 'perbandingan', 'compare', 'vs', 'dibanding']) &&
             $this->matchAny($lower, ['hak milik', 'owned', 'milik']) &&
             $this->matchAny($lower, ['sewa', 'lease', 'leased'])
         ) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "🔒 Maaf, data perbandingan hak milik vs sewa hanya bisa diakses oleh **Admin** atau **Support**.",
+                    'database'
+                ];
+            }
             return $this->compareOwnership($lower);
         }
-
-        // ============================================================
-        // 20. TOP USER / LOKASI
-        // ============================================================
+        // 🆕 Guard top user
         if (
             $this->matchAny($lower, ['top', 'terbanyak', 'paling banyak', 'mayoritas']) &&
             $this->matchAny($lower, ['user', 'pegawai', 'karyawan']) &&
             $this->matchAny($lower, ['aset', 'asset', 'pegang'])
         ) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "🔒 Maaf, data user pemegang aset hanya bisa diakses oleh **Admin** atau **Support**.",
+                    'database'
+                ];
+            }
             return $this->topUsersWithAssets();
         }
-
         if (
             $this->matchAny($lower, ['top', 'terbanyak', 'paling banyak', 'mayoritas']) &&
             $this->matchAny($lower, ['lokasi', 'ruang', 'gedung', 'ruangan']) &&
@@ -338,29 +671,400 @@ class AssetQueryService
         ) {
             return $this->topLocations();
         }
-
-        // ============================================================
-        // 21. SUMMARY SEMUA STATUS
-        // ============================================================
         if (
             $this->matchAny($lower, ['summary', 'ringkasan', 'rekap', 'statistik']) &&
             $this->matchAny($lower, ['aset', 'asset', 'status'])
         ) {
             return $this->totalStatusSummary();
         }
+        // 🆕 Guard vendor
+        if (
+            $this->matchAny($lower, ['vendor', 'supplier']) &&
+            $this->matchAny($lower, ['aset', 'asset', 'punya', 'dari'])
+        ) {
+            if (!$this->isPrivileged()) {
+                return [
+                    "🔒 Maaf, data vendor aset hanya bisa diakses oleh **Admin** atau **Support**.",
+                    'database'
+                ];
+            }
+            return $this->listAssetsByVendor($pesan);
+        }
 
         return null;
     }
 
-    // ============================================================
-    // HANDLERS
-    // ============================================================
+    /**
+     * 🆕 Handle asset lookup berdasarkan role.
+     */
+    protected function handleAssetLookup(string $identifier, string $lower): array
+    {
+        if ($this->isPrivileged()) {
+            if ($this->matchAny($lower, ['hostname', 'host name', 'nama host'])) {
+                return $this->findAssetHostname($identifier);
+            }
+            if ($this->matchAny($lower, ['sn', 'serial', 'serial number', 'nomor seri'])) {
+                return $this->findAssetSerialNumber($identifier);
+            }
+            if ($this->matchAny($lower, ['siapa', 'pegang', 'memegang', 'pakai', 'gunakan', 'dipegang', 'pemakai'])) {
+                return $this->whoHoldsAsset($identifier);
+            }
+            return $this->findAssetBySerial($identifier);
+        }
+        return $this->findAssetBySerialPublic($identifier);
+    }
+
+    /**
+     * 🆕 Tampilkan aset untuk user biasa/guest (TANPA info pemegang).
+     */
+    protected function findAssetBySerialPublic(string $serial): array
+    {
+        $asset = Asset::with(['category', 'currentLocation'])
+            ->where('serial_number', 'like', "%{$serial}%")
+            ->orWhere('hostname', 'like', "%{$serial}%")
+            ->orWhere('asset_code', 'like', "%{$serial}%")
+            ->first();
+
+        if (!$asset) {
+            return ["Aset dengan ID **{$serial}** tidak ditemukan.", 'database'];
+        }
+
+        $jawaban = "**{$asset->serial_number}**";
+        if ($asset->hostname) {
+            $jawaban .= " ({$asset->hostname})";
+        }
+        $jawaban .= "\n\n"
+            . "• Kategori: " . ($asset->category?->name ?? '-') . "\n"
+            . "• Brand/Model: {$asset->brand} {$asset->model}\n"
+            . "• Status: {$this->statusLabel($asset->status)}\n"
+            . "• Lokasi: " . ($asset->currentLocation?->full_name ?? '-');
+
+        return [
+            $jawaban,
+            'database',
+            [
+                'type' => 'asset',
+                'asset_id' => $asset->id,
+                'serial_number' => $asset->serial_number,
+                'hostname' => $asset->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
+    }
+
+    /**
+     * 🆕 Coba jawab pertanyaan consumable spesifik.
+     */
+    protected function tryAnswerConsumable(string $lower): ?array
+    {
+        $matchedKeyword = null;
+        foreach ($this->consumableKeywords as $kw) {
+            if ($this->matchWord($lower, $kw)) {
+                $matchedKeyword = $kw;
+                break;
+            }
+        }
+        if (!$matchedKeyword) {
+            return null;
+        }
+
+        $brand = null;
+        foreach ($this->brands as $b) {
+            if ($this->matchWord($lower, $b)) {
+                $brand = $b;
+                break;
+            }
+        }
+
+        try {
+            $q = Consumable::where(function ($x) use ($matchedKeyword) {
+                $x->where('name', 'like', "%{$matchedKeyword}%")
+                    ->orWhere('model', 'like', "%{$matchedKeyword}%")
+                    ->orWhere('brand', 'like', "%{$matchedKeyword}%");
+            });
+
+            if ($brand) {
+                $q->where('brand', 'like', "%{$brand}%");
+            }
+
+            $items = $q->limit(10)->get();
+        } catch (\Throwable $e) {
+            \Log::warning('tryAnswerConsumable failed: ' . $e->getMessage());
+            return null;
+        }
+
+        if ($items->isEmpty()) {
+            return null;
+        }
+
+        if ($items->count() === 1) {
+            return $this->formatConsumableDetail($items->first());
+        }
+
+        $total = $items->count();
+        $jawaban = "📦 Ditemukan **{$total}** item consumable";
+        if ($brand) {
+            $jawaban .= " brand **{$brand}**";
+        }
+        $jawaban .= ":\n\n";
+
+        foreach ($items as $c) {
+            $stok = $c->stock_available ?? 0;
+            $unit = $c->unit ?? 'pcs';
+            $status = $stok > 0 ? '✅ Tersedia' : '⚠️ Habis';
+
+            $jawaban .= "• **{$c->name}**";
+            if ($c->brand) {
+                $jawaban .= " ({$c->brand})";
+            }
+            if ($c->model) {
+                $jawaban .= " — {$c->model}";
+            }
+            $jawaban .= "\n"
+                . "  Stok: **{$stok}** {$unit} — {$status}\n";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    /**
+     * 🆕 Format detail 1 consumable (harga hanya untuk admin/support).
+     */
+    protected function formatConsumableDetail($c): array
+    {
+        $stockAvailable = (int) ($c->stock_available ?? 0);
+        $stockMinimum = (int) ($c->stock_minimum ?? 0);
+        $stockTotal = (int) ($c->stock_total ?? 0);
+        $unit = $c->unit ?? 'pcs';
+
+        $status = $stockAvailable > 0 ? '✅ Tersedia' : '⚠️ Habis';
+        $lowStock = $stockMinimum > 0 && $stockAvailable <= $stockMinimum;
+
+        $jawaban = "📦 **{$c->name}**\n\n"
+            . "• Brand: " . ($c->brand ?? '-') . "\n"
+            . "• Model: " . ($c->model ?? '-') . "\n"
+            . "• Unit: {$unit}\n"
+            . "• Stok tersedia: **{$stockAvailable}** {$unit}\n"
+            . "• Stok total: {$stockTotal} {$unit}\n"
+            . "• Minimum stok: {$stockMinimum} {$unit}\n";
+
+        // 🆕 Harga hanya untuk admin/support
+        if ($this->isPrivileged()) {
+            $harga = '-';
+            if (!empty($c->last_price)) {
+                $harga = 'Rp ' . number_format((float) $c->last_price, 0, ',', '.');
+            }
+            $jawaban .= "• Harga terakhir: {$harga}\n";
+        }
+
+        $jawaban .= "• Status: {$status}\n";
+
+        if ($lowStock) {
+            $jawaban .= "\n⚠️ **Stok rendah!** Perlu segera restock.";
+        }
+
+        if (!empty($c->notes) && $this->isPrivileged()) {
+            $jawaban .= "\n📝 Catatan: {$c->notes}";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    /**
+     * 🆕 List user pemakai consumable (khusus admin/support).
+     */
+    protected function listConsumableUsers(string $lower): array
+    {
+        $keywords = [];
+        foreach ($this->consumableKeywords as $kw) {
+            if ($this->matchWord($lower, $kw)) {
+                $keywords[] = $kw;
+            }
+        }
+
+        if (empty($keywords)) {
+            return [
+                "Sebutkan consumable yang ingin dicek.\n\n"
+                . "Contoh: \"siapa saja yang pakai mouse dan keyboard\"",
+                'database'
+            ];
+        }
+
+        try {
+            $consumables = Consumable::where(function ($x) use ($keywords) {
+                foreach ($keywords as $i => $kw) {
+                    $method = $i === 0 ? 'where' : 'orWhere';
+                    $x->$method('name', 'like', "%{$kw}%")
+                        ->orWhere('model', 'like', "%{$kw}%")
+                        ->orWhere('brand', 'like', "%{$kw}%");
+                }
+            })->get();
+        } catch (\Throwable $e) {
+            \Log::warning('listConsumableUsers failed: ' . $e->getMessage());
+            return ["Terjadi kesalahan saat mencari data consumable.", 'database'];
+        }
+
+        if ($consumables->isEmpty()) {
+            return [
+                "Consumable **" . implode(', ', $keywords) . "** tidak ditemukan.",
+                'database'
+            ];
+        }
+
+        if (!class_exists(\App\Models\ConsumableTransaction::class)) {
+            return [
+                "📦 Consumable **" . $consumables->pluck('name')->implode(', ') . "** ada.\n\n"
+                . "⚠️ Tapi sistem **belum mencatat siapa yang memakainya**. "
+                . "Data pemakai akan muncul kalau ada transaksi keluar/masuk.",
+                'database'
+            ];
+        }
+
+        $jawaban = "👥 **Pemakai Consumable:**\n\n";
+        $hasData = false;
+
+        foreach ($consumables as $c) {
+            $jawaban .= "📦 **{$c->name}**";
+
+            try {
+                $transactions = \App\Models\ConsumableTransaction::where('consumable_id', $c->id)
+                    ->with('user')
+                    ->orderByDesc('transaction_date')
+                    ->limit(10)
+                    ->get();
+            } catch (\Throwable $e) {
+                $jawaban .= " — *error ambil data transaksi*\n\n";
+                continue;
+            }
+
+            if ($transactions->isEmpty()) {
+                $jawaban .= " — *belum ada pemakai tercatat*\n\n";
+                continue;
+            }
+
+            $hasData = true;
+            $jawaban .= " — **{$transactions->count()}** transaksi terakhir:\n";
+
+            foreach ($transactions as $t) {
+                $icon = match ($t->type ?? '') {
+                    'in' => '📥',
+                    'out' => '📤',
+                    'return' => '↩️',
+                    default => '•',
+                };
+                $user = $t->user?->name ?? 'Unknown';
+                $qty = $t->quantity ?? '-';
+                $unit = $c->unit ?? 'pcs';
+                $date = $t->transaction_date
+                    ? \Carbon\Carbon::parse($t->transaction_date)->format('d M Y')
+                    : '-';
+
+                $jawaban .= "  {$icon} {$user} — {$qty} {$unit} ({$date})\n";
+            }
+            $jawaban .= "\n";
+        }
+
+        if (!$hasData) {
+            $jawaban .= "\n⚠️ *Belum ada transaksi tercatat untuk consumable ini.*";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    protected function detectHardware(string $lower): ?array
+    {
+        foreach ($this->sisHardwareMap as $keyword => $info) {
+            $pattern = '/\b' . preg_quote($keyword, '/') . '\b/i';
+            if (preg_match($pattern, $lower)) {
+                return $info;
+            }
+        }
+        return null;
+    }
+
+    protected function findAssetHostname(string $identifier): array
+    {
+        $asset = Asset::with(['category', 'currentUser', 'currentLocation'])
+            ->where('serial_number', 'like', "%{$identifier}%")
+            ->orWhere('hostname', 'like', "%{$identifier}%")
+            ->orWhere('asset_code', 'like', "%{$identifier}%")
+            ->first();
+
+        if (!$asset) {
+            return ["Aset dengan ID **{$identifier}** tidak ditemukan.", 'database'];
+        }
+
+        $jawaban = "🔍 **{$asset->serial_number}**";
+        if ($asset->hostname) {
+            $jawaban .= " ({$asset->hostname})";
+        }
+        $jawaban .= "\n\n**Hostname:** `" . ($asset->hostname ?? '-') . "`";
+
+        return [
+            $jawaban,
+            'database',
+            [
+                'type' => 'asset',
+                'asset_id' => $asset->id,
+                'serial_number' => $asset->serial_number,
+                'hostname' => $asset->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
+    }
+
+    protected function findAssetSerialNumber(string $identifier): array
+    {
+        $asset = Asset::with(['category', 'currentUser', 'currentLocation'])
+            ->where('serial_number', 'like', "%{$identifier}%")
+            ->orWhere('hostname', 'like', "%{$identifier}%")
+            ->orWhere('asset_code', 'like', "%{$identifier}%")
+            ->first();
+
+        if (!$asset) {
+            return ["Aset dengan ID **{$identifier}** tidak ditemukan.", 'database'];
+        }
+
+        $jawaban = "🔍 **{$asset->serial_number}**";
+        if ($asset->hostname) {
+            $jawaban .= " ({$asset->hostname})";
+        }
+        $jawaban .= "\n\n**Serial Number:** `" . ($asset->serial_number ?? '-') . "`";
+
+        return [
+            $jawaban,
+            'database',
+            [
+                'type' => 'asset',
+                'asset_id' => $asset->id,
+                'serial_number' => $asset->serial_number,
+                'hostname' => $asset->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
+    }
+
+    protected function extractUserName(string $pesan): ?string
+    {
+        if (preg_match('/\b([a-z]+(?:\s+[a-z]+)?)\s+(pegang|memegang|punya|pakai|gunakan|pengang|dipegang)\b/i', $pesan, $m)) {
+            $nama = trim($m[1]);
+            $skip = ['yang', 'dan', 'atau', 'di', 'ke', 'dari', 'aset', 'laptop', 'pc', 'printer', 'monitor', 'siapa'];
+            if (!in_array(strtolower($nama), $skip, true) && strlen($nama) >= 3) {
+                return $nama;
+            }
+        }
+        if (preg_match('/(?:user|pegawai|karyawan|oleh|dari|pak|bu|mas|mbak|sdr|sdri)\s+([a-z]+(?:\s+[a-z]+)?)/i', $pesan, $m)) {
+            return trim($m[1]);
+        }
+        return null;
+    }
 
     protected function countAssetByStatus(string $lower): ?array
     {
         $status = $this->detectStatus($lower);
-        if (!$status)
+        if (!$status) {
             return null;
+        }
 
         $category = $this->detectCategory($lower);
         $brand = $this->detectBrand($lower);
@@ -388,8 +1092,9 @@ class AssetQueryService
             $jawaban .= "\n\nContoh:\n";
             foreach ($samples as $a) {
                 $jawaban .= "• {$a->serial_number}";
-                if ($a->hostname)
+                if ($a->hostname) {
                     $jawaban .= " ({$a->hostname})";
+                }
                 $jawaban .= " — {$a->brand} {$a->model}\n";
             }
             if ($count > 5) {
@@ -412,8 +1117,9 @@ class AssetQueryService
     protected function listAssetByStatus(string $lower): ?array
     {
         $status = $this->detectStatus($lower);
-        if (!$status)
+        if (!$status) {
             return null;
+        }
 
         $total = Asset::where('status', $status)->count();
         $assets = Asset::where('status', $status)->with('category')->limit(10)->get();
@@ -425,8 +1131,9 @@ class AssetQueryService
         $jawaban = "Daftar aset **{$this->statusLabel($status)}** (menampilkan " . $assets->count() . " dari {$total}):\n\n";
         foreach ($assets as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
+            if ($a->hostname) {
                 $jawaban .= " ({$a->hostname})";
+            }
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
@@ -449,7 +1156,7 @@ class AssetQueryService
         $asset = Asset::with(['category', 'currentUser', 'currentLocation'])
             ->where('serial_number', 'like', "%{$serial}%")
             ->orWhere('hostname', 'like', "%{$serial}%")
-            ->orWhere('asset_code', 'like', "%{$serial}%")   // 🆕
+            ->orWhere('asset_code', 'like', "%{$serial}%")
             ->first();
 
         if (!$asset) {
@@ -467,13 +1174,19 @@ class AssetQueryService
             . "• Hak Kepemilikan: " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa') . "\n"
             . "• Pemegang: " . ($asset->currentUser?->name ?? '-') . "\n"
             . "• Lokasi: " . ($asset->currentLocation?->full_name ?? '-');
-
-        return [$jawaban, 'database'];
+        return [
+            $jawaban,
+            'database',
+            [
+                'type' => 'asset',
+                'asset_id' => $asset->id,
+                'serial_number' => $asset->serial_number,
+                'hostname' => $asset->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
     }
 
-    /**
-     * 🆕 Jawab "siapa yang pegang [hostname/SN]?"
-     */
     protected function whoHoldsAsset(string $identifier): array
     {
         $asset = Asset::with(['category', 'currentUser', 'currentLocation'])
@@ -508,9 +1221,19 @@ class AssetQueryService
         if ($asset->currentLocation) {
             $jawaban .= "\n📍 **Lokasi:** {$asset->currentLocation->full_name}";
         }
-
-        return [$jawaban, 'database'];
+        return [
+            $jawaban,
+            'database',
+            [
+                'type' => 'asset',
+                'asset_id' => $asset->id,
+                'serial_number' => $asset->serial_number,
+                'hostname' => $asset->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
     }
+
     protected function listLowStockConsumable(): array
     {
         $q = Consumable::whereColumn('stock_available', '<=', 'stock_minimum')
@@ -590,8 +1313,9 @@ class AssetQueryService
         $jawaban = "**{$total} peminjaman aktif**:\n\n";
         foreach ($loans as $l) {
             $jawaban .= "• {$l->asset?->serial_number} — {$l->user?->name}";
-            if ($l->due_date)
+            if ($l->due_date) {
                 $jawaban .= " (jatuh tempo {$l->due_date->format('d M Y')})";
+            }
             $jawaban .= "\n";
         }
 
@@ -637,8 +1361,9 @@ class AssetQueryService
         $jawaban = "**{$total} serah terima aktif**:\n\n";
         foreach ($assignments as $a) {
             $jawaban .= "• {$a->asset?->serial_number}";
-            if ($a->hostname)
+            if ($a->hostname) {
                 $jawaban .= " ({$a->hostname})";
+            }
             $jawaban .= " — {$a->user?->name}\n";
         }
 
@@ -669,14 +1394,12 @@ class AssetQueryService
         return ["Ada **{$total} brand & model** terdaftar dari **{$brands} brand**.", 'database'];
     }
 
-    /**
-     * 🆕 Hitung aset by ownership (owned / leased).
-     */
     protected function countAssetByOwnership(string $lower): ?array
     {
         $ownership = $this->detectOwnership($lower);
-        if (!$ownership)
+        if (!$ownership) {
             return null;
+        }
 
         $category = $this->detectCategory($lower);
         $brand = $this->detectBrand($lower);
@@ -704,8 +1427,9 @@ class AssetQueryService
             $jawaban .= "\n\nContoh:\n";
             foreach ($samples as $a) {
                 $jawaban .= "• {$a->serial_number}";
-                if ($a->hostname)
+                if ($a->hostname) {
                     $jawaban .= " ({$a->hostname})";
+                }
                 $jawaban .= " — {$a->brand} {$a->model}\n";
             }
             if ($count > 5) {
@@ -725,9 +1449,6 @@ class AssetQueryService
         return [$jawaban, 'database'];
     }
 
-    /**
-     * 🆕 Top tipe/model/brand aset terbanyak.
-     */
     protected function topAssetBy(string $lower): array
     {
         $status = $this->detectStatus($lower);
@@ -740,8 +1461,9 @@ class AssetQueryService
 
         $q = Asset::query();
 
-        if ($status)
+        if ($status) {
             $q->where('status', $status);
+        }
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
@@ -787,10 +1509,6 @@ class AssetQueryService
         return [$jawaban, 'database'];
     }
 
-    // ============================================================
-    // 🆕 HANDLER BARU
-    // ============================================================
-
     protected function listAssetsByCategory(string $lower): array
     {
         $category = $this->detectCategory($lower);
@@ -817,16 +1535,19 @@ class AssetQueryService
         }
 
         $filterDesc = " kategori **{$category}**";
-        if ($status)
+        if ($status) {
             $filterDesc .= " status **{$this->statusLabel($status)}**";
-        if ($ownership)
+        }
+        if ($ownership) {
             $filterDesc .= " **{$this->ownershipLabel($ownership)}**";
+        }
 
         $jawaban = "📦 **{$total} aset{$filterDesc}:**\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
+            if ($a->hostname) {
                 $jawaban .= " ({$a->hostname})";
+            }
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
@@ -845,10 +1566,12 @@ class AssetQueryService
 
         $q = Asset::with('category')->where('brand', 'like', "%{$brand}%");
 
-        if ($status)
+        if ($status) {
             $q->where('status', $status);
-        if ($ownership)
+        }
+        if ($ownership) {
             $q->where('ownership_type', $ownership);
+        }
 
         $total = $q->count();
         $items = (clone $q)->limit(10)->get();
@@ -858,16 +1581,19 @@ class AssetQueryService
         }
 
         $filterDesc = " brand **{$brand}**";
-        if ($status)
+        if ($status) {
             $filterDesc .= " status **{$this->statusLabel($status)}**";
-        if ($ownership)
+        }
+        if ($ownership) {
             $filterDesc .= " **{$this->ownershipLabel($ownership)}**";
+        }
 
         $jawaban = "🏷️ **{$total} aset{$filterDesc}:**\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
+            if ($a->hostname) {
                 $jawaban .= " ({$a->hostname})";
+            }
             $jawaban .= " — {$a->model}\n";
         }
 
@@ -893,10 +1619,12 @@ class AssetQueryService
                     ->orWhere('model', 'like', "%{$category}%");
             });
         }
-        if ($brand)
+        if ($brand) {
             $q->where('brand', 'like', "%{$brand}%");
-        if ($status)
+        }
+        if ($status) {
             $q->where('status', $status);
+        }
 
         $total = $q->count();
         $items = (clone $q)->limit(10)->get();
@@ -906,18 +1634,22 @@ class AssetQueryService
         }
 
         $filterDesc = " **{$this->ownershipLabel($ownership)}**";
-        if ($category)
+        if ($category) {
             $filterDesc .= " kategori **{$category}**";
-        if ($brand)
+        }
+        if ($brand) {
             $filterDesc .= " brand **{$brand}**";
-        if ($status)
+        }
+        if ($status) {
             $filterDesc .= " status **{$this->statusLabel($status)}**";
+        }
 
         $jawaban = "📋 **{$total} aset{$filterDesc}:**\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
+            if ($a->hostname) {
                 $jawaban .= " ({$a->hostname})";
+            }
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
@@ -942,8 +1674,9 @@ class AssetQueryService
         $jawaban = "📅 **{$total} aset dibeli tahun {$year}:**\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
+            if ($a->hostname) {
                 $jawaban .= " ({$a->hostname})";
+            }
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
@@ -979,9 +1712,7 @@ class AssetQueryService
 
     protected function listAssetsByUser(string $pesan): array
     {
-        // Extract nama user
-        preg_match('/(?:user|pegawai|karyawan|oleh|dari|pak|bu|mas|mbak|sdr|sdri)\s+([a-z]+)/i', $pesan, $m);
-        $nama = $m[1] ?? null;
+        $nama = $this->extractUserName($pesan);
 
         if (!$nama) {
             return ["Sebutkan nama user dengan jelas. Contoh: \"aset yang dipegang Budi\".", 'database'];
@@ -1001,49 +1732,26 @@ class AssetQueryService
 
         $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
         foreach ($assets as $a) {
-            $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
+            $jawaban .= "• **{$a->serial_number}**";
+            if ($a->hostname) {
                 $jawaban .= " ({$a->hostname})";
+            }
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
-
-        return [$jawaban, 'database'];
-    }
-
-    protected function listAssetsByLocation(string $pesan): array
-    {
-        // Extract keyword lokasi
-        preg_match('/(?:di|lokasi|ruang|gedung|ruangan)\s+([a-z0-9\s]+?)(?:\?|$|,|\.|$)/i', $pesan, $m);
-        $keyword = trim($m[1] ?? '');
-
-        if (!$keyword) {
-            return ["Sebutkan nama lokasi dengan jelas. Contoh: \"aset di ruang IT\".", 'database'];
-        }
-
-        $location = \App\Models\Location::where('building', 'like', "%{$keyword}%")
-            ->orWhere('room', 'like', "%{$keyword}%")
-            ->orWhere('full_name', 'like', "%{$keyword}%")
-            ->first();
-
-        if (!$location) {
-            return ["Lokasi **{$keyword}** tidak ditemukan.", 'database'];
-        }
-
-        $assets = $location->currentAssets()->with('category')->get();
-
-        if ($assets->isEmpty()) {
-            return ["Tidak ada aset di **{$location->full_name}**.", 'database'];
-        }
-
-        $jawaban = "📍 **{$location->full_name}** — **{$assets->count()} aset**:\n\n";
-        foreach ($assets as $a) {
-            $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
-                $jawaban .= " ({$a->hostname})";
-            $jawaban .= " — {$a->brand} {$a->model}\n";
-        }
-
-        return [$jawaban, 'database'];
+        $firstAsset = $assets->first();
+        return [
+            $jawaban,
+            'database',
+            [
+                'type' => 'user_assets',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'asset_id' => $firstAsset->id,
+                'serial_number' => $firstAsset->serial_number,
+                'hostname' => $firstAsset->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+        ];
     }
 
     protected function assetsExpiringWarranty(): array
@@ -1099,8 +1807,9 @@ class AssetQueryService
         $lines = ["⚠️ **{$total} Kontrak Sewa Berakhir < 30 Hari:**\n"];
         foreach ($ownerships as $o) {
             $asset = $o->asset;
-            if (!$asset)
+            if (!$asset) {
                 continue;
+            }
             $days = $o->contract_end->diffInDays(now());
             $lines[] = "• {$asset->serial_number} ({$asset->brand} {$asset->model}) — "
                 . ($o->vendor?->name ?? '-') . " — **{$days} hari lagi**";
@@ -1257,24 +1966,207 @@ class AssetQueryService
         return [implode("\n", $lines), 'database'];
     }
 
-    // ============================================================
-    // HELPERS
-    // ============================================================
-
     protected function matchAny(string $haystack, array $needles): bool
     {
         foreach ($needles as $n) {
-            if (str_contains($haystack, $n))
+            if (str_contains($haystack, $n)) {
                 return true;
+            }
         }
         return false;
+    }
+
+    protected function matchWord(string $haystack, string $word): bool
+    {
+        return (bool) preg_match('/\b' . preg_quote($word, '/') . '\b/i', $haystack);
+    }
+
+    protected function formatConsumableInfo($consumable, string $lower): array
+    {
+        if ($this->matchAny($lower, ['stok', 'stock'])) {
+            $jawaban = "📦 **Stok {$consumable->name}**\n"
+                . "• Tersedia: **{$consumable->stock_available}** {$consumable->unit}\n"
+                . "• Minimum: {$consumable->stock_minimum}\n"
+                . "• Total: {$consumable->stock_total}\n";
+
+            if ($this->isPrivileged() && !empty($consumable->last_price)) {
+                $harga = 'Rp ' . number_format((float) $consumable->last_price, 0, ',', '.');
+                $jawaban .= "• Harga terakhir: {$harga}\n";
+            }
+
+            if ($consumable->stock_available <= $consumable->stock_minimum) {
+                $jawaban .= "\n⚠️ **Stok rendah!** Perlu segera restock.";
+            }
+
+            return [$jawaban, 'database'];
+        }
+
+        if ($this->matchAny($lower, ['terakhir', 'last'])) {
+            $last = \App\Models\ConsumableTransaction::where('consumable_id', $consumable->id)
+                ->where('type', 'out')
+                ->with('user')
+                ->latest('transaction_date')
+                ->first();
+
+            if (!$last) {
+                return ["Belum ada transaksi keluar untuk **{$consumable->name}**.", 'database'];
+            }
+
+            $userName = $last->user?->name ?? '-';
+            $date = $last->transaction_date?->format('d M Y') ?? '-';
+            $qty = $last->quantity ?? 0;
+
+            return [
+                "📤 **Terakhir Dipakai: {$consumable->name}**\n"
+                . "• Oleh: **{$userName}**\n"
+                . "• Tanggal: {$date}\n"
+                . "• Jumlah: {$qty} {$consumable->unit}",
+                'database'
+            ];
+        }
+        $transactions = \App\Models\ConsumableTransaction::where('consumable_id', $consumable->id)
+            ->with('user')
+            ->orderByDesc('transaction_date')
+            ->limit(10)
+            ->get();
+
+        if ($transactions->isEmpty()) {
+            return ["Belum ada transaksi untuk **{$consumable->name}**.", 'database'];
+        }
+
+        $jawaban = "📋 **Riwayat Transaksi: {$consumable->name}**\n\n";
+        foreach ($transactions as $t) {
+            $icon = match ($t->type) {
+                'in' => '📥',
+                'out' => '📤',
+                'return' => '↩️',
+                default => '•',
+            };
+            $user = $t->user?->name ?? 'Admin';
+            $date = $t->transaction_date?->format('d M Y') ?? '-';
+
+            $jawaban .= "{$icon} {$t->type} — {$t->quantity} {$consumable->unit} — {$user} ({$date})\n";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    protected function listAssetsByVendor(string $pesan): array
+    {
+        preg_match('/(?:vendor|supplier|dari)\s+([a-z\s]+?)(?:\s|$|punya|ada)/i', $pesan, $m);
+        $nama = trim($m[1] ?? '');
+
+        if (!$nama) {
+            return ["Sebutkan nama vendor. Contoh: \"aset dari vendor PT Lenovo\".", 'database'];
+        }
+
+        $vendor = \App\Models\Vendor::where('name', 'like', "%{$nama}%")->first();
+
+        if (!$vendor) {
+            return ["Vendor **{$nama}** tidak ditemukan.", 'database'];
+        }
+
+        $ownerships = \App\Models\AssetOwnership::where('vendor_id', $vendor->id)
+            ->with('asset')
+            ->limit(20)
+            ->get();
+
+        if ($ownerships->isEmpty()) {
+            return ["Vendor **{$vendor->name}** **tidak memiliki aset** terdaftar.", 'database'];
+        }
+
+        $total = \App\Models\AssetOwnership::where('vendor_id', $vendor->id)->count();
+
+        $jawaban = "🏢 **Aset dari Vendor: {$vendor->name}** ({$total} unit)\n\n";
+        foreach ($ownerships as $o) {
+            $a = $o->asset;
+            if (!$a)
+                continue;
+
+            $jawaban .= "• {$a->serial_number}";
+            if ($a->hostname)
+                $jawaban .= " ({$a->hostname})";
+            $jawaban .= " — {$a->brand} {$a->model}\n";
+        }
+
+        if ($total > 20) {
+            $jawaban .= "\n_Menampilkan 20 pertama dari {$total}._";
+        }
+
+        return [$jawaban, 'database'];
+    }
+    /**
+     * 🆕 List pemegang aset berdasarkan kategori (khusus admin/support).
+     * Contoh: "siapa aja yang pakai laptop"
+     */
+    protected function listAssetHoldersByCategory(string $category): array
+    {
+        try {
+            $assets = Asset::with(['category', 'currentUser', 'currentLocation'])
+                ->where(function ($x) use ($category) {
+                    $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
+                        ->orWhere('model', 'like', "%{$category}%");
+                })
+                ->whereHas('currentUser')  // hanya yang ada pemegangnya
+                ->limit(50)
+                ->get();
+        } catch (\Throwable $e) {
+            \Log::warning('listAssetHoldersByCategory failed: ' . $e->getMessage());
+            return ["Terjadi kesalahan saat mencari data pemegang aset.", 'database'];
+        }
+
+        if ($assets->isEmpty()) {
+            return [
+                "Belum ada aset kategori **{$category}** yang sedang dipegang siapa pun.",
+                'database'
+            ];
+        }
+
+        // Group by pemegang
+        $grouped = [];
+        foreach ($assets as $a) {
+            $userName = $a->currentUser?->name ?? 'Tidak diketahui';
+            $grouped[$userName][] = $a;
+        }
+
+        $total = $assets->count();
+        $userCount = count($grouped);
+
+        $jawaban = "👥 **Pemegang Aset kategori {$category}**\n"
+            . "({$total} unit dipegang oleh {$userCount} orang):\n\n";
+
+        $i = 0;
+        foreach ($grouped as $userName => $items) {
+            if ($i >= 10) {
+                $jawaban .= "\n_... dan " . (count($grouped) - 10) . " orang lainnya._";
+                break;
+            }
+
+            $jawaban .= "👤 **{$userName}** — " . count($items) . " unit\n";
+            foreach ($items as $a) {
+                $jawaban .= "  • {$a->serial_number}";
+                if ($a->hostname) {
+                    $jawaban .= " ({$a->hostname})";
+                }
+                $jawaban .= " — {$a->brand} {$a->model}\n";
+            }
+            $jawaban .= "\n";
+            $i++;
+        }
+
+        return [$jawaban, 'database'];
+    }
+    protected function containsSnPattern(string $pesan): bool
+    {
+        return (bool) preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan);
     }
 
     protected function detectStatus(string $lower): ?string
     {
         foreach ($this->statusMap as $kata => $status) {
-            if (str_contains($lower, $kata))
+            if (str_contains($lower, $kata)) {
                 return $status;
+            }
         }
         return null;
     }
@@ -1282,8 +2174,9 @@ class AssetQueryService
     protected function detectCategory(string $lower): ?string
     {
         foreach ($this->categories as $c) {
-            if (str_contains($lower, $c))
+            if ($this->matchWord($lower, $c)) {
                 return $c;
+            }
         }
         return null;
     }
@@ -1291,8 +2184,9 @@ class AssetQueryService
     protected function detectBrand(string $lower): ?string
     {
         foreach ($this->brands as $b) {
-            if (str_contains($lower, $b))
+            if ($this->matchWord($lower, $b)) {
                 return $b;
+            }
         }
         return null;
     }
@@ -1300,8 +2194,9 @@ class AssetQueryService
     protected function detectOwnership(string $lower): ?string
     {
         foreach ($this->ownershipMap as $kata => $ownership) {
-            if (str_contains($lower, $kata))
+            if (str_contains($lower, $kata)) {
                 return $ownership;
+            }
         }
         return null;
     }

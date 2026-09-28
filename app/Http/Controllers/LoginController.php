@@ -13,24 +13,16 @@ class LoginController extends Controller
             'email' => ['required', 'string'],
             'password' => ['required'],
         ]);
-
-        // 🔥 Trim input
         $login = trim($credentials['email']);
-
-        // 🔥 Deteksi field login
         $loginField = match (true) {
             filter_var($login, FILTER_VALIDATE_EMAIL) => 'email',
             is_numeric($login) => 'nip',
             default => 'username',
         };
-
-        // 🔥 Coba login dengan field yang terdeteksi
         $attempted = Auth::attempt([
             $loginField => $login,
             'password' => $credentials['password'],
         ], $request->boolean('remember'));
-
-        // 🔥 Fallback: kalau gagal, coba cari di semua field (email, username, nip)
         if (!$attempted) {
             $user = \App\Models\User::where('email', $login)
                 ->orWhere('username', $login)
@@ -45,8 +37,6 @@ class LoginController extends Controller
 
         if ($attempted) {
             $request->session()->regenerate();
-
-            // Cek user aktif
             if (!Auth::user()->is_active) {
                 Auth::logout();
                 $request->session()->invalidate();
@@ -64,8 +54,6 @@ class LoginController extends Controller
                     'message' => 'Akun Anda tidak aktif. Hubungi admin.',
                 ], 403);
             }
-
-            // LOG: Login berhasil
             activity('auth')
                 ->causedBy(Auth::user())
                 ->withProperties([
@@ -81,8 +69,6 @@ class LoginController extends Controller
                 'redirect' => route('apps.index'),
             ]);
         }
-
-        // LOG: Login gagal
         activity('auth')
             ->withProperties([
                 'login' => $login,

@@ -16,7 +16,6 @@ class User extends Authenticatable
      * Atribut yang bisa diisi massal.
      */
     protected $fillable = [
-        // Identitas
         'nip',
         'username',
         'name',
@@ -24,13 +23,9 @@ class User extends Authenticatable
         'password',
         'phone',
         'photo_path',
-
-        // Organisasi
         'department_id',
         'position',
         'location_id',
-
-        // Role & status
         'role',
         'is_active',
     ];
@@ -56,10 +51,6 @@ class User extends Authenticatable
         ];
     }
 
-    // ============================================================
-    // AUTO-GENERATE USERNAME DARI EMAIL
-    // ============================================================
-
     protected static function booted(): void
     {
         static::creating(function (User $user) {
@@ -69,7 +60,6 @@ class User extends Authenticatable
         });
 
         static::updating(function (User $user) {
-            // Regenerate username kalau email berubah
             if ($user->isDirty('email')) {
                 $user->username = static::generateUsername($user->email, $user->id);
             }
@@ -83,8 +73,6 @@ class User extends Authenticatable
     public static function generateUsername(string $email, ?int $ignoreUserId = null): string
     {
         $base = Str::before($email, '@');
-
-        // Sanitasi: hanya huruf, angka, titik, underscore, dash
         $base = preg_replace('/[^a-zA-Z0-9._-]/', '', $base);
         $base = strtolower($base);
         $base = trim($base, '._-');
@@ -118,10 +106,6 @@ class User extends Authenticatable
         return $query->exists();
     }
 
-    // ============================================================
-    // ROLE HELPER METHODS
-    // ============================================================
-
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -151,10 +135,6 @@ class User extends Authenticatable
     {
         return $this->is_active === true;
     }
-
-    // ============================================================
-    // ATTRIBUTE ACCESSORS
-    // ============================================================
 
     public function getRoleLabelAttribute(): string
     {
@@ -189,10 +169,6 @@ class User extends Authenticatable
         return "{$this->name} ({$this->username})";
     }
 
-    // ============================================================
-    // RELASI — ORGANISASI
-    // ============================================================
-
     public function department()
     {
         return $this->belongsTo(Department::class);
@@ -202,10 +178,6 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Location::class);
     }
-
-    // ============================================================
-    // RELASI — ASSET (SIAM)
-    // ============================================================
 
     /**
      * Aset yang SEDANG dipegang user ini.
@@ -246,10 +218,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(ConsumableTransaction::class);
     }
-
-    // ============================================================
-    // SCOPE
-    // ============================================================
 
     public function scopeActive($query)
     {

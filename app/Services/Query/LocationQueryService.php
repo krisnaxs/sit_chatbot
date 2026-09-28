@@ -10,24 +10,18 @@ class LocationQueryService
     public function tryAnswer(string $pesan): ?array
     {
         $lower = Str::lower($pesan);
-
-        // 1. Jumlah lokasi
         if (
             $this->matchAny($lower, ['lokasi', 'location', 'ruangan', 'ruang', 'gedung']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'total'])
         ) {
             return $this->countLocations();
         }
-
-        // 2. Daftar lokasi
         if (
             $this->matchAny($lower, ['lokasi', 'location', 'ruangan', 'ruang', 'gedung']) &&
             $this->matchAny($lower, ['daftar', 'list', 'tampilkan'])
         ) {
             return $this->listLocations();
         }
-
-        // 3. Aset di lokasi tertentu
         if (
             $this->matchAny($lower, ['aset', 'asset']) &&
             $this->matchAny($lower, ['lokasi', 'ruangan', 'ruang', 'gedung'])
@@ -69,7 +63,6 @@ class LocationQueryService
 
     protected function assetsByLocation(string $pesan): array
     {
-        // Cari lokasi yang disebut
         $location = Location::where('building', 'like', '%' . $this->extractKeyword($pesan) . '%')
             ->orWhere('room', 'like', '%' . $this->extractKeyword($pesan) . '%')
             ->first();
@@ -97,7 +90,6 @@ class LocationQueryService
 
     protected function extractKeyword(string $pesan): string
     {
-        // Ambil kata setelah "di" atau "lokasi"
         if (preg_match('/(?:di|lokasi|ruang|gedung)\s+([a-z0-9]+)/i', $pesan, $m)) {
             return $m[1];
         }

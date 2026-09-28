@@ -1405,9 +1405,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <script>
-        // ============================================================
-        // CHART: Status Aset (Doughnut)
-        // ============================================================
         const statusCtx = document.getElementById('chartStatus');
         if (statusCtx) {
             new Chart(statusCtx, {
@@ -1457,10 +1454,6 @@
                 }
             });
         }
-
-        // ============================================================
-        // CHART: Aset per Kategori (Bar)
-        // ============================================================
         const categoryCtx = document.getElementById('chartCategory');
         if (categoryCtx) {
             new Chart(categoryCtx, {
@@ -1495,10 +1488,6 @@
                 }
             });
         }
-
-        // ============================================================
-        // CHART: Aset per Tahun (Bar)
-        // ============================================================
         const yearCtx = document.getElementById('chartYear');
         if (yearCtx) {
             new Chart(yearCtx, {
@@ -1533,10 +1522,6 @@
                 }
             });
         }
-
-        // ============================================================
-        // CHART: Tren Perbaikan (Line)
-        // ============================================================
         const maintenanceCtx = document.getElementById('chartMaintenance');
         if (maintenanceCtx) {
             new Chart(maintenanceCtx, {
@@ -1574,10 +1559,6 @@
                 }
             });
         }
-
-        // ============================================================
-        // CHART: Komposisi Kepemilikan (Doughnut)
-        // ============================================================
         const ownershipCtx = document.getElementById('chartOwnership');
         if (ownershipCtx) {
             new Chart(ownershipCtx, {
@@ -1625,10 +1606,6 @@
                 }
             });
         }
-
-        // ============================================================
-        // CHART: Owned vs Leased per Kategori (Stacked Bar)
-        // ============================================================
         const catOwnershipCtx = document.getElementById('chartCategoryOwnership');
         if (catOwnershipCtx) {
             new Chart(catOwnershipCtx, {
@@ -1693,10 +1670,6 @@
                 }
             });
         }
-
-        // ============================================================
-        // CHART: Owned vs Leased per Model (Stacked Bar)
-        // ============================================================
         const modelOwnershipCtx = document.getElementById('chartModelOwnership');
         if (modelOwnershipCtx) {
             new Chart(modelOwnershipCtx, {
@@ -1763,17 +1736,12 @@
                 }
             });
         }
-
-        // ============================================================
-        // AUTO-SUBMIT FILTER (reset model saat category/brand berubah)
-        // ============================================================
         const filterForm = document.getElementById('filterForm');
         const modelSelect = document.getElementById('filterModel');
 
         if (filterForm) {
             filterForm.querySelectorAll('select').forEach(el => {
                 el.addEventListener('change', (e) => {
-                    // Reset model kalau kategori/brand berubah
                     const resetModelNames = ['category_id', 'brand'];
                     if (resetModelNames.includes(e.target.name) && modelSelect) {
                         modelSelect.value = '';
@@ -1783,9 +1751,6 @@
             });
         }
 
-        // ============================================================
-        // LAYOUT: Sidebar collapse
-        // ============================================================
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',

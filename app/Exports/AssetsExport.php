@@ -28,7 +28,6 @@ class AssetsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSi
 
     public function query(): Builder
     {
-        // 🆕 ownership.vendor di-load untuk kolom Kepemilikan
         $query = Asset::with([
             'category',
             'currentUser',
@@ -144,11 +143,7 @@ class AssetsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSi
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $lastCol = 'Q'; // 17 kolom (A-Q)
-    
-                // === 1. Insert 3 baris di atas ===
                 $sheet->insertNewRowBefore(1, 3);
-
-                // === 2. Judul (baris 1) ===
                 $sheet->mergeCells("A1:{$lastCol}1");
                 $sheet->setCellValue('A1', 'DAFTAR ASET IT — SIAM');
                 $sheet->getStyle('A1')->applyFromArray([
@@ -159,8 +154,6 @@ class AssetsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSi
                     ],
                 ]);
                 $sheet->getRowDimension(1)->setRowHeight(28);
-
-                // === 3. Sub-judul (baris 2) ===
                 $sheet->mergeCells("A2:{$lastCol}2");
                 $waktu = now()->format('d/m/Y H:i') . ' WIB';
                 $subtitle = "Diexport pada: {$waktu}";
@@ -179,11 +172,7 @@ class AssetsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSi
                     ],
                 ]);
                 $sheet->getRowDimension(2)->setRowHeight(18);
-
-                // === 4. Spacer (baris 3) ===
                 $sheet->getRowDimension(3)->setRowHeight(6);
-
-                // === 5. HEADER (baris 4) ===
                 $headerRange = "A4:{$lastCol}4";
                 $sheet->getStyle($headerRange)->applyFromArray([
                     'font' => [
@@ -201,8 +190,6 @@ class AssetsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSi
                     ],
                 ]);
                 $sheet->getRowDimension(4)->setRowHeight(24);
-
-                // === 6. Border seluruh tabel ===
                 $highestRow = $sheet->getHighestRow();
                 $sheet->getStyle("A4:{$lastCol}{$highestRow}")->applyFromArray([
                     'borders' => [
@@ -212,11 +199,7 @@ class AssetsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSi
                         ],
                     ],
                 ]);
-
-                // === 7. Freeze pane ===
                 $sheet->freezePane('A5');
-
-                // === 8. Auto filter ===
                 $sheet->setAutoFilter("A4:{$lastCol}{$highestRow}");
             },
         ];

@@ -16,8 +16,6 @@ class PendingKnowledgeController extends Controller
         $query = PendingKnowledge::where('status', 'pending')
             ->orderByDesc('frequency')
             ->orderByDesc('id');
-
-        // Filter: search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -27,8 +25,6 @@ class PendingKnowledgeController extends Controller
         }
 
         $items = $query->paginate(20)->withQueryString();
-
-        // Statistik
         $totalPending = PendingKnowledge::where('status', 'pending')->count();
         $totalToday = PendingKnowledge::where('status', 'pending')
             ->whereDate('created_at', today())->count();
@@ -53,14 +49,10 @@ class PendingKnowledgeController extends Controller
             'kata_kunci' => ['required', 'string', 'max:255'],
             'jawaban' => ['required', 'string'],
         ]);
-
-        // Simpan ke knowledge
         Knowledge::create([
             'kata_kunci' => $data['kata_kunci'],
             'jawaban' => $data['jawaban'],
         ]);
-
-        // Update status pending
         $pending->status = 'approved';
         $pending->save();
 

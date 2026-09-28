@@ -372,7 +372,6 @@
                 },
 
                 confirmDelete() {
-                    // Tutup modal detail dulu, baru buka modal konfirmasi hapus
                     this.showModal = false;
                     this.showDeleteModal = true;
                 },

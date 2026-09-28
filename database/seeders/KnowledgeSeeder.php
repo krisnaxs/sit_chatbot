@@ -1,5 +1,4 @@
 <?php
-// database/seeders/KnowledgeSeeder.php
 
 namespace Database\Seeders;
 
@@ -36,9 +35,8 @@ class KnowledgeSeeder extends Seeder
             $this->siamAset(),
             $this->siamTransaksi(),
             $this->siamKonsumable(),
+            $this->sistemSIS(),
         );
-
-        // Insert batched (500 per batch) → aman untuk 5000+ rows
         $chunks = array_chunk($data, 500);
 
         $id = 1;
@@ -56,10 +54,6 @@ class KnowledgeSeeder extends Seeder
 
         $this->command->info("✅ " . count($data) . " knowledge berhasil di-seed.");
     }
-
-    // ============================================================
-    // 1. SAPAAN & PERCAKAPAN (~60)
-    // ============================================================
     private function sapaan(): array
     {
         return [
@@ -114,10 +108,6 @@ class KnowledgeSeeder extends Seeder
             ['hi bot', 'Hai! 👋 Ada yang bisa saya bantu?'],
         ];
     }
-
-    // ============================================================
-    // 2. APLIKASI SIT (UBP Suralaya) (~30)
-    // ============================================================
     private function aplikasiSIT(): array
     {
         return [
@@ -202,10 +192,6 @@ class KnowledgeSeeder extends Seeder
             ['eppt', 'EPPT adalah aplikasi internal PLN Indonesia Power.'],
         ];
     }
-
-    // ============================================================
-    // 3. APLIKASI PLN (Korporat) (~20)
-    // ============================================================
     private function aplikasiPLN(): array
     {
         return [
@@ -215,10 +201,6 @@ class KnowledgeSeeder extends Seeder
             ['webmail pln', 'Webmail PLN adalah layanan email berbasis web untuk karyawan PLN.'],
         ];
     }
-
-    // ============================================================
-    // 4. SISTEM OPERASI (~30)
-    // ============================================================
     private function sistemOperasi(): array
     {
         return [
@@ -250,10 +232,6 @@ class KnowledgeSeeder extends Seeder
             ['reboot', 'Reboot adalah proses restart ulang komputer.'],
         ];
     }
-
-    // ============================================================
-    // 5. HARDWARE (~40)
-    // ============================================================
     private function hardware(): array
     {
         return [
@@ -295,10 +273,6 @@ class KnowledgeSeeder extends Seeder
             ['bluray', 'Blu-ray adalah media penyimpanan optik dengan kapasitas hingga 100 GB.'],
         ];
     }
-
-    // ============================================================
-    // 6. SOFTWARE (~30)
-    // ============================================================
     private function software(): array
     {
         return [
@@ -335,10 +309,6 @@ class KnowledgeSeeder extends Seeder
             ['aktivasi', 'Aktivasi adalah proses mengaktifkan software dengan kode lisensi.'],
         ];
     }
-
-    // ============================================================
-    // 7. JARINGAN (~40)
-    // ============================================================
     private function jaringan(): array
     {
         return [
@@ -380,10 +350,6 @@ class KnowledgeSeeder extends Seeder
             ['fiber optik', 'Fiber optik adalah kabel jaringan yang menggunakan cahaya sebagai media transmisi.'],
         ];
     }
-
-    // ============================================================
-    // 8. INTERNET (~30)
-    // ============================================================
     private function internet(): array
     {
         return [
@@ -415,10 +381,6 @@ class KnowledgeSeeder extends Seeder
             ['tor', 'TOR adalah jaringan anonim untuk menjelajah internet secara privat.'],
         ];
     }
-
-    // ============================================================
-    // 9. KEAMANAN (~30)
-    // ============================================================
     private function keamanan(): array
     {
         return [
@@ -454,10 +416,6 @@ class KnowledgeSeeder extends Seeder
             ['restore', 'Restore adalah proses mengembalikan data dari backup.'],
         ];
     }
-
-    // ============================================================
-    // 10. DATABASE (~25)
-    // ============================================================
     private function database(): array
     {
         return [
@@ -488,10 +446,6 @@ class KnowledgeSeeder extends Seeder
             ['backup database', 'Backup database adalah proses menyalin database untuk mencegah kehilangan data.'],
         ];
     }
-
-    // ============================================================
-    // 11. PEMROGRAMAN (~30)
-    // ============================================================
     private function pemrograman(): array
     {
         return [
@@ -527,10 +481,6 @@ class KnowledgeSeeder extends Seeder
             ['commit', 'Commit adalah tindakan menyimpan perubahan di Git.'],
         ];
     }
-
-    // ============================================================
-    // 12. MICROSOFT OFFICE (~30)
-    // ============================================================
     private function microsoftOffice(): array
     {
         return [
@@ -558,10 +508,6 @@ class KnowledgeSeeder extends Seeder
             ['macro', 'Macro adalah script otomatis di Office untuk tugas berulang.'],
         ];
     }
-
-    // ============================================================
-    // 13. EMAIL (~20)
-    // ============================================================
     private function email(): array
     {
         return [
@@ -580,10 +526,6 @@ class KnowledgeSeeder extends Seeder
             ['outlook', 'Microsoft Outlook adalah aplikasi email dan kalender dari Microsoft.'],
         ];
     }
-
-    // ============================================================
-    // 14. PRINTER (~15)
-    // ============================================================
     private function printer(): array
     {
         return [
@@ -602,10 +544,6 @@ class KnowledgeSeeder extends Seeder
             ['fotokopi', 'Fotokopi adalah proses menggandakan dokumen dengan mesin fotokopi.'],
         ];
     }
-
-    // ============================================================
-    // 15. PENYIMPANAN (~15)
-    // ============================================================
     private function penyimpanan(): array
     {
         return [
@@ -624,10 +562,6 @@ class KnowledgeSeeder extends Seeder
             ['raid 10', 'RAID 10 adalah kombinasi RAID 0 + RAID 1.'],
         ];
     }
-
-    // ============================================================
-    // 16. CLOUD (~15)
-    // ============================================================
     private function cloud(): array
     {
         return [
@@ -646,10 +580,6 @@ class KnowledgeSeeder extends Seeder
             ['serverless', 'Serverless adalah model cloud di mana penyedia mengelola server sepenuhnya.'],
         ];
     }
-
-    // ============================================================
-    // 17. MASALAH UMUM (~20)
-    // ============================================================
     private function masalahUmum(): array
     {
         return [
@@ -676,10 +606,6 @@ class KnowledgeSeeder extends Seeder
             ['tidak bisa install aplikasi', 'Cek hak akses admin, ruang disk, dan pastikan file installer tidak corrupt.'],
         ];
     }
-
-    // ============================================================
-    // 18. FAQ SIT (~20)
-    // ============================================================
     private function faqSIT(): array
     {
         return [
@@ -701,10 +627,6 @@ class KnowledgeSeeder extends Seeder
             ['cara pakai chatbot ini', 'Cukup ketik pertanyaan Anda di kolom chat, dan saya akan menjawab sebisa mungkin.'],
         ];
     }
-
-    // ============================================================
-    // 19. PLN UMUM (~15)
-    // ============================================================
     private function plnUmum(): array
     {
         return [
@@ -723,10 +645,6 @@ class KnowledgeSeeder extends Seeder
             ['kwh', 'kWh (kilowatt-hour) adalah satuan energi listrik yang biasa dipakai di tagihan.'],
         ];
     }
-
-    // ============================================================
-    // 20. TROUBLESHOOTING (~20)
-    // ============================================================
     private function troubleshooting(): array
     {
         return [
@@ -752,26 +670,17 @@ class KnowledgeSeeder extends Seeder
             ['cara ekstrak zip', 'Klik kanan file .zip > Extract All, pilih lokasi, klik Extract.'],
         ];
     }
-
-    // ============================================================
-    // 21. SIAM — MANAJEMEN ASET (~50)
-    // ============================================================
     private function siamAset(): array
     {
         return [
-            // ===== Konsep Dasar =====
             ['apa itu siam', 'SIAM (Sistem Informasi Aset Manajemen) adalah aplikasi untuk mengelola aset IT perusahaan — mulai dari pendataan, serah terima, peminjaman, perbaikan, hingga monitoring hak kepemilikan (milik/sewa).'],
             ['siam', 'SIAM adalah Sistem Informasi Aset Manajemen — aplikasi pengelolaan aset IT perusahaan.'],
             ['fungsi siam', 'SIAM berfungsi untuk mendata, melacak, dan mengelola aset IT: siapa pemegangnya, di mana lokasinya, status, hak kepemilikan, dan riwayat perawatan.'],
             ['kegunaan siam', 'SIAM berguna untuk pelacakan aset, laporan kepemilikan (milik/sewa), monitoring status, perencanaan perawatan, dan audit aset IT.'],
-
-            // ===== Dashboard =====
             ['cara lihat dashboard siam', 'Buka menu Dashboard SIAM di sidebar. Di sana ada grafik Ringkasan Aset, Perbandingan Hak Milik vs Sewa, Breakdown per Kategori & Model, Status Aset, dan Tren Perbaikan.'],
             ['dashboard siam', 'Dashboard SIAM adalah halaman utama yang menampilkan ringkasan & statistik aset IT: total, status, hak kepemilikan, kategori, brand, model, tren perbaikan, dll.'],
             ['cara filter dashboard', 'Di Dashboard SIAM, ada 5 dropdown filter: Kategori, Brand, Model, Tahun Pembelian, dan Hak Kepemilikan. Pilih salah satu (atau lebih) — semua grafik & tabel otomatis ter-filter.'],
             ['reset filter dashboard', 'Kalau mau reset filter, klik tombol "Reset Filter" berwarna merah di kanan atas panel filter.'],
-
-            // ===== Hak Kepemilikan =====
             ['apa itu hak milik', 'Hak Milik (owned) artinya aset dibeli sendiri oleh perusahaan. Nilainya tercatat sebagai nilai aset perusahaan.'],
             ['apa itu sewa', 'Sewa (leased) artinya aset disewa dari vendor. Ada biaya bulanan, kontrak, dan masa berlaku yang harus dipantau.'],
             ['perbedaan hak milik dan sewa', "**Hak Milik (owned)**: aset dibeli sendiri, ada nilai pembelian, tidak ada biaya bulanan.\n**Sewa (leased)**: aset disewa vendor, ada biaya bulanan, ada kontrak & masa berlaku."],
@@ -779,8 +688,6 @@ class KnowledgeSeeder extends Seeder
             ['apa itu owned', 'Owned = hak milik. Aset dibeli sendiri, tercatat di nilai aset perusahaan.'],
             ['apa itu leased', 'Leased = sewa. Aset disewa dari vendor, ada biaya bulanan dan kontrak.'],
             ['bedanya owned dan leased', '**Owned** = milik sendiri (bayar sekali). **Leased** = sewa (bayar bulanan, ada kontrak).'],
-
-            // ===== Status Aset =====
             ['status aset apa saja', 'Status aset: **Tersedia** (available), **Dipakai** (in_use), **Dipinjam** (loaned), **Perbaikan** (maintenance), **Pensiun** (retired), **Hilang** (lost).'],
             ['apa itu status tersedia', 'Status "Tersedia" (available) artinya aset siap dipakai, tidak sedang dipegang siapa pun.'],
             ['apa itu status dipakai', 'Status "Dipakai" (in_use) artinya aset sedang dipegang/digunakan user tertentu.'],
@@ -792,26 +699,18 @@ class KnowledgeSeeder extends Seeder
             ['apa itu in use', 'In Use = dipakai. Aset sedang digunakan user tertentu.'],
             ['apa itu maintenance', 'Maintenance = perbaikan. Aset sedang di-servis atau dalam perawatan.'],
             ['apa itu retired', 'Retired = pensiun. Aset sudah tidak digunakan lagi.'],
-
-            // ===== Kategori/Brand/Model =====
             ['apa itu kategori aset', 'Kategori aset adalah pengelompokan aset berdasarkan jenisnya — misal Laptop, PC Desktop, Printer, Monitor.'],
             ['apa itu brand aset', 'Brand adalah merek aset — misal Lenovo, HP, Epson, Logitech.'],
             ['apa itu model aset', 'Model adalah tipe spesifik dari brand — misal Lenovo ThinkPad T14, HP ProDesk 400 G9.'],
             ['apa itu asset code', 'Asset Code adalah kode unik aset (contoh: AST-2026-0001) untuk identifikasi internal.'],
             ['apa itu serial number', 'Serial Number (SN) adalah nomor seri dari pabrik — unik per unit.'],
             ['apa itu hostname', 'Hostname adalah nama jaringan komputer (contoh: NB-T14-001), dipakai untuk identifikasi di jaringan.'],
-
-            // ===== Nilai Aset =====
             ['apa itu nilai aset', 'Nilai aset adalah total harga pembelian aset hak milik. Untuk aset sewa, yang dicatat adalah biaya bulanan.'],
             ['apa itu biaya sewa', 'Biaya sewa adalah pengeluaran bulanan untuk aset yang di-sewa dari vendor (contoh: Rp 500.000/bulan).'],
             ['apa itu kontrak sewa', 'Kontrak sewa adalah perjanjian antara perusahaan dengan vendor sewa — mencakup periode, biaya, dan ketentuan.'],
-
-            // ===== Garansi & Vendor =====
             ['apa itu garansi', 'Garansi adalah jaminan dari vendor/pabrikan bahwa aset akan diperbaiki gratis jika ada kerusakan dalam periode tertentu.'],
             ['apa itu vendor', 'Vendor adalah pihak ketiga yang menyediakan aset (jual/sewa) atau jasa perbaikan.'],
             ['jenis vendor', 'Vendor di SIAM ada 3 jenis: **sewa** (penyedia sewa), **pembelian** (penjual), dan **both** (keduanya).'],
-
-            // ===== Aksi =====
             ['cara tambah aset', 'Buka menu Aset > Tambah Aset. Isi data aset (SN, brand, model, kategori, hak kepemilikan, dll), lalu simpan.'],
             ['cara edit aset', 'Buka detail aset, klik tombol Edit. Ubah data yang perlu, lalu simpan.'],
             ['cara hapus aset', 'Buka detail aset, klik tombol Hapus. Konfirmasi penghapusan.'],
@@ -819,21 +718,14 @@ class KnowledgeSeeder extends Seeder
             ['cara cari aset', 'Di halaman daftar aset, ketik di kolom pencarian: SN, brand, model, hostname, atau nama user pemegang.'],
         ];
     }
-
-    // ============================================================
-    // 22. SIAM — TRANSAKSI (Serah Terima, Pinjam, Perbaikan) (~30)
-    // ============================================================
     private function siamTransaksi(): array
     {
         return [
-            // ===== Serah Terima (Assignment) =====
             ['apa itu serah terima', 'Serah terima (assignment) adalah proses pemindahan aset dari IT ke user tertentu. Dicatat siapa penerima, kapan, kondisi, dan lokasi.'],
             ['apa itu assignment', 'Assignment (serah terima) adalah proses aset diserahkan ke user untuk dipakai.'],
             ['apa itu bast', 'BAST (Berita Acara Serah Terima) adalah dokumen bukti serah terima aset. Nomornya dicatat di setiap record assignment.'],
             ['cara serah terima aset', 'Buka detail aset > klik "Assign" atau dari menu Serah Terima > Tambah. Pilih user, isi kondisi & catatan, simpan.'],
             ['apa itu pengembalian aset', 'Pengembalian aset adalah proses user mengembalikan aset ke kantor/IT. Status aset kembali "Tersedia".'],
-
-            // ===== Peminjaman (Loan) =====
             ['apa itu peminjaman', 'Peminjaman (loan) adalah penggunaan aset untuk jangka waktu tertentu (misal dinas luar, meeting), harus dikembalikan sesuai due date.'],
             ['apa itu loan', 'Loan (peminjaman) adalah aset dipinjam user untuk periode tertentu, dengan tanggal pinjam & jatuh tempo.'],
             ['apa itu due date', 'Due date adalah tanggal jatuh tempo pengembalian aset yang dipinjam.'],
@@ -842,8 +734,6 @@ class KnowledgeSeeder extends Seeder
             ['cara kembalikan aset pinjam', 'Di halaman detail peminjaman, klik tombol "Kembalikan", isi kondisi saat kembali & catatan, simpan.'],
             ['apa itu status borrowed', 'Status "borrowed" artinya aset sedang dipinjam dan belum dikembalikan.'],
             ['apa itu status returned', 'Status "returned" artinya aset sudah dikembalikan.'],
-
-            // ===== Perbaikan (Maintenance) =====
             ['apa itu perbaikan', 'Perbaikan (maintenance) adalah proses servis aset yang rusak, baik preventive (rutin) maupun corrective (karena kerusakan).'],
             ['apa itu maintenance', 'Maintenance (perbaikan) adalah perawatan/servis aset. Di SIAM ada 3 tipe: preventive, corrective, upgrade.'],
             ['jenis maintenance', 'Tipe maintenance: **preventive** (rutin/pencegahan), **corrective** (karena rusak), **upgrade** (peningkatan spesifikasi).'],
@@ -853,20 +743,13 @@ class KnowledgeSeeder extends Seeder
             ['cara catat perbaikan', 'Buka menu Perbaikan > Tambah. Pilih aset, isi jenis, masalah, teknisi, biaya, tanggal mulai.'],
             ['apa itu condition percent', 'Condition percent adalah nilai kondisi aset (0-100%) — 100% = mulus, 0% = rusak total.'],
             ['apa itu condition before after', 'Di record perbaikan ada kondisi **sebelum** (sebelum diperbaiki) dan **sesudah** (setelah diperbaiki).'],
-
-            // ===== Movement / Log =====
             ['apa itu asset movement', 'Asset Movement adalah riwayat pergerakan aset — dari siapa ke siapa, dari lokasi mana ke mana.'],
             ['apa itu activity log', 'Activity Log adalah catatan aktivitas di sistem — siapa melakukan apa, kapan. Berguna untuk audit.'],
         ];
     }
-
-    // ============================================================
-    // 23. SIAM — KONSUMABLE & UMUM (~20)
-    // ============================================================
     private function siamKonsumable(): array
     {
         return [
-            // ===== Konsumable =====
             ['apa itu konsumable', 'Konsumable adalah barang habis pakai seperti mouse, keyboard, HDD eksternal. Stoknya dipantau; ada batas minimum untuk warning.'],
             ['apa itu consumable', 'Consumable (konsumable) adalah barang habis pakai yang stoknya berkurang saat dipakai user.'],
             ['apa itu stock available', 'Stock Available adalah jumlah stok konsumable yang tersedia untuk dipakai.'],
@@ -878,22 +761,32 @@ class KnowledgeSeeder extends Seeder
             ['apa itu transaksi in', 'Transaksi "in" adalah konsumable masuk (restock/pembelian baru). Stok total & tersedia naik.'],
             ['apa itu transaksi out', 'Transaksi "out" adalah konsumable keluar (dipakai user). Stok tersedia turun.'],
             ['apa itu transaksi return', 'Transaksi "return" adalah konsumable dikembalikan user. Stok tersedia naik kembali.'],
-
-            // ===== User =====
             ['cara tambah user', 'Buka menu User > Tambah User. Isi nama, email, password, departemen, lokasi, dan role.'],
             ['role user apa saja', 'Role user di SIAM: **admin** (full access), **support** (bisa tambah aplikasi), **user** (akses terbatas).'],
             ['apa itu departemen', 'Departemen adalah unit kerja user — misal IT, Finance, HRD, Marketing, Operations.'],
             ['apa itu lokasi', 'Lokasi adalah tempat user/aset berada — misal Gedung A - Lt. 1 - Ruang IT.'],
-
-            // ===== Laporan =====
             ['laporan apa saja di siam', 'Di SIAM ada laporan: Daftar Aset, Daftar Serah Terima, Daftar Peminjaman, Daftar Perbaikan, Transaksi Konsumable, Activity Log.'],
             ['cara lihat laporan', 'Buka menu yang sesuai (Aset, Serah Terima, Peminjaman, Perbaikan), lalu klik Export Excel/PDF sesuai kebutuhan.'],
-
-            // ===== Info Umum SIAM =====
             ['apa bedanya aset dan konsumable', '**Aset**: barang bernilai, punya SN, dilacak per unit (laptop, printer). **Konsumable**: barang habis pakai, dilacak stok total (mouse, keyboard).'],
             ['apa itu asset tag', 'Asset Tag adalah label fisik yang ditempel di aset berisi Asset Code untuk identifikasi cepat.'],
             ['apa itu current user', 'Current User adalah user yang sedang memegang aset saat ini.'],
             ['apa itu current location', 'Current Location adalah lokasi aset saat ini berada.'],
+        ];
+    }
+    private function sistemSIS(): array
+    {
+        return [
+            ['apa itu sis', 'SIS (Suralaya Information System) adalah portal informasi aplikasi & layanan IT untuk UBP Suralaya. SIS menyediakan akses ke berbagai aplikasi internal perusahaan, termasuk SIAM.'],
+            ['sis', 'SIS adalah Suralaya Information System — portal informasi aplikasi & layanan IT UBP Suralaya.'],
+            ['apa itu siam', 'SIAM (Sistem Informasi Aset Manajemen) adalah modul di dalam SIS untuk mengelola aset IT perusahaan — mulai dari pendataan, serah terima, peminjaman, perbaikan, hingga monitoring hak kepemilikan (milik/sewa).'],
+            ['siam', 'SIAM adalah modul manajemen aset IT di dalam SIS UBP Suralaya.'],
+            ['bedanya sis dan siam', 'SIS adalah portal utamanya (aplikasi & layanan IT). SIAM adalah salah satu modul di dalam SIS yang khusus untuk manajemen aset IT.'],
+            ['apa di sis ada keyboard', 'SIS adalah portal web, jadi tidak ada "keyboard" fisik. Keyboard yang kamu pakai adalah keyboard perangkatmu sendiri (laptop/HP) untuk mengetik di kolom pencarian atau chat SIS Assistant.'],
+            ['apa di siam ada keyboard', 'SIAM adalah aplikasi web untuk manajemen aset IT. Tidak ada "keyboard" khusus di dalam SIAM — kamu pakai keyboard perangkatmu sendiri untuk mengisi form atau mencari aset.'],
+            ['siapa kamu', 'Saya SIS Assistant — chatbot virtual yang membantu karyawan UBP Suralaya seputar aplikasi & layanan IT, termasuk modul SIAM.'],
+            ['kamu siapa', 'Saya SIS Assistant — asisten virtual untuk informasi aplikasi & layanan IT di SIS UBP Suralaya.'],
+            ['apa itu sis assistant', 'SIS Assistant adalah chatbot virtual yang membantu karyawan UBP Suralaya mencari informasi tentang aplikasi, layanan IT, troubleshooting dasar, dan modul SIAM.'],
+            ['apa yang bisa kamu lakukan', 'Saya bisa bantu: (1) Cari info aplikasi & layanan IT, (2) Jawab pertanyaan tentang aset IT via SIAM (jumlah, status, pemegang, dll), (3) Troubleshooting dasar IT, (4) Info login & akses aplikasi.'],
         ];
     }
 }

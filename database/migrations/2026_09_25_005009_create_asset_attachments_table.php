@@ -9,8 +9,6 @@ return new class extends Migration {
     {
         Schema::create('asset_attachments', function (Blueprint $table) {
             $table->id();
-
-            // Polymorphic → bisa attach ke asset, assignment, maintenance, dll
             $table->string('attachable_type');
             $table->unsignedBigInteger('attachable_id');
 

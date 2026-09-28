@@ -16,8 +16,6 @@ class ConsumableSeeder extends Seeder
         $this->seedConsumables();
         $this->seedConsumableTransactions();
     }
-
-    // ================================================================
     private function seedConsumables(): void
     {
         $categories = AssetCategory::pluck('id', 'code')->toArray();
@@ -64,8 +62,6 @@ class ConsumableSeeder extends Seeder
 
         $this->command->info('✅ Consumables: ' . count($data));
     }
-
-    // ================================================================
     private function seedConsumableTransactions(): void
     {
         $admin = User::where('email', 'admin@admin.com')->first();
@@ -89,19 +85,14 @@ class ConsumableSeeder extends Seeder
             ->get();
 
         $data = [
-            // ===== IN =====
             ['consumable' => $mouse, 'user' => null, 'type' => 'in', 'qty' => 50, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-MSE-001'],
             ['consumable' => $keyboard, 'user' => null, 'type' => 'in', 'qty' => 30, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-KBD-001'],
             ['consumable' => $hdd, 'user' => null, 'type' => 'in', 'qty' => 10, 'days_ago' => 85, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-HDD-001'],
-
-            // ===== OUT =====
             ['consumable' => $mouse, 'user' => $budi, 'type' => 'out', 'qty' => 1, 'days_ago' => 60, 'requested' => $budi, 'approved' => $admin, 'location' => $budi?->location_id, 'asset' => $laptops[0] ?? null, 'purpose' => 'Mouse laptop rusak', 'notes' => null],
             ['consumable' => $mouse, 'user' => $siti, 'type' => 'out', 'qty' => 1, 'days_ago' => 45, 'requested' => $siti, 'approved' => $admin, 'location' => $siti?->location_id, 'asset' => null, 'purpose' => 'Mouse baru untuk staff', 'notes' => null],
             ['consumable' => $keyboard, 'user' => $andi, 'type' => 'out', 'qty' => 1, 'days_ago' => 40, 'requested' => $andi, 'approved' => $admin, 'location' => $andi?->location_id, 'asset' => $laptops[1] ?? null, 'purpose' => 'Keyboard rusak kena cairan', 'notes' => null],
             ['consumable' => $hdd, 'user' => $rudi, 'type' => 'out', 'qty' => 1, 'days_ago' => 30, 'requested' => $rudi, 'approved' => $admin, 'location' => $rudi?->location_id, 'asset' => null, 'purpose' => 'Backup data project', 'notes' => null],
             ['consumable' => $mouse, 'user' => $rudi, 'type' => 'out', 'qty' => 2, 'days_ago' => 20, 'requested' => $rudi, 'approved' => $admin, 'location' => $rudi?->location_id, 'asset' => null, 'purpose' => 'Mouse cadangan untuk tim IT', 'notes' => null],
-
-            // ===== RETURN =====
             ['consumable' => $keyboard, 'user' => $siti, 'type' => 'return', 'qty' => 1, 'days_ago' => 15, 'requested' => $siti, 'approved' => $admin, 'location' => $siti?->location_id, 'asset' => null, 'purpose' => 'Keyboard tidak jadi dipakai', 'notes' => 'Kondisi masih bagus'],
         ];
 

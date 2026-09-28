@@ -154,10 +154,7 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($consumables as $c)
                                 @php
-                                    // 🆕 Hitung net keluar dari transaksi (out - return)
                                     $keluar = ($c->total_out ?? 0) - ($c->total_return ?? 0);
-
-                                    // Warna badge keluar
                                     $keluarColor = match (true) {
                                         $keluar <= 0 => 'text-gray-400',
                                         default => 'bg-amber-50 text-amber-700',

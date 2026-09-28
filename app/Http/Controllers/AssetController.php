@@ -27,10 +27,6 @@ class AssetController extends Controller
     public function index(Request $request)
     {
         $query = Asset::with(['category', 'currentUser', 'currentLocation']);
-
-        // ============================================================
-        // SEARCH
-        // ============================================================
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -44,10 +40,6 @@ class AssetController extends Controller
                     });
             });
         }
-
-        // ============================================================
-        // FILTER
-        // ============================================================
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
@@ -69,15 +61,9 @@ class AssetController extends Controller
         if ($request->filled('user_id')) {
             $query->where('current_user_id', $request->user_id);
         }
-
-        // 🆕 Filter tahun pembelian
         if ($request->filled('year')) {
             $query->whereYear('purchase_date', $request->year);
         }
-
-        // ============================================================
-        // SUMMARY (dari hasil filter SEBELUM pagination)
-        // ============================================================
         $summary = [
             'total' => (clone $query)->count(),
             'available' => (clone $query)->where('status', 'available')->count(),
@@ -89,8 +75,6 @@ class AssetController extends Controller
             'owned' => (clone $query)->where('ownership_type', 'owned')->count(),
             'leased' => (clone $query)->where('ownership_type', 'leased')->count(),
         ];
-
-        // Apakah ada filter aktif?
         $hasFilter = $request->filled('search')
             || $request->filled('category_id')
             || $request->filled('ownership_type')
@@ -100,25 +84,13 @@ class AssetController extends Controller
             || $request->filled('location_id')
             || $request->filled('user_id')
             || $request->filled('year');
-
-        // ============================================================
-        // SORT
-        // ============================================================
         $sortBy = $request->get('sort_by', 'created_at');
         $sortDir = $request->get('sort_dir', 'desc');
         $allowed = ['created_at', 'asset_code', 'serial_number', 'brand', 'model', 'status'];
         if (in_array($sortBy, $allowed)) {
             $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
         }
-
-        // ============================================================
-        // PAGINATION
-        // ============================================================
         $assets = $query->paginate($request->get('per_page', 25))->withQueryString();
-
-        // ============================================================
-        // Dropdown data
-        // ============================================================
         $categories = AssetCategory::active()
             ->where('is_consumable', false)
             ->orderBy('name')
@@ -131,8 +103,6 @@ class AssetController extends Controller
             ->whereNotNull('brand')
             ->orderBy('brand')
             ->pluck('brand');
-
-        // Model + jumlah unit (difilter kalau ada category_id atau brand)
         $models = Asset::select('model', 'brand', DB::raw('COUNT(*) as total'))
             ->whereNotNull('model')
             ->when($request->filled('category_id'), function ($q) use ($request) {
@@ -145,15 +115,11 @@ class AssetController extends Controller
             ->orderBy('brand')
             ->orderBy('model')
             ->get();
-
-        // 🆕 Daftar tahun pembelian unik
         $years = Asset::selectRaw('YEAR(purchase_date) as year')
             ->whereNotNull('purchase_date')
             ->distinct()
             ->orderByDesc('year')
             ->pluck('year');
-
-        // Statistik global (selalu total keseluruhan)
         $stats = [
             'total' => Asset::count(),
             'owned' => Asset::owned()->count(),
@@ -378,8 +344,6 @@ class AssetController extends Controller
             'invoice_number' => 'nullable|string|max:100',
             'monthly_cost' => 'nullable|numeric|min:0',
             'contract_end' => 'nullable|date',
-
-            // 🆕 Field maintenance dari modal — semua nullable
             'maintenance' => 'nullable|array',
             'maintenance.issue' => 'nullable|string|max:255',
             'maintenance.action' => 'nullable|string',
@@ -394,7 +358,6 @@ class AssetController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $validated, $asset) {
-            // === Update asset ===
             if ($request->hasFile('photo')) {
                 if ($asset->photo_path && \Storage::disk('public')->exists($asset->photo_path)) {
                     \Storage::disk('public')->delete($asset->photo_path);
@@ -422,8 +385,6 @@ class AssetController extends Controller
                 'photo_path' => $validated['photo_path'] ?? $asset->photo_path,
                 'notes' => $validated['notes'] ?? null,
             ]);
-
-            // === Update ownership ===
             $ownership = $asset->ownership;
             $ownershipData = [
                 'vendor_id' => $validated['vendor_id'] ?? null,
@@ -441,8 +402,6 @@ class AssetController extends Controller
             } else {
                 AssetOwnership::create(array_merge($ownershipData, ['asset_id' => $asset->id]));
             }
-
-            // 🆕 === Buat maintenance record HANYA kalau issue diisi ===
             if (!empty($validated['maintenance']) && !empty($validated['maintenance']['issue'])) {
                 $maint = $validated['maintenance'];
 
@@ -498,9 +457,6 @@ class AssetController extends Controller
     public function exportPdf(Request $request)
     {
         $query = Asset::with(['category', 'currentUser', 'currentLocation']);
-
-        // Terapkan filter yang sama seperti index()
-        // (bisa refactor jadi method private applyFilters($query, $request))
         if ($request->filled('search')) { /* ... */
         }
         if ($request->filled('category_id'))

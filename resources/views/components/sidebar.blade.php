@@ -1,6 +1,5 @@
 @auth
     @php
-        // Deteksi tab aktif
         $tab = match (true) {
             request()->routeIs('users.*') => 'master',
             request()->routeIs('siam.departments.*') => 'master',

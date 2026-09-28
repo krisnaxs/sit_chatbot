@@ -690,7 +690,6 @@
                 },
 
                 confirmMaintenance() {
-                    // Validasi form maintenance dulu
                     const form = document.getElementById('assetEditForm');
                     const issue = form.querySelector('input[name="maintenance[issue]"]');
                     const startDate = form.querySelector('input[name="maintenance[start_date]"]');
