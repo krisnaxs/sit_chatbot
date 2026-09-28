@@ -37,7 +37,7 @@
                 </p>
             </div>
 
-            {{-- 🆕 Tombol Tambah — admin & support --}}
+            {{-- Tombol Tambah — admin & support --}}
             @if (auth()->user()->hasAnyRole(['admin', 'support']))
                 <a href="{{ route('knowledge.create') }}"
                     class="inline-flex items-center gap-2
@@ -73,20 +73,56 @@
             </div>
         </div>
 
-        <!-- SEARCH -->
-        <div class="mb-4 relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+        <!-- 🆕 SEARCH — SERVER-SIDE -->
+        <form method="GET" action="{{ route('knowledge.index') }}" id="searchForm" class="mb-4">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+
+                <input type="text" name="search" id="searchInput" value="{{ request('search') }}"
+                    placeholder="Cari kata kunci atau jawaban..." autocomplete="off"
+                    class="w-full pl-10 pr-32 py-3 border border-gray-200 rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           bg-white shadow-sm transition">
+
+                {{-- Tombol Clear + Submit --}}
+                <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+                    @if (request('search'))
+                        <a href="{{ route('knowledge.index') }}"
+                            class="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+                            title="Hapus pencarian">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </a>
+                    @endif
+                    <button type="submit"
+                        class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold
+                               hover:bg-blue-700 transition">
+                        Cari
+                    </button>
+                </div>
             </div>
-            <input type="text" id="searchInput" placeholder="Cari kata kunci atau jawaban..."
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       bg-white shadow-sm transition">
-        </div>
+
+            {{-- Info hasil search --}}
+            @if (request('search'))
+                <div class="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Menampilkan <strong class="text-gray-700">{{ $items->total() }}</strong> hasil untuk
+                    "<strong class="text-gray-700">{{ request('search') }}</strong>"
+                </div>
+            @endif
+        </form>
 
         <!-- TABLE -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -181,7 +217,7 @@
                                     @endif
                                 </td>
 
-                                {{-- 🆕 AKSI — sesuai role --}}
+                                {{-- AKSI — sesuai role --}}
                                 <td class="px-5 py-4 text-right">
                                     @if (auth()->user()->hasAnyRole(['admin', 'support']))
                                         <div class="inline-flex items-center gap-2">
@@ -247,15 +283,28 @@
                                             </svg>
                                         </div>
                                         <div>
-                                            <p class="font-semibold text-gray-900">Belum ada knowledge</p>
-                                            <p class="text-sm text-gray-500 mt-1">Tambahkan knowledge untuk chatbot</p>
+                                            @if (request('search'))
+                                                <p class="font-semibold text-gray-900">Tidak ada hasil</p>
+                                                <p class="text-sm text-gray-500 mt-1">
+                                                    Tidak ditemukan knowledge dengan kata kunci
+                                                    "<strong>{{ request('search') }}</strong>"
+                                                </p>
+                                                <a href="{{ route('knowledge.index') }}"
+                                                    class="mt-2 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-semibold">
+                                                    ← Kembali ke semua data
+                                                </a>
+                                            @else
+                                                <p class="font-semibold text-gray-900">Belum ada knowledge</p>
+                                                <p class="text-sm text-gray-500 mt-1">Tambahkan knowledge untuk chatbot
+                                                </p>
+                                                @if (auth()->user()->hasAnyRole(['admin', 'support']))
+                                                    <a href="{{ route('knowledge.create') }}"
+                                                        class="mt-2 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-semibold">
+                                                        + Tambah sekarang
+                                                    </a>
+                                                @endif
+                                            @endif
                                         </div>
-                                        @if (auth()->user()->hasAnyRole(['admin', 'support']))
-                                            <a href="{{ route('knowledge.create') }}"
-                                                class="mt-2 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-semibold">
-                                                + Tambah sekarang
-                                            </a>
-                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -274,9 +323,9 @@
 
     </div>
 
-    {{-- 🆕 MODAL & FORM HAPUS — hanya di-render untuk admin --}}
+    {{-- MODAL & FORM HAPUS — hanya di-render untuk admin --}}
     @if (auth()->user()->isAdmin())
-        <!-- 🗑️ MODAL KONFIRMASI HAPUS -->
+        <!-- MODAL KONFIRMASI HAPUS -->
         <div x-show="showDeleteModal"
             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
@@ -328,7 +377,7 @@
         </form>
     @endif
 
-    <!-- 🔔 TOAST -->
+    <!-- TOAST -->
     <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
@@ -420,35 +469,27 @@
                     @if (session('error'))
                         this.showToast(@json(session('error')), 'error');
                     @endif
+
+                    // 🆕 Search: auto-submit setelah 500ms
                     const searchInput = document.getElementById('searchInput');
-                    const table = document.getElementById('knowledgeTable');
-                    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                    const searchForm = document.getElementById('searchForm');
 
-                    searchInput.addEventListener('keyup', function() {
-                        const filter = searchInput.value.toLowerCase();
-                        let visibleCount = 0;
-
-                        Array.from(rows).forEach(row => {
-                            const cells = row.getElementsByTagName('td');
-                            if (cells.length < 2) return;
-                            let match = false;
-                            for (let i = 1; i <= 2; i++) {
-                                if (cells[i] && cells[i].textContent.toLowerCase().includes(filter)) {
-                                    match = true;
-                                    break;
-                                }
-                            }
-                            row.style.display = match ? '' : 'none';
-                            if (match) visibleCount++;
+                    if (searchInput && searchForm) {
+                        let searchTimer;
+                        searchInput.addEventListener('input', function() {
+                            clearTimeout(searchTimer);
+                            searchTimer = setTimeout(() => {
+                                searchForm.submit();
+                            }, 500);
                         });
 
-                        if (filter.length > 0 && visibleCount === 0) {
-                            clearTimeout(window._searchToastTimer);
-                            window._searchToastTimer = setTimeout(() => {
-                                this.showToast(`Tidak ada hasil untuk "${filter}"`, 'info');
-                            }, 500);
-                        }
-                    }.bind(this));
+                        // Fokus otomatis kalau ada keyword dari URL
+                        @if (request('search'))
+                            searchInput.focus();
+                            const len = searchInput.value.length;
+                            searchInput.setSelectionRange(len, len);
+                        @endif
+                    }
                 }
             }
         }

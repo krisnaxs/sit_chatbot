@@ -36,9 +36,24 @@ class KnowledgeController extends Controller
     /**
      * Tampilkan daftar knowledge — SEMUA ROLE.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $items = Knowledge::orderByDesc('id')->paginate(10);
+        $query = Knowledge::query();
+
+        // 🆕 Search server-side
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('kata_kunci', 'like', "%{$search}%")
+                    ->orWhere('jawaban', 'like', "%{$search}%")
+                    ->orWhere('file_name', 'like', "%{$search}%");
+            });
+        }
+
+        $items = $query->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();
+
         return view('knowledge.index', compact('items'));
     }
 
