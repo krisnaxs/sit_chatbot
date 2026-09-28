@@ -30,7 +30,7 @@ class AssetMaintenance extends Model
         return [
             'start_date' => 'date',
             'end_date' => 'date',
-            'cost' => 'decimal:2',
+            'cost' => 'decimal:0',
         ];
     }
 

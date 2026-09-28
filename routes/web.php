@@ -11,6 +11,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AssetTypeController;
 use App\Http\Controllers\PendingKnowledgeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserAssetController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetAssignmentController;
 use App\Http\Controllers\AssetLoanController;
@@ -106,6 +107,10 @@ Route::middleware(['auth'])->group(function () {
                 ->except(['edit', 'update'])
                 ->parameters(['consumable-transactions' => 'transaction']);
             Route::resource('asset-types', AssetTypeController::class);
+
+            Route::get('user-assets', [UserAssetController::class, 'index'])->name('user-assets.index');
+            Route::get('user-assets/export/excel', [UserAssetController::class, 'exportExcel'])->name('user-assets.export.excel');
+            Route::get('user-assets/export/pdf', [UserAssetController::class, 'exportPdf'])->name('user-assets.export.pdf');
         });
 
 });

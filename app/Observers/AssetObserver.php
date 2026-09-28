@@ -2,10 +2,10 @@
 
 namespace App\Observers;
 
-class AssetTypeObserver extends BaseActivityObserver
+class AssetObserver extends BaseActivityObserver
 {
     protected function label(): string
     {
-        return 'Brand & Model';
+        return 'Aset';
     }
 }

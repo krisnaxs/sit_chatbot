@@ -18,6 +18,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Existing
         \App\Models\AssetType::observe(\App\Observers\AssetTypeObserver::class);
+
+        // 🆕 Tambahkan ini
+        \App\Models\Asset::observe(\App\Observers\AssetObserver::class);
+        \App\Models\User::observe(\App\Observers\UserObserver::class);
+        \App\Models\Consumable::observe(\App\Observers\ConsumableObserver::class);
+        \App\Models\AssetLoan::observe(\App\Observers\AssetLoanObserver::class);
+        \App\Models\AssetAssignment::observe(\App\Observers\AssetAssignmentObserver::class);
+        \App\Models\AssetMaintenance::observe(\App\Observers\AssetMaintenanceObserver::class);
+        \App\Models\AssetCategory::observe(\App\Observers\AssetCategoryObserver::class);
+        \App\Models\Vendor::observe(\App\Observers\VendorObserver::class);
+        \App\Models\Department::observe(\App\Observers\DepartmentObserver::class);
+        \App\Models\Location::observe(\App\Observers\LocationObserver::class);
     }
 }

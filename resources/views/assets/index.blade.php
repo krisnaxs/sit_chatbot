@@ -12,35 +12,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="bg-slate-100 font-sans" x-data="{
-    selectedAsset: null,
-    showModal: false,
-    openModal(asset) {
-        this.selectedAsset = asset;
-        this.showModal = true;
-    },
-    closeModal() {
-        this.showModal = false;
-        this.selectedAsset = null;
-    }
-}">
+<body class="bg-slate-100 font-sans" x-data="assetIndexManager()">
 
     <x-header title="Daftar Aset" />
     <x-sidebar />
 
     <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
         class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
-
-        @if (session('success'))
-            <div class="mb-4 p-3 rounded-lg bg-green-100 text-green-800 border border-green-200">
-                {{ session('success') }}
-            </div>
-        @endif
-        @if (session('error'))
-            <div class="mb-4 p-3 rounded-lg bg-red-100 text-red-800 border border-red-200">
-                {{ session('error') }}
-            </div>
-        @endif
 
         <div class="space-y-6">
 
@@ -51,11 +29,10 @@
                     <p class="text-sm text-gray-500">Kelola aset laptop, PC, printer, dan konsumable</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    {{-- 🆕 EXPORT EXCEL --}}
+                    {{-- EXPORT EXCEL --}}
                     <a href="{{ route('siam.assets.export.excel', request()->query()) }}"
                         title="Export data yang tampil ke Excel"
-                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium
-               inline-flex items-center gap-2">
+                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -64,11 +41,10 @@
                         Excel
                     </a>
 
-                    {{-- 🆕 EXPORT PDF --}}
+                    {{-- EXPORT PDF --}}
                     <a href="{{ route('siam.assets.export.pdf', request()->query()) }}" target="_blank"
                         title="Export data yang tampil ke PDF"
-                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium
-               inline-flex items-center gap-2">
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -78,10 +54,9 @@
                         PDF
                     </a>
 
-                    {{-- Tombol lama (Brand & Model, Tambah Aset) --}}
+                    {{-- Brand & Model --}}
                     <a href="{{ route('siam.asset-types.index') }}"
-                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium
-               inline-flex items-center gap-2">
+                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -89,9 +64,10 @@
                         </svg>
                         Brand & Model
                     </a>
+
+                    {{-- Tambah Aset --}}
                     <a href="{{ route('siam.assets.create') }}"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium
-               inline-flex items-center gap-2">
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -141,14 +117,12 @@
             <div class="bg-white rounded-lg shadow p-4">
                 <form method="GET" action="{{ route('siam.assets.index') }}"
                     class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3">
-
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1">Cari (SN / Kode / Hostname / Pemakai)</label>
                         <input type="text" name="search" value="{{ request('search') }}"
                             placeholder="Contoh: T14-SN-0001 atau Budi"
                             class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
                     </div>
-
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Kategori</label>
                         <select name="category_id" data-auto-submit
@@ -161,7 +135,6 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Kepemilikan</label>
                         <select name="ownership_type" data-auto-submit
@@ -171,7 +144,6 @@
                             <option value="leased" @selected(request('ownership_type') === 'leased')>Sewa</option>
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Status</label>
                         <select name="status" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -184,7 +156,6 @@
                             <option value="lost" @selected(request('status') === 'lost')>Hilang</option>
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Brand</label>
                         <select name="brand" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -195,7 +166,6 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1 flex items-center gap-1">
                             Model
@@ -211,8 +181,7 @@
                             <option value="">Semua Model</option>
                             @foreach ($models as $m)
                                 <option value="{{ $m->model }}" @selected(request('model') === $m->model)>
-                                    {{ $m->model }}
-                                    @if ($m->brand)
+                                    {{ $m->model }} @if ($m->brand)
                                         — {{ $m->brand }}
                                     @endif
                                     ({{ $m->total }} unit)
@@ -220,7 +189,6 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Lokasi</label>
                         <select name="location_id" data-auto-submit
@@ -233,7 +201,6 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Pemakai</label>
                         <select name="user_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -245,8 +212,6 @@
                             @endforeach
                         </select>
                     </div>
-
-                    {{-- 🆕 TAHUN PEMBELIAN --}}
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Tahun Pembelian</label>
                         <select name="year" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -257,16 +222,11 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div class="flex items-end gap-2 lg:col-span-2">
                         <button type="submit"
-                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
-                            Filter
-                        </button>
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">Filter</button>
                         <a href="{{ route('siam.assets.index') }}"
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">
-                            Reset
-                        </a>
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">Reset</a>
                     </div>
                 </form>
             </div>
@@ -290,10 +250,8 @@
                                     • Brand: <span class="font-semibold text-gray-700">{{ request('brand') }}</span>
                                 @endif
                                 @if (request('category_id'))
-                                    • Kategori:
-                                    <span class="font-semibold text-gray-700">
-                                        {{ $categories->firstWhere('id', request('category_id'))?->name }}
-                                    </span>
+                                    • Kategori: <span
+                                        class="font-semibold text-gray-700">{{ $categories->firstWhere('id', request('category_id'))?->name }}</span>
                                 @endif
                                 @if (request('year'))
                                     • Tahun: <span class="font-semibold text-gray-700">{{ request('year') }}</span>
@@ -413,26 +371,16 @@
 
                                 <tr @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
                                     class="hover:bg-indigo-50 cursor-pointer transition-colors">
-
-                                    {{-- 🆕 No --}}
                                     <td class="px-3 py-2 text-xs text-gray-500 font-medium">
                                         {{ $assets->firstItem() + $index }}
                                     </td>
-
                                     <td class="px-3 py-2 font-mono text-xs text-indigo-700">
-                                        {{ $asset->serial_number }}
-                                    </td>
+                                        {{ $asset->serial_number }}</td>
                                     <td class="px-3 py-2">
-                                        <div class="font-semibold text-gray-800">
-                                            {{ $asset->brand }}
-                                        </div>
-                                        <div class="text-xs text-gray-600">
-                                            {{ $asset->model }}
-                                        </div>
+                                        <div class="font-semibold text-gray-800">{{ $asset->brand }}</div>
+                                        <div class="text-xs text-gray-600">{{ $asset->model }}</div>
                                     </td>
-                                    <td class="px-3 py-2 text-xs text-gray-500">
-                                        {{ $asset->category?->name }}
-                                    </td>
+                                    <td class="px-3 py-2 text-xs text-gray-500">{{ $asset->category?->name }}</td>
                                     <td class="px-3 py-2">
                                         @php
                                             $ownColor =
@@ -440,9 +388,8 @@
                                                     ? 'bg-green-100 text-green-700'
                                                     : 'bg-orange-100 text-orange-700';
                                         @endphp
-                                        <span class="px-2 py-0.5 text-xs rounded {{ $ownColor }}">
-                                            {{ $asset->ownership_label }}
-                                        </span>
+                                        <span
+                                            class="px-2 py-0.5 text-xs rounded {{ $ownColor }}">{{ $asset->ownership_label }}</span>
                                     </td>
                                     <td class="px-3 py-2">
                                         @if ($asset->currentUser)
@@ -466,8 +413,6 @@
                                             <span class="text-gray-400 italic">-</span>
                                         @endif
                                     </td>
-
-                                    {{-- 🆕 TAHUN PEMBELIAN --}}
                                     <td class="px-3 py-2 text-xs">
                                         @if ($asset->purchase_date)
                                             <span class="font-medium">{{ $asset->purchase_date->format('Y') }}</span>
@@ -475,7 +420,6 @@
                                             <span class="text-gray-400 italic">-</span>
                                         @endif
                                     </td>
-
                                     <td class="px-3 py-2 text-xs font-mono">{{ $asset->hostname ?? '-' }}</td>
                                     <td class="px-3 py-2">
                                         @php
@@ -489,9 +433,8 @@
                                                 default => 'bg-gray-100 text-gray-700',
                                             };
                                         @endphp
-                                        <span class="px-2 py-0.5 text-xs rounded {{ $statusColor }}">
-                                            {{ $asset->status_label }}
-                                        </span>
+                                        <span
+                                            class="px-2 py-0.5 text-xs rounded {{ $statusColor }}">{{ $asset->status_label }}</span>
                                     </td>
                                     <td class="px-3 py-2">
                                         @if ($asset->condition_percent !== null)
@@ -608,8 +551,7 @@
                 <div class="grid grid-cols-2 gap-3">
 
                     <a :href="selectedAsset?.routes.show"
-                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-indigo-300 hover:bg-indigo-50 transition group">
+                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition group">
                         <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -627,8 +569,7 @@
 
                     @if (auth()->user()->hasAnyRole(['admin', 'support']))
                         <a :href="selectedAsset?.routes.edit"
-                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                                  hover:border-violet-300 hover:bg-violet-50 transition group">
+                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-violet-300 hover:bg-violet-50 transition group">
                             <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-600"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -643,9 +584,10 @@
                         </a>
                     @endif
 
-                    <a :href="selectedAsset?.routes.assign"
+                    {{-- 🆕 ASSIGN — Blok kalau status loaned --}}
+                    <button type="button" @click="checkBeforeNavigate('assign')"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-teal-300 hover:bg-teal-50 transition group">
+                               hover:border-teal-300 hover:bg-teal-50 transition group w-full text-left">
                         <div class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -657,11 +599,12 @@
                             <div class="font-semibold text-sm text-gray-800">Assign</div>
                             <div class="text-xs text-gray-500">Serah terima ke user</div>
                         </div>
-                    </a>
+                    </button>
 
-                    <a :href="selectedAsset?.routes.loan"
+                    {{-- 🆕 PINJAM — Blok kalau status in_use / maintenance --}}
+                    <button type="button" @click="checkBeforeNavigate('loan')"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-amber-300 hover:bg-amber-50 transition group">
+                               hover:border-amber-300 hover:bg-amber-50 transition group w-full text-left">
                         <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -673,11 +616,12 @@
                             <div class="font-semibold text-sm text-gray-800">Pinjam</div>
                             <div class="text-xs text-gray-500">Peminjaman sementara</div>
                         </div>
-                    </a>
+                    </button>
 
-                    <a :href="selectedAsset?.routes.maintenance"
+                    {{-- 🆕 MAINTENANCE — Blok kalau status in_use / loaned --}}
+                    <button type="button" @click="checkBeforeNavigate('maintenance')"
                         class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                              hover:border-orange-300 hover:bg-orange-50 transition group">
+                               hover:border-orange-300 hover:bg-orange-50 transition group w-full text-left">
                         <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-600" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -691,30 +635,24 @@
                             <div class="font-semibold text-sm text-gray-800">Perbaikan</div>
                             <div class="text-xs text-gray-500">Catat maintenance</div>
                         </div>
-                    </a>
+                    </button>
 
                     @if (auth()->user()->isAdmin())
-                        <form :action="selectedAsset?.routes.delete" method="POST"
-                            onsubmit="return confirm('Yakin hapus aset ini? Data yang dihapus tidak bisa dikembalikan.')"
-                            class="contents">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit"
-                                class="flex items-center gap-3 p-3 rounded-xl border border-red-200
-                                       bg-red-50 hover:bg-red-100 hover:border-red-300 transition group w-full text-left">
-                                <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600"
-                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="font-semibold text-sm text-red-700">Hapus</div>
-                                    <div class="text-xs text-red-500">Khusus admin</div>
-                                </div>
-                            </button>
-                        </form>
+                        <button type="button" @click="confirmDelete()"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-red-200 bg-red-50
+                                   hover:bg-red-100 hover:border-red-300 transition group w-full text-left">
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-red-700">Hapus</div>
+                                <div class="text-xs text-red-500">Khusus admin</div>
+                            </div>
+                        </button>
                     @endif
 
                 </div>
@@ -730,7 +668,320 @@
         </div>
     </div>
 
+    {{-- 🆕 MODAL KONFIRMASI (GENERIC) --}}
+    <div x-show="showConfirmModal" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeConfirm()"></div>
+
+        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100">
+
+            <div class="flex justify-center mb-4">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center"
+                    :class="{
+                        'bg-red-100': confirmType === 'delete',
+                        'bg-amber-100': confirmType === 'block',
+                        'bg-indigo-100': confirmType === 'info',
+                    }">
+                    <svg x-show="confirmType === 'delete'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <svg x-show="confirmType === 'block'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-1" x-text="confirmTitle"></h3>
+            <p class="text-sm text-gray-500 text-center mb-6" x-html="confirmMessage"></p>
+
+            <div class="flex gap-2">
+                <button type="button" @click="closeConfirm()"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition"
+                    x-text="confirmType === 'block' ? 'Mengerti' : 'Batal'"></button>
+                <button type="button" x-show="confirmType === 'delete'" @click="executeDelete()"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- 🆕 TOAST NOTIFICATION --}}
+    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+        x-transition:leave-end="opacity-0 translate-x-8"
+        :class="{
+            'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+            'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+            'bg-amber-600 border-amber-400/40 shadow-amber-500/50': toast.type === 'warning',
+            'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+        }"
+        class="fixed top-24 right-6 z-[130] flex items-center gap-3
+               min-w-[280px] max-w-sm
+               px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
+        style="display: none;">
+
+        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <svg x-show="toast.type === 'error' || toast.type === 'warning'" xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+
+        <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+
+        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+
     <script>
+        function assetIndexManager() {
+            return {
+                selectedAsset: null,
+                showModal: false,
+                showConfirmModal: false,
+                confirmType: '', // 'delete' | 'block' | 'info'
+                confirmTitle: '',
+                confirmMessage: '',
+
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success',
+                },
+
+                openModal(asset) {
+                    this.selectedAsset = asset;
+                    this.showModal = true;
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                    this.selectedAsset = null;
+                },
+
+                // 🆕 Cek status sebelum navigate ke assign/loan/maintenance
+                // 🆕 Cek status sebelum navigate ke assign/loan/maintenance
+                checkBeforeNavigate(action) {
+                    if (!this.selectedAsset) return;
+
+                    const status = this.selectedAsset.status;
+                    const statusLabel = this.selectedAsset.status_label;
+                    const pemakai = this.selectedAsset.current_user;
+
+                    // ═══════════════════════════════════════════════════
+                    // 🚫 PINJAM — Hanya boleh kalau available
+                    // ═══════════════════════════════════════════════════
+                    if (action === 'loan') {
+                        if (status === 'loaned') {
+                            this.showBlock(
+                                'Aset Sedang Dipinjam',
+                                `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
+                                `Kembalikan aset terlebih dahulu di menu <strong>Peminjaman</strong> sebelum dipinjamkan lagi.`
+                            );
+                            return;
+                        }
+                        if (status === 'in_use') {
+                            this.showBlock(
+                                'Aset Sedang Dipakai',
+                                `Aset ini sedang <strong>dipakai oleh ${pemakai || 'user'}</strong>. <br><br>` +
+                                `Kembalikan aset terlebih dahulu sebelum dipinjamkan.`
+                            );
+                            return;
+                        }
+                        if (status === 'maintenance') {
+                            this.showBlock(
+                                'Aset Sedang Diperbaiki',
+                                `Aset ini <strong>sedang dalam perbaikan</strong>. <br><br>` +
+                                `Selesaikan perbaikan terlebih dahulu sebelum dipinjamkan.`
+                            );
+                            return;
+                        }
+                        if (status === 'retired') {
+                            this.showBlock(
+                                'Aset Sudah Pensiun',
+                                `Aset ini sudah <strong>pensiun</strong> dan tidak bisa dipinjamkan.`
+                            );
+                            return;
+                        }
+                        if (status === 'lost') {
+                            this.showBlock(
+                                'Aset Hilang',
+                                `Aset ini berstatus <strong>hilang</strong> dan tidak bisa dipinjamkan.`
+                            );
+                            return;
+                        }
+                    }
+
+                    // ═══════════════════════════════════════════════════
+                    // 🚫 ASSIGN — Hanya boleh kalau available / in_use
+                    // ═══════════════════════════════════════════════════
+                    if (action === 'assign') {
+                        if (status === 'loaned') {
+                            this.showBlock(
+                                'Aset Sedang Dipinjam',
+                                `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
+                                `Kembalikan aset terlebih dahulu di menu <strong>Peminjaman</strong> sebelum diserahkan ke user.`
+                            );
+                            return;
+                        }
+                        if (status === 'maintenance') {
+                            this.showBlock(
+                                'Aset Sedang Diperbaiki',
+                                `Aset ini <strong>sedang dalam perbaikan</strong>. <br><br>` +
+                                `Selesaikan perbaikan terlebih dahulu sebelum diserahkan ke user.`
+                            );
+                            return;
+                        }
+                        if (status === 'retired') {
+                            this.showBlock(
+                                'Aset Sudah Pensiun',
+                                `Aset ini sudah <strong>pensiun</strong> dan tidak bisa di-assign ke user.`
+                            );
+                            return;
+                        }
+                        if (status === 'lost') {
+                            this.showBlock(
+                                'Aset Hilang',
+                                `Aset ini berstatus <strong>hilang</strong> dan tidak bisa di-assign ke user.`
+                            );
+                            return;
+                        }
+                    }
+
+                    // ═══════════════════════════════════════════════════
+                    // 🚫 MAINTENANCE — Hanya boleh kalau available
+                    // ═══════════════════════════════════════════════════
+                    if (action === 'maintenance') {
+                        if (status === 'in_use') {
+                            this.showBlock(
+                                'Aset Sedang Dipakai',
+                                `Aset ini sedang <strong>dipakai oleh ${pemakai || 'user'}</strong>. <br><br>` +
+                                `Kembalikan aset terlebih dahulu sebelum masuk perbaikan.`
+                            );
+                            return;
+                        }
+                        if (status === 'loaned') {
+                            this.showBlock(
+                                'Aset Sedang Dipinjam',
+                                `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
+                                `Kembalikan aset terlebih dahulu sebelum masuk perbaikan.`
+                            );
+                            return;
+                        }
+                        if (status === 'maintenance') {
+                            this.showBlock(
+                                'Aset Sudah Diperbaiki',
+                                `Aset ini <strong>sudah dalam status perbaikan</strong>. <br><br>` +
+                                `Selesaikan perbaikan yang sedang berjalan terlebih dahulu.`
+                            );
+                            return;
+                        }
+                        if (status === 'retired') {
+                            this.showBlock(
+                                'Aset Sudah Pensiun',
+                                `Aset ini sudah <strong>pensiun</strong> dan tidak perlu diperbaiki.`
+                            );
+                            return;
+                        }
+                        if (status === 'lost') {
+                            this.showBlock(
+                                'Aset Hilang',
+                                `Aset ini berstatus <strong>hilang</strong> dan tidak perlu diperbaiki.`
+                            );
+                            return;
+                        }
+                    }
+
+                    // ✅ Boleh lanjut
+                    const url = this.selectedAsset.routes[action];
+                    if (url) window.location.href = url;
+                },
+
+                showBlock(title, message, suggestAction) {
+                    this.confirmType = 'block';
+                    this.confirmTitle = title;
+                    this.confirmMessage = message;
+                    this.showConfirmModal = true;
+                },
+
+                confirmDelete() {
+                    this.confirmType = 'delete';
+                    this.confirmTitle = 'Hapus Aset?';
+                    this.confirmMessage =
+                        `Aset <strong>${this.selectedAsset?.serial_number}</strong> akan dihapus permanen. Data yang dihapus tidak bisa dikembalikan.`;
+                    this.showConfirmModal = true;
+                },
+
+                executeDelete() {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = this.selectedAsset.routes.delete;
+                    form.innerHTML = `@csrf @method('DELETE')`;
+                    document.body.appendChild(form);
+                    form.submit();
+                },
+
+                closeConfirm() {
+                    this.showConfirmModal = false;
+                    this.confirmType = '';
+                },
+
+                showToast(message, type = 'success') {
+                    this.toast.message = message;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    clearTimeout(this._toastTimer);
+                    this._toastTimer = setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3500);
+                },
+
+                init() {
+                    @if (session('success'))
+                        this.showToast(@json(session('success')), 'success');
+                    @endif
+                    @if (session('error'))
+                        this.showToast(@json(session('error')), 'error');
+                    @endif
+
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            if (this.showConfirmModal) this.closeConfirm();
+                            else if (this.showModal) this.closeModal();
+                        }
+                    });
+                }
+            }
+        }
+
         document.querySelectorAll('[data-auto-submit]').forEach(el => {
             el.addEventListener('change', () => el.closest('form').submit());
         });
@@ -745,19 +996,6 @@
                 }
             }
         }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                const body = document.body;
-                if (body._x_dataStack) {
-                    const data = body._x_dataStack[0];
-                    if (data && data.showModal) {
-                        data.showModal = false;
-                        data.selectedAsset = null;
-                    }
-                }
-            }
-        });
     </script>
 
     <style>

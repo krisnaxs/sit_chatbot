@@ -269,11 +269,19 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
                             <select name="status" required
                                 @change="
+                                    showMaintWarning = false;
+                                    showLoanWarning = false;
+                                    showAssignWarning = false;
                                     if ($event.target.value === 'maintenance' && oldStatus !== 'maintenance') {
                                         showMaintenanceModal = true;
                                         showMaintWarning = true;
-                                    } else {
-                                        showMaintWarning = false;
+                                    }
+                                    if ($event.target.value === 'loaned' && oldStatus !== 'loaned') {
+                                        showLoanModal = true;
+                                    }
+                                    if ($event.target.value === 'in_use' && oldStatus !== 'in_use') {
+                                        showAssignModal = true;
+                                        showAssignWarning = true;
                                     }
                                 "
                                 class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -285,6 +293,7 @@
                                 <option value="lost" @selected(old('status', $asset->status) === 'lost')>Hilang</option>
                             </select>
 
+                            {{-- Warning Maintenance --}}
                             <div x-show="showMaintWarning" x-cloak x-transition
                                 class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
                                 <p class="font-semibold text-amber-800 flex items-center gap-1.5">
@@ -302,6 +311,46 @@
                                 <button type="button" @click="showMaintenanceModal = true"
                                     class="mt-2 text-xs font-semibold text-amber-800 underline hover:text-amber-900">
                                     + Isi Detail Perbaikan
+                                </button>
+                            </div>
+
+                            {{-- Warning Loan --}}
+                            <div x-show="showLoanWarning" x-cloak x-transition
+                                class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+                                <p class="font-semibold text-amber-800 flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Info
+                                </p>
+                                <p class="text-amber-700 text-xs mt-1 leading-relaxed">
+                                    Status <strong>"Dipinjam"</strong> wajib isi data peminjaman.
+                                </p>
+                                <button type="button" @click="showLoanModal = true"
+                                    class="mt-2 text-xs font-semibold text-amber-800 underline hover:text-amber-900">
+                                    + Isi Data Peminjaman
+                                </button>
+                            </div>
+
+                            {{-- 🆕 Warning Assign --}}
+                            <div x-show="showAssignWarning" x-cloak x-transition
+                                class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+                                <p class="font-semibold text-amber-800 flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Info
+                                </p>
+                                <p class="text-amber-700 text-xs mt-1 leading-relaxed">
+                                    Status <strong>"Dipakai"</strong> wajib isi data pegawai penerima.
+                                </p>
+                                <button type="button" @click="showAssignModal = true"
+                                    class="mt-2 text-xs font-semibold text-amber-800 underline hover:text-amber-900">
+                                    + Isi Data Pegawai
                                 </button>
                             </div>
                         </div>
@@ -343,6 +392,24 @@
                         class="w-full border rounded-lg px-3 py-2 text-sm">
                     <p class="text-xs text-gray-400 mt-1">Biarkan kosong kalau tidak mau ganti.</p>
                 </div>
+
+                {{-- ============ HIDDEN INPUTS ============ --}}
+                {{-- Loan --}}
+                <input type="hidden" name="loan[user_id]" :value="loanForm.user_id">
+                <input type="hidden" name="loan[loan_date]" :value="loanForm.loan_date">
+                <input type="hidden" name="loan[due_date]" :value="loanForm.due_date">
+                <input type="hidden" name="loan[purpose]" :value="loanForm.purpose">
+                <input type="hidden" name="loan[condition_on_loan]" :value="loanForm.condition_on_loan">
+                <input type="hidden" name="loan[notes]" :value="loanForm.notes">
+
+                {{-- 🆕 Assign --}}
+                <input type="hidden" name="assign[user_id]" :value="assignForm.user_id">
+                <input type="hidden" name="assign[location_id]" :value="assignForm.location_id">
+                <input type="hidden" name="assign[department_id]" :value="assignForm.department_id">
+                <input type="hidden" name="assign[hostname]" :value="assignForm.hostname">
+                <input type="hidden" name="assign[assigned_at]" :value="assignForm.assigned_at">
+                <input type="hidden" name="assign[condition_on_assign]" :value="assignForm.condition_on_assign">
+                <input type="hidden" name="assign[notes]" :value="assignForm.notes">
 
                 {{-- ============ TOMBOL ============ --}}
                 <div class="flex gap-2 pt-4 border-t">
@@ -419,7 +486,8 @@
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">
                                     Masalah / Kerusakan <span class="text-red-500">*</span>
                                 </label>
-                                <input type="text" name="maintenance[issue]" x-bind:required="showMaintenanceModal"
+                                <input type="text" name="maintenance[issue]"
+                                    x-bind:required="showMaintenanceModal"
                                     placeholder="Contoh: Keyboard tidak berfungsi"
                                     class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500">
                             </div>
@@ -509,6 +577,265 @@
                                     class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition
                                            shadow-lg shadow-orange-500/30">
                                     Simpan Perbaikan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ============ MODAL PINJAM ASET ============ --}}
+                <div x-show="showLoanModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelLoan()"></div>
+
+                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+
+                        {{-- HEADER --}}
+                        <div class="bg-gradient-to-br from-amber-500 to-orange-600 px-6 py-5 text-white shrink-0">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold">Pinjam Aset</h3>
+                                        <p class="text-sm text-white/80">Isi data peminjaman aset ini</p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="cancelLoan()"
+                                    class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- BODY --}}
+                        <div class="flex-1 overflow-y-auto p-6 space-y-4">
+
+                            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                                <div class="text-xs text-amber-600">Aset yang akan dipinjam</div>
+                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}
+                                </div>
+                                <div class="text-xs text-gray-500 font-mono">SN: {{ $asset->serial_number }}</div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                    Peminjam <span class="text-red-500">*</span>
+                                </label>
+                                <select x-model="loanForm.user_id" required
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                                    <option value="">-- Pilih Pegawai --</option>
+                                    @foreach ($users ?? [] as $u)
+                                        <option value="{{ $u->id }}">{{ $u->name }} —
+                                            {{ $u->position ?? '-' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                        Tanggal Pinjam <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="datetime-local" x-model="loanForm.loan_date" required
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                        Jatuh Tempo <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="datetime-local" x-model="loanForm.due_date" required
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Tujuan Peminjaman</label>
+                                <input type="text" x-model="loanForm.purpose"
+                                    placeholder="Contoh: Presentasi klien"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Kondisi Saat Pinjam
+                                    (%)</label>
+                                <input type="number" x-model="loanForm.condition_on_loan" min="0"
+                                    max="100"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan</label>
+                                <textarea x-model="loanForm.notes" rows="2"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500"></textarea>
+                            </div>
+                        </div>
+
+                        {{-- FOOTER --}}
+                        <div class="px-6 py-3 bg-gray-50 border-t flex justify-between items-center shrink-0">
+                            <p class="text-xs text-gray-500"><span class="text-red-500">*</span> Wajib diisi</p>
+                            <div class="flex gap-2">
+                                <button type="button" @click="cancelLoan()"
+                                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
+                                    Batal
+                                </button>
+                                <button type="button" @click="confirmLoan()"
+                                    class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition
+                                           shadow-lg shadow-amber-500/30">
+                                    Simpan Peminjaman
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 🆕 ============ MODAL ASSIGN ASET ============ --}}
+                <div x-show="showAssignModal" x-cloak
+                    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelAssign()"></div>
+
+                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+
+                        {{-- HEADER --}}
+                        <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white shrink-0">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold">Assign Aset ke User</h3>
+                                        <p class="text-sm text-white/80">Isi data serah terima aset ke pegawai</p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="cancelAssign()"
+                                    class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- BODY --}}
+                        <div class="flex-1 overflow-y-auto p-6 space-y-4">
+
+                            <div class="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
+                                <div class="text-xs text-indigo-600">Aset yang akan di-assign</div>
+                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}
+                                </div>
+                                <div class="text-xs text-gray-500 font-mono">SN: {{ $asset->serial_number }}</div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                    Pegawai Penerima <span class="text-red-500">*</span>
+                                </label>
+                                <select x-model="assignForm.user_id" required
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">-- Pilih Pegawai --</option>
+                                    @foreach ($users ?? [] as $u)
+                                        <option value="{{ $u->id }}">{{ $u->name }} —
+                                            {{ $u->position ?? '-' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Lokasi</label>
+                                    <select x-model="assignForm.location_id"
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                        <option value="">-- Pilih Lokasi --</option>
+                                        @foreach ($locations ?? [] as $l)
+                                            <option value="{{ $l->id }}">{{ $l->full_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Departemen</label>
+                                    <select x-model="assignForm.department_id"
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                        <option value="">-- Pilih Departemen --</option>
+                                        @foreach (\App\Models\Department::active()->orderBy('name')->get() as $d)
+                                            <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Hostname Komputer</label>
+                                <input type="text" x-model="assignForm.hostname" placeholder="Contoh: NB-IT-001"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                        Tanggal Diserahkan <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="datetime-local" x-model="assignForm.assigned_at" required
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Kondisi Saat
+                                        Diserahkan (%)</label>
+                                    <input type="number" x-model="assignForm.condition_on_assign" min="0"
+                                        max="100"
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan</label>
+                                <textarea x-model="assignForm.notes" rows="2" placeholder="Contoh: BAST-2026-0001"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
+                            </div>
+                        </div>
+
+                        {{-- FOOTER --}}
+                        <div class="px-6 py-3 bg-gray-50 border-t flex justify-between items-center shrink-0">
+                            <p class="text-xs text-gray-500"><span class="text-red-500">*</span> Wajib diisi</p>
+                            <div class="flex gap-2">
+                                <button type="button" @click="cancelAssign()"
+                                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
+                                    Batal
+                                </button>
+                                <button type="button" @click="confirmAssign()"
+                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition
+                                           shadow-lg shadow-indigo-500/30">
+                                    Simpan Assign
                                 </button>
                             </div>
                         </div>
@@ -677,7 +1004,32 @@
                 showMaintWarning: false,
                 showConfirmUpdate: false,
                 showConfirmMaintenance: false,
+                showLoanModal: false,
+                showLoanWarning: false,
+                showAssignModal: false, // 🆕
+                showAssignWarning: false, // 🆕
                 oldStatus: '{{ $asset->status }}',
+
+                // Form pinjam
+                loanForm: {
+                    user_id: '',
+                    loan_date: '{{ now()->format('Y-m-d\TH:i') }}',
+                    due_date: '{{ now()->addDays(3)->format('Y-m-d\TH:i') }}',
+                    purpose: '',
+                    condition_on_loan: {{ $asset->condition_percent ?? 100 }},
+                    notes: '',
+                },
+
+                // 🆕 Form assign
+                assignForm: {
+                    user_id: '',
+                    location_id: '',
+                    department_id: '',
+                    hostname: '{{ $asset->hostname ?? '' }}',
+                    assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
+                    condition_on_assign: {{ $asset->condition_percent ?? 100 }},
+                    notes: '',
+                },
 
                 toast: {
                     show: false,
@@ -686,7 +1038,85 @@
                 },
 
                 confirmUpdate() {
+                    const statusSelect = document.querySelector('select[name="status"]');
+                    const newStatus = statusSelect.value;
+
+                    // 🆕 Cek loaned
+                    if (newStatus === 'loaned' && this.oldStatus !== 'loaned' && !this.loanForm.user_id) {
+                        this.showLoanWarning = true;
+                        this.showLoanModal = true;
+                        return;
+                    }
+
+                    // 🆕 Cek in_use
+                    if (newStatus === 'in_use' && this.oldStatus !== 'in_use' && !this.assignForm.user_id) {
+                        this.showAssignWarning = true;
+                        this.showAssignModal = true;
+                        return;
+                    }
+
                     this.showConfirmUpdate = true;
+                },
+
+                // 🆕 Konfirmasi assign
+                confirmAssign() {
+                    if (!this.assignForm.user_id) {
+                        this.showToast('Pegawai penerima wajib dipilih', 'error');
+                        return;
+                    }
+                    if (!this.assignForm.assigned_at) {
+                        this.showToast('Tanggal diserahkan wajib diisi', 'error');
+                        return;
+                    }
+                    this.showAssignModal = false;
+                    this.showAssignWarning = false;
+                    this.showConfirmUpdate = true;
+                },
+
+                // 🆕 Batal assign
+                cancelAssign() {
+                    this.showAssignModal = false;
+                    this.showAssignWarning = false;
+                    const statusSelect = document.querySelector('select[name="status"]');
+                    if (statusSelect) statusSelect.value = this.oldStatus;
+                    this.assignForm = {
+                        user_id: '',
+                        location_id: '',
+                        department_id: '',
+                        hostname: '{{ $asset->hostname ?? '' }}',
+                        assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
+                        condition_on_assign: {{ $asset->condition_percent ?? 100 }},
+                        notes: '',
+                    };
+                },
+
+                confirmLoan() {
+                    if (!this.loanForm.user_id) {
+                        this.showToast('Peminjam wajib dipilih', 'error');
+                        return;
+                    }
+                    if (!this.loanForm.loan_date || !this.loanForm.due_date) {
+                        this.showToast('Tanggal pinjam & jatuh tempo wajib diisi', 'error');
+                        return;
+                    }
+                    this.showLoanModal = false;
+                    this.showLoanWarning = false;
+                    this.showConfirmUpdate = true;
+                },
+
+                cancelLoan() {
+                    this.showLoanModal = false;
+                    this.showLoanWarning = false;
+                    const statusSelect = document.querySelector('select[name="status"]');
+                    if (statusSelect) statusSelect.value = this.oldStatus;
+                    this.loanForm = {
+                        user_id: '',
+                        loan_date: '{{ now()->format('Y-m-d\TH:i') }}',
+                        due_date: '{{ now()->addDays(3)->format('Y-m-d\TH:i') }}',
+                        purpose: '',
+                        condition_on_loan: {{ $asset->condition_percent ?? 100 }},
+                        notes: '',
+                    };
                 },
 
                 confirmMaintenance() {
@@ -699,13 +1129,11 @@
                         issue.focus();
                         return;
                     }
-
                     if (!startDate.value) {
                         this.showToast('Tanggal mulai wajib diisi', 'error');
                         startDate.focus();
                         return;
                     }
-
                     this.showMaintenanceModal = false;
                     this.showConfirmMaintenance = true;
                 },
@@ -740,7 +1168,9 @@
 
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
-                            if (this.showConfirmMaintenance) this.showConfirmMaintenance = false;
+                            if (this.showAssignModal) this.cancelAssign();
+                            else if (this.showLoanModal) this.cancelLoan();
+                            else if (this.showConfirmMaintenance) this.showConfirmMaintenance = false;
                             else if (this.showConfirmUpdate) this.showConfirmUpdate = false;
                             else if (this.showMaintenanceModal) this.showMaintenanceModal = false;
                         }

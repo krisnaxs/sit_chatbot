@@ -149,12 +149,34 @@ class AssetAssignmentController extends Controller
     {
         $asset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
 
-        $assets = Asset::where('status', 'available')->orderBy('serial_number')->get();
+        // 🆕 Aset yang boleh di-assign: available ATAU in_use (untuk pindah user)
+        $assetsQuery = Asset::whereIn('status', ['available', 'in_use'])
+            ->orderBy('serial_number');
+
+        // 🆕 Kalau ada asset_id dari URL, pastikan aset itu termasuk (apapun statusnya)
+        if ($asset) {
+            // Kalau aset dari URL statusnya bukan available/in_use, tetap tampilkan untuk pindah
+            $assets = Asset::where(function ($q) use ($asset) {
+                $q->whereIn('status', ['available', 'in_use'])
+                    ->orWhere('id', $asset->id);
+            })
+                ->orderBy('serial_number')
+                ->get();
+        } else {
+            $assets = $assetsQuery->get();
+        }
+
         $users = User::active()->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $departments = Department::active()->orderBy('name')->get();
 
-        return view('assignments.create', compact('asset', 'assets', 'users', 'locations', 'departments'));
+        return view('assignments.create', compact(
+            'asset',
+            'assets',
+            'users',
+            'locations',
+            'departments'
+        ));
     }
 
     /**

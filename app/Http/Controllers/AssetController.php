@@ -3,30 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\AssetAssignment;
 use App\Models\AssetCategory;
+use App\Models\AssetLoan;
+use App\Models\AssetMaintenance;
 use App\Models\AssetOwnership;
 use App\Models\AssetType;
+use App\Models\Department;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Exports\AssetsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Database\Eloquent\Builder;
 
 class AssetController extends Controller
 {
     /**
      * Daftar aset dengan filter lengkap + summary statistik.
      */
-    /**
-     * Daftar aset dengan filter lengkap + summary statistik.
-     */
     public function index(Request $request)
     {
         $query = Asset::with(['category', 'currentUser', 'currentLocation']);
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -40,30 +42,23 @@ class AssetController extends Controller
                     });
             });
         }
-        if ($request->filled('category_id')) {
+        if ($request->filled('category_id'))
             $query->where('category_id', $request->category_id);
-        }
-        if ($request->filled('ownership_type')) {
+        if ($request->filled('ownership_type'))
             $query->where('ownership_type', $request->ownership_type);
-        }
-        if ($request->filled('status')) {
+        if ($request->filled('status'))
             $query->where('status', $request->status);
-        }
-        if ($request->filled('brand')) {
+        if ($request->filled('brand'))
             $query->where('brand', $request->brand);
-        }
-        if ($request->filled('model')) {
+        if ($request->filled('model'))
             $query->where('model', $request->model);
-        }
-        if ($request->filled('location_id')) {
+        if ($request->filled('location_id'))
             $query->where('current_location_id', $request->location_id);
-        }
-        if ($request->filled('user_id')) {
+        if ($request->filled('user_id'))
             $query->where('current_user_id', $request->user_id);
-        }
-        if ($request->filled('year')) {
+        if ($request->filled('year'))
             $query->whereYear('purchase_date', $request->year);
-        }
+
         $summary = [
             'total' => (clone $query)->count(),
             'available' => (clone $query)->where('status', 'available')->count(),
@@ -84,6 +79,7 @@ class AssetController extends Controller
             || $request->filled('location_id')
             || $request->filled('user_id')
             || $request->filled('year');
+
         $sortBy = $request->get('sort_by', 'created_at');
         $sortDir = $request->get('sort_dir', 'desc');
         $allowed = ['created_at', 'asset_code', 'serial_number', 'brand', 'model', 'status'];
@@ -91,35 +87,19 @@ class AssetController extends Controller
             $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
         }
         $assets = $query->paginate($request->get('per_page', 25))->withQueryString();
-        $categories = AssetCategory::active()
-            ->where('is_consumable', false)
-            ->orderBy('name')
-            ->get();
+
+        $categories = AssetCategory::active()->where('is_consumable', false)->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $users = User::active()->orderBy('name')->get();
-
-        $brands = Asset::select('brand')
-            ->distinct()
-            ->whereNotNull('brand')
-            ->orderBy('brand')
-            ->pluck('brand');
+        $brands = Asset::select('brand')->distinct()->whereNotNull('brand')->orderBy('brand')->pluck('brand');
         $models = Asset::select('model', 'brand', DB::raw('COUNT(*) as total'))
             ->whereNotNull('model')
-            ->when($request->filled('category_id'), function ($q) use ($request) {
-                $q->where('category_id', $request->category_id);
-            })
-            ->when($request->filled('brand'), function ($q) use ($request) {
-                $q->where('brand', $request->brand);
-            })
-            ->groupBy('model', 'brand')
-            ->orderBy('brand')
-            ->orderBy('model')
-            ->get();
+            ->when($request->filled('category_id'), fn($q) => $q->where('category_id', $request->category_id))
+            ->when($request->filled('brand'), fn($q) => $q->where('brand', $request->brand))
+            ->groupBy('model', 'brand')->orderBy('brand')->orderBy('model')->get();
         $years = Asset::selectRaw('YEAR(purchase_date) as year')
-            ->whereNotNull('purchase_date')
-            ->distinct()
-            ->orderByDesc('year')
-            ->pluck('year');
+            ->whereNotNull('purchase_date')->distinct()->orderByDesc('year')->pluck('year');
+
         $stats = [
             'total' => Asset::count(),
             'owned' => Asset::owned()->count(),
@@ -163,7 +143,6 @@ class AssetController extends Controller
             'maintenances.vendor',
             'attachments',
         ]);
-
         return view('assets.show', compact('asset'));
     }
 
@@ -172,40 +151,33 @@ class AssetController extends Controller
      */
     public function create()
     {
-        $categories = AssetCategory::active()
-            ->where('is_consumable', false)
-            ->orderBy('name')
-            ->get();
+        $categories = AssetCategory::active()->where('is_consumable', false)->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $users = User::active()->orderBy('name')->get();
         $vendors = Vendor::active()->orderBy('name')->get();
+        $departments = Department::active()->orderBy('name')->get();
 
-        $brands = AssetType::active()
-            ->select('brand')
-            ->distinct()
-            ->orderBy('brand')
-            ->pluck('brand');
-
-        $assetTypes = AssetType::active()
-            ->orderBy('model')
-            ->get(['id', 'brand', 'model']);
+        $brands = AssetType::active()->select('brand')->distinct()->orderBy('brand')->pluck('brand');
+        $assetTypes = AssetType::active()->orderBy('model')->get(['id', 'brand', 'model']);
 
         return view('assets.create', compact(
             'categories',
             'locations',
             'users',
             'vendors',
+            'departments',
             'brands',
             'assetTypes'
         ));
     }
 
     /**
-     * Simpan aset baru + ownership-nya.
+     * Simpan aset baru + ownership + assignment/loan/maintenance.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
+            // Identitas
             'serial_number' => 'required|unique:assets,serial_number',
             'asset_code' => 'nullable|unique:assets,asset_code',
             'hostname' => 'nullable|string|max:100',
@@ -215,25 +187,85 @@ class AssetController extends Controller
             'specification' => 'nullable|array',
             'os' => 'nullable|string|max:100',
             'os_license' => 'nullable|string|max:100',
+
+            // Kepemilikan
             'ownership_type' => 'required|in:owned,leased',
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0',
             'warranty_expire' => 'nullable|date',
+            'vendor_id' => 'nullable|exists:vendors,id',
+            'invoice_number' => 'nullable|string|max:100',
+            'monthly_cost' => 'nullable|numeric|min:0',
+            'contract_end' => 'nullable|date',
+
+            // Status
             'status' => 'required|in:available,in_use,loaned,maintenance,retired,lost',
             'condition_percent' => 'nullable|integer|min:0|max:100',
             'condition_notes' => 'nullable|string',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
 
-            'vendor_id' => 'nullable|exists:vendors,id',
-            'invoice_number' => 'nullable|string|max:100',
-            'monthly_cost' => 'nullable|numeric|min:0',
-            'contract_end' => 'nullable|date',
+            // 🆕 Assign
+            'assign' => 'nullable|array',
+            'assign.user_id' => 'nullable|exists:users,id',
+            'assign.location_id' => 'nullable|exists:locations,id',
+            'assign.department_id' => 'nullable|exists:departments,id',
+            'assign.hostname' => 'nullable|string|max:100',
+            'assign.assigned_at' => 'nullable|date',
+            'assign.condition_on_assign' => 'nullable|integer|min:0|max:100',
+            'assign.notes' => 'nullable|string',
+
+            // 🆕 Loan
+            'loan' => 'nullable|array',
+            'loan.user_id' => 'nullable|exists:users,id',
+            'loan.loan_date' => 'nullable|date',
+            'loan.due_date' => 'nullable|date|after_or_equal:loan.loan_date',
+            'loan.purpose' => 'nullable|string|max:255',
+            'loan.condition_on_loan' => 'nullable|integer|min:0|max:100',
+            'loan.notes' => 'nullable|string',
+
+            // 🆕 Maintenance
+            'maintenance' => 'nullable|array',
+            'maintenance.issue' => 'nullable|string|max:255',
+            'maintenance.action' => 'nullable|string',
+            'maintenance.vendor_id' => 'nullable|exists:vendors,id',
+            'maintenance.technician' => 'nullable|string|max:100',
+            'maintenance.cost' => 'nullable|numeric|min:0',
+            'maintenance.start_date' => 'nullable|date',
+            'maintenance.end_date' => 'nullable|date',
+            'maintenance.condition_before' => 'nullable|integer|min:0|max:100',
+            'maintenance.condition_after' => 'nullable|integer|min:0|max:100',
+            'maintenance.notes' => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($request, $validated) {
+        // 🆕 Validasi wajib isi detail kalau status tertentu
+        if ($validated['status'] === 'in_use' && empty($validated['assign']['user_id'])) {
+            return back()->withInput()
+                ->with('error', 'Untuk status "Dipakai", wajib isi data pegawai penerima.');
+        }
+        if ($validated['status'] === 'loaned' && empty($validated['loan']['user_id'])) {
+            return back()->withInput()
+                ->with('error', 'Untuk status "Dipinjam", wajib isi data peminjaman.');
+        }
+        if ($validated['status'] === 'maintenance' && empty($validated['maintenance']['issue'])) {
+            return back()->withInput()
+                ->with('error', 'Untuk status "Perbaikan", wajib isi detail perbaikan.');
+        }
+
+        $asset = DB::transaction(function () use ($request, $validated) {
             if ($request->hasFile('photo')) {
                 $validated['photo_path'] = $request->file('photo')->store('assets', 'public');
+            }
+
+            // 🆕 Tentukan current_user_id & current_location_id dari assign/loan
+            $currentUserId = null;
+            $currentLocationId = null;
+
+            if ($validated['status'] === 'in_use' && !empty($validated['assign']['user_id'])) {
+                $currentUserId = $validated['assign']['user_id'];
+                $currentLocationId = $validated['assign']['location_id'] ?? null;
+            } elseif ($validated['status'] === 'loaned' && !empty($validated['loan']['user_id'])) {
+                $currentUserId = $validated['loan']['user_id'];
             }
 
             $asset = Asset::create([
@@ -255,8 +287,12 @@ class AssetController extends Controller
                 'condition_notes' => $validated['condition_notes'] ?? null,
                 'photo_path' => $validated['photo_path'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                // 🆕 SET current holder
+                'current_user_id' => $currentUserId,
+                'current_location_id' => $currentLocationId,
             ]);
 
+            // Ownership
             AssetOwnership::create([
                 'asset_id' => $asset->id,
                 'vendor_id' => $validated['vendor_id'] ?? null,
@@ -269,10 +305,64 @@ class AssetController extends Controller
                 'monthly_cost' => $validated['ownership_type'] === 'leased' ? ($validated['monthly_cost'] ?? null) : null,
             ]);
 
+            // 🆕 AssetAssignment
+            if ($validated['status'] === 'in_use' && !empty($validated['assign']['user_id'])) {
+                $a = $validated['assign'];
+                AssetAssignment::create([
+                    'asset_id' => $asset->id,
+                    'user_id' => $a['user_id'],
+                    'location_id' => $a['location_id'] ?? null,
+                    'department_id' => $a['department_id'] ?? null,
+                    'assigned_at' => $a['assigned_at'] ?? now(),
+                    'condition_on_assign' => $a['condition_on_assign'] ?? ($validated['condition_percent'] ?? 100),
+                    'notes' => $a['notes'] ?? null,
+                    'assigned_by' => auth()->id(),
+                    'received_by' => $a['user_id'],
+                ]);
+                // Update hostname kalau diisi
+                if (!empty($a['hostname'])) {
+                    $asset->update(['hostname' => $a['hostname']]);
+                }
+            }
+
+            // 🆕 AssetLoan
+            if ($validated['status'] === 'loaned' && !empty($validated['loan']['user_id'])) {
+                $l = $validated['loan'];
+                AssetLoan::create([
+                    'asset_id' => $asset->id,
+                    'user_id' => $l['user_id'],
+                    'loan_date' => $l['loan_date'] ?? now(),
+                    'due_date' => $l['due_date'] ?? now()->addDays(3),
+                    'purpose' => $l['purpose'] ?? null,
+                    'condition_on_loan' => $l['condition_on_loan'] ?? ($validated['condition_percent'] ?? 100),
+                    'notes' => $l['notes'] ?? null,
+                    'status' => 'borrowed',
+                    'approved_by' => auth()->id(),
+                ]);
+            }
+
+            // 🆕 AssetMaintenance
+            if ($validated['status'] === 'maintenance' && !empty($validated['maintenance']['issue'])) {
+                $m = $validated['maintenance'];
+                AssetMaintenance::create([
+                    'asset_id' => $asset->id,
+                    'vendor_id' => $m['vendor_id'] ?? null,
+                    'type' => 'corrective',
+                    'issue' => $m['issue'],
+                    'action' => $m['action'] ?? null,
+                    'technician' => $m['technician'] ?? null,
+                    'cost' => $m['cost'] ?? 0,
+                    'start_date' => $m['start_date'] ?? now()->format('Y-m-d'),
+                    'end_date' => $m['end_date'] ?? null,
+                    'status' => 'open',
+                    'condition_before' => $m['condition_before'] ?? ($validated['condition_percent'] ?? 100),
+                    'condition_after' => $m['condition_after'] ?? null,
+                    'notes' => $m['notes'] ?? null,
+                ]);
+            }
+
             return $asset;
         });
-
-        $asset = Asset::where('serial_number', $validated['serial_number'])->first();
 
         return redirect()
             ->route('siam.assets.show', $asset)
@@ -286,23 +376,14 @@ class AssetController extends Controller
     {
         $asset->load('ownership');
 
-        $categories = AssetCategory::active()
-            ->where('is_consumable', false)
-            ->orderBy('name')
-            ->get();
+        $categories = AssetCategory::active()->where('is_consumable', false)->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $users = User::active()->orderBy('name')->get();
         $vendors = Vendor::active()->orderBy('name')->get();
+        $departments = Department::active()->orderBy('name')->get();
 
-        $brands = AssetType::active()
-            ->select('brand')
-            ->distinct()
-            ->orderBy('brand')
-            ->pluck('brand');
-
-        $assetTypes = AssetType::active()
-            ->orderBy('model')
-            ->get(['id', 'brand', 'model']);
+        $brands = AssetType::active()->select('brand')->distinct()->orderBy('brand')->pluck('brand');
+        $assetTypes = AssetType::active()->orderBy('model')->get(['id', 'brand', 'model']);
 
         return view('assets.edit', compact(
             'asset',
@@ -310,13 +391,14 @@ class AssetController extends Controller
             'locations',
             'users',
             'vendors',
+            'departments',
             'brands',
             'assetTypes'
         ));
     }
 
     /**
-     * Update aset + ownership + (opsional) maintenance.
+     * Update aset + ownership + assignment/loan/maintenance.
      */
     public function update(Request $request, Asset $asset)
     {
@@ -344,6 +426,27 @@ class AssetController extends Controller
             'invoice_number' => 'nullable|string|max:100',
             'monthly_cost' => 'nullable|numeric|min:0',
             'contract_end' => 'nullable|date',
+
+            // 🆕 Assign
+            'assign' => 'nullable|array',
+            'assign.user_id' => 'nullable|exists:users,id',
+            'assign.location_id' => 'nullable|exists:locations,id',
+            'assign.department_id' => 'nullable|exists:departments,id',
+            'assign.hostname' => 'nullable|string|max:100',
+            'assign.assigned_at' => 'nullable|date',
+            'assign.condition_on_assign' => 'nullable|integer|min:0|max:100',
+            'assign.notes' => 'nullable|string',
+
+            // 🆕 Loan
+            'loan' => 'nullable|array',
+            'loan.user_id' => 'nullable|exists:users,id',
+            'loan.loan_date' => 'nullable|date',
+            'loan.due_date' => 'nullable|date|after_or_equal:loan.loan_date',
+            'loan.purpose' => 'nullable|string|max:255',
+            'loan.condition_on_loan' => 'nullable|integer|min:0|max:100',
+            'loan.notes' => 'nullable|string',
+
+            // 🆕 Maintenance
             'maintenance' => 'nullable|array',
             'maintenance.issue' => 'nullable|string|max:255',
             'maintenance.action' => 'nullable|string',
@@ -357,13 +460,58 @@ class AssetController extends Controller
             'maintenance.notes' => 'nullable|string',
         ]);
 
+        // 🆕 Validasi wajib
+        if (
+            $validated['status'] === 'in_use'
+            && $asset->status !== 'in_use'
+            && empty($validated['assign']['user_id'])
+        ) {
+            return back()->withInput()
+                ->with('error', 'Untuk status "Dipakai", wajib isi data pegawai penerima.');
+        }
+        if (
+            $validated['status'] === 'loaned'
+            && $asset->status !== 'loaned'
+            && empty($validated['loan']['user_id'])
+        ) {
+            return back()->withInput()
+                ->with('error', 'Untuk status "Dipinjam", wajib isi data peminjaman.');
+        }
+
         DB::transaction(function () use ($request, $validated, $asset) {
             if ($request->hasFile('photo')) {
-                if ($asset->photo_path && \Storage::disk('public')->exists($asset->photo_path)) {
-                    \Storage::disk('public')->delete($asset->photo_path);
+                if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
+                    Storage::disk('public')->delete($asset->photo_path);
                 }
                 $validated['photo_path'] = $request->file('photo')->store('assets', 'public');
             }
+
+            $newStatus = $validated['status'];
+
+            // 🆕 TENTUKAN current_user_id & current_location_id
+            $currentUserId = null;
+            $currentLocationId = null;
+
+            if ($newStatus === 'in_use') {
+                // Pakai data assign baru kalau ada
+                if (!empty($validated['assign']['user_id'])) {
+                    $currentUserId = $validated['assign']['user_id'];
+                    $currentLocationId = $validated['assign']['location_id'] ?? null;
+                } else {
+                    // Pertahankan yang lama (kecuali user ubah status lain)
+                    $currentUserId = $asset->current_user_id;
+                    $currentLocationId = $asset->current_location_id;
+                }
+            } elseif ($newStatus === 'loaned') {
+                if (!empty($validated['loan']['user_id'])) {
+                    $currentUserId = $validated['loan']['user_id'];
+                    $currentLocationId = null;
+                } else {
+                    $currentUserId = $asset->current_user_id;
+                    $currentLocationId = $asset->current_location_id;
+                }
+            }
+            // else: available/retired/lost/maintenance → biarkan null
 
             $asset->update([
                 'asset_code' => $validated['asset_code'] ?? $asset->asset_code,
@@ -379,12 +527,17 @@ class AssetController extends Controller
                 'purchase_date' => $validated['purchase_date'] ?? null,
                 'purchase_price' => $validated['purchase_price'] ?? null,
                 'warranty_expire' => $validated['warranty_expire'] ?? null,
-                'status' => $validated['status'],
+                'status' => $newStatus,
                 'condition_percent' => $validated['condition_percent'] ?? null,
                 'condition_notes' => $validated['condition_notes'] ?? null,
                 'photo_path' => $validated['photo_path'] ?? $asset->photo_path,
                 'notes' => $validated['notes'] ?? null,
+                // 🆕
+                'current_user_id' => $currentUserId,
+                'current_location_id' => $currentLocationId,
             ]);
+
+            // Ownership
             $ownership = $asset->ownership;
             $ownershipData = [
                 'vendor_id' => $validated['vendor_id'] ?? null,
@@ -402,30 +555,90 @@ class AssetController extends Controller
             } else {
                 AssetOwnership::create(array_merge($ownershipData, ['asset_id' => $asset->id]));
             }
-            if (!empty($validated['maintenance']) && !empty($validated['maintenance']['issue'])) {
-                $maint = $validated['maintenance'];
 
-                \App\Models\AssetMaintenance::create([
+            // 🆕 AssetAssignment — kalau status in_use + ada data assign
+            if ($newStatus === 'in_use' && !empty($validated['assign']['user_id'])) {
+                $a = $validated['assign'];
+
+                // Tutup assignment lama
+                $asset->assignments()
+                    ->whereNull('returned_at')
+                    ->update(['returned_at' => now()]);
+
+                AssetAssignment::create([
                     'asset_id' => $asset->id,
-                    'vendor_id' => $maint['vendor_id'] ?? null,
+                    'user_id' => $a['user_id'],
+                    'location_id' => $a['location_id'] ?? null,
+                    'department_id' => $a['department_id'] ?? null,
+                    'assigned_at' => $a['assigned_at'] ?? now(),
+                    'condition_on_assign' => $a['condition_on_assign'] ?? ($validated['condition_percent'] ?? 100),
+                    'notes' => $a['notes'] ?? null,
+                    'assigned_by' => auth()->id(),
+                    'received_by' => $a['user_id'],
+                ]);
+
+                if (!empty($a['hostname'])) {
+                    $asset->update(['hostname' => $a['hostname']]);
+                }
+            }
+
+            // 🆕 AssetLoan — kalau status loaned + ada data loan
+            if ($newStatus === 'loaned' && !empty($validated['loan']['user_id'])) {
+                $l = $validated['loan'];
+                AssetLoan::create([
+                    'asset_id' => $asset->id,
+                    'user_id' => $l['user_id'],
+                    'loan_date' => $l['loan_date'] ?? now(),
+                    'due_date' => $l['due_date'] ?? now()->addDays(3),
+                    'purpose' => $l['purpose'] ?? null,
+                    'condition_on_loan' => $l['condition_on_loan'] ?? ($validated['condition_percent'] ?? 100),
+                    'notes' => $l['notes'] ?? null,
+                    'status' => 'borrowed',
+                    'approved_by' => auth()->id(),
+                ]);
+            }
+
+            // 🆕 AssetMaintenance — kalau status maintenance + ada issue
+            if (
+                $newStatus === 'maintenance'
+                && !empty($validated['maintenance']['issue'])
+                && $asset->status !== 'maintenance'
+            ) {
+                $m = $validated['maintenance'];
+                AssetMaintenance::create([
+                    'asset_id' => $asset->id,
+                    'vendor_id' => $m['vendor_id'] ?? null,
                     'type' => 'corrective',
-                    'issue' => $maint['issue'],
-                    'action' => $maint['action'] ?? null,
-                    'technician' => $maint['technician'] ?? null,
-                    'cost' => $maint['cost'] ?? 0,
-                    'start_date' => $maint['start_date'] ?? now()->format('Y-m-d'),
-                    'end_date' => $maint['end_date'] ?? null,
+                    'issue' => $m['issue'],
+                    'action' => $m['action'] ?? null,
+                    'technician' => $m['technician'] ?? null,
+                    'cost' => $m['cost'] ?? 0,
+                    'start_date' => $m['start_date'] ?? now()->format('Y-m-d'),
+                    'end_date' => $m['end_date'] ?? null,
                     'status' => 'open',
-                    'condition_before' => $maint['condition_before'] ?? $asset->condition_percent,
-                    'condition_after' => $maint['condition_after'] ?? null,
-                    'notes' => $maint['notes'] ?? null,
+                    'condition_before' => $m['condition_before'] ?? $asset->condition_percent,
+                    'condition_after' => $m['condition_after'] ?? null,
+                    'notes' => $m['notes'] ?? null,
                 ]);
             }
         });
 
-        $msg = (!empty($validated['maintenance']) && !empty($validated['maintenance']['issue']))
-            ? 'Aset diupdate & perbaikan berhasil dicatat.'
-            : 'Aset berhasil diupdate.';
+        // Build message
+        $hasAssign = $validated['status'] === 'in_use' && !empty($validated['assign']['user_id']);
+        $hasLoan = $validated['status'] === 'loaned' && !empty($validated['loan']['user_id']);
+        $hasMaint = $validated['status'] === 'maintenance' && !empty($validated['maintenance']['issue']);
+
+        $actions = [];
+        if ($hasAssign)
+            $actions[] = 'serah terima';
+        if ($hasLoan)
+            $actions[] = 'peminjaman';
+        if ($hasMaint)
+            $actions[] = 'perbaikan';
+
+        $msg = empty($actions)
+            ? 'Aset berhasil diupdate.'
+            : 'Aset diupdate & ' . implode(', ', $actions) . ' berhasil dicatat.';
 
         return redirect()
             ->route('siam.assets.show', $asset)
@@ -445,20 +658,13 @@ class AssetController extends Controller
             'user_id',
             'year',
         ]);
-
         $filename = 'daftar-aset-' . now()->format('Ymd-His') . '.xlsx';
-
         return Excel::download(new AssetsExport($filters), $filename);
     }
 
-    /**
-     * Export PDF
-     */
     public function exportPdf(Request $request)
     {
         $query = Asset::with(['category', 'currentUser', 'currentLocation']);
-        if ($request->filled('search')) { /* ... */
-        }
         if ($request->filled('category_id'))
             $query->where('category_id', $request->category_id);
         if ($request->filled('ownership_type'))
@@ -477,7 +683,6 @@ class AssetController extends Controller
             $query->whereYear('purchase_date', $request->year);
 
         $assets = $query->orderBy('asset_code')->get();
-
         $summary = [
             'total' => $assets->count(),
             'available' => $assets->where('status', 'available')->count(),
@@ -493,16 +698,11 @@ class AssetController extends Controller
         return $pdf->download('daftar-aset-' . now()->format('Ymd-His') . '.pdf');
     }
 
-
-    /**
-     * Hapus aset.
-     */
     public function destroy(Asset $asset)
     {
-        if ($asset->photo_path && \Storage::disk('public')->exists($asset->photo_path)) {
-            \Storage::disk('public')->delete($asset->photo_path);
+        if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
+            Storage::disk('public')->delete($asset->photo_path);
         }
-
         $asset->delete();
 
         return redirect()

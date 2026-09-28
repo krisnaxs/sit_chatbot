@@ -12,7 +12,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="bg-slate-100 font-sans">
+<body class="bg-slate-100 font-sans" x-data="assetShowManager()">
 
     <x-header title="Detail Aset" />
     <x-sidebar />
@@ -259,16 +259,17 @@
                                             @endif
 
                                             @if ($a->is_active)
+                                                {{-- 🆕 FORM RETURN dengan MODAL KONFIRMASI --}}
                                                 <form method="POST"
-                                                    action="{{ route('siam.assignments.return', $a) }}" class="mt-2">
+                                                    action="{{ route('siam.assignments.return', $a) }}" class="mt-2"
+                                                    @submit.prevent="confirmReturn($event, '{{ $a->user?->name ?? 'user ini' }}')">
                                                     @csrf
                                                     <input type="hidden" name="returned_at"
                                                         value="{{ now()->format('Y-m-d H:i:s') }}">
                                                     <input type="hidden" name="condition_on_return"
                                                         value="{{ $asset->condition_percent ?? 100 }}">
                                                     <button type="submit"
-                                                        onclick="return confirm('Kembalikan aset ini?')"
-                                                        class="text-xs px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+                                                        class="text-xs px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition">
                                                         Kembalikan Aset
                                                     </button>
                                                 </form>
@@ -513,8 +514,9 @@
                                 </a>
                             @endif
 
+                            {{-- 🆕 FORM DELETE dengan MODAL KONFIRMASI --}}
                             <form method="POST" action="{{ route('siam.assets.destroy', $asset) }}"
-                                onsubmit="return confirm('Yakin hapus aset ini?')">
+                                @submit.prevent="confirmDelete('{{ $asset->serial_number }}')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
@@ -531,7 +533,192 @@
         </div>
     </div>
 
+    {{-- ============================================================ --}}
+    {{-- 🆕 MODAL KONFIRMASI (GENERIC) --}}
+    {{-- ============================================================ --}}
+    <div x-show="showConfirmModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeConfirm()"></div>
+
+        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100">
+
+            <div class="flex justify-center mb-4">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center"
+                    :class="{
+                        'bg-red-100': confirmType === 'delete',
+                        'bg-amber-100': confirmType === 'return',
+                    }">
+                    <svg x-show="confirmType === 'delete'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <svg x-show="confirmType === 'return'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-1" x-text="confirmTitle"></h3>
+            <p class="text-sm text-gray-500 text-center mb-6" x-html="confirmMessage"></p>
+
+            <div class="flex gap-2">
+                <button type="button" @click="closeConfirm()"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
+                           text-gray-700 font-semibold transition">
+                    Batal
+                </button>
+                <button type="button" @click="executeConfirm()"
+                    class="flex-1 px-4 py-2.5 rounded-xl font-semibold transition text-white shadow-lg"
+                    :class="{
+                        'bg-red-600 hover:bg-red-700 shadow-red-500/30': confirmType === 'delete',
+                        'bg-amber-600 hover:bg-amber-700 shadow-amber-500/30': confirmType === 'return',
+                    }"
+                    x-text="confirmButton"></button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ============================================================ --}}
+    {{-- 🆕 TOAST NOTIFICATION --}}
+    {{-- ============================================================ --}}
+    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+        x-transition:leave-end="opacity-0 translate-x-8"
+        :class="{
+            'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+            'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+            'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+        }"
+        class="fixed top-24 right-6 z-[130] flex items-center gap-3
+               min-w-[280px] max-w-sm
+               px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
+        style="display: none;">
+
+        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+
+        <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+
+        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+
     <script>
+        function assetShowManager() {
+            return {
+                // Modal state
+                showConfirmModal: false,
+                confirmType: '', // 'delete' | 'return'
+                confirmTitle: '',
+                confirmMessage: '',
+                confirmButton: '',
+                pendingForm: null,
+                pendingAction: null,
+
+                // Toast
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success',
+                },
+
+                // 🆕 Konfirmasi Return
+                confirmReturn(event, userName) {
+                    this.confirmType = 'return';
+                    this.confirmTitle = 'Kembalikan Aset?';
+                    this.confirmMessage =
+                        `Aset ini akan dikembalikan dari <strong>${userName}</strong>. Status aset akan kembali menjadi <strong>Tersedia</strong>.`;
+                    this.confirmButton = 'Ya, Kembalikan';
+                    this.pendingForm = event.target.closest('form');
+                    this.pendingAction = 'return';
+                    this.showConfirmModal = true;
+                },
+
+                // 🆕 Konfirmasi Delete
+                confirmDelete(serialNumber) {
+                    this.confirmType = 'delete';
+                    this.confirmTitle = 'Hapus Aset?';
+                    this.confirmMessage =
+                        `Aset dengan SN <strong>${serialNumber}</strong> akan dihapus permanen. Data yang dihapus tidak bisa dikembalikan.`;
+                    this.confirmButton = 'Ya, Hapus';
+                    this.pendingForm = event.target.closest('form');
+                    this.pendingAction = 'delete';
+                    this.showConfirmModal = true;
+                },
+
+                // Execute confirm
+                executeConfirm() {
+                    if (this.pendingForm) {
+                        this.pendingForm.submit();
+                    }
+                    this.closeConfirm();
+                },
+
+                closeConfirm() {
+                    this.showConfirmModal = false;
+                    this.pendingForm = null;
+                    this.pendingAction = null;
+                },
+
+                // Toast
+                showToast(message, type = 'success') {
+                    this.toast.message = message;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    clearTimeout(this._toastTimer);
+                    this._toastTimer = setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3500);
+                },
+
+                init() {
+                    @if (session('success'))
+                        this.showToast(@json(session('success')), 'success');
+                    @endif
+                    @if (session('error'))
+                        this.showToast(@json(session('error')), 'error');
+                    @endif
+
+                    // ESC key
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && this.showConfirmModal) {
+                            this.closeConfirm();
+                        }
+                    });
+                }
+            }
+        }
+
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
@@ -543,6 +730,12 @@
             }
         }
     </script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
 
 </body>
 

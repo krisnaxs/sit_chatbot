@@ -294,7 +294,13 @@
     <!-- SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
+    <!-- SCRIPT -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
     <script>
+        // ═══════════════════════════════════════════════════════
+        // SWIPER SETUP
+        // ═══════════════════════════════════════════════════════
         const slidesKeys = @json($slidesKeys);
         const slideTitleEl = document.getElementById('slideHeading');
 
@@ -332,38 +338,115 @@
         });
 
         slideTitleEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('keyup', function() {
-                const keyword = this.value.toLowerCase();
-                let firstMatchedSlide = null;
 
-                document.querySelectorAll('.swiper-slide').forEach((slide, slideIndex) => {
-                    let slideHasResult = false;
+        // ═══════════════════════════════════════════════════════
+        // SEARCH FILTER LOGIC
+        // ═══════════════════════════════════════════════════════
+        const searchInput =
+            document.getElementById('searchInput') ||
+            document.getElementById('searchInputAuth');
 
-                    slide.querySelectorAll('[data-name]').forEach(card => {
-                        const name = card.dataset.name.toLowerCase();
-                        if (name.includes(keyword)) {
-                            card.classList.remove('hidden');
-                            slideHasResult = true;
-                        } else {
-                            card.classList.add('hidden');
-                        }
-                    });
+        function runSearch(keyword) {
+            keyword = (keyword || '').toLowerCase().trim();
+            let firstMatchedSlide = null;
 
-                    if (slideHasResult && firstMatchedSlide === null) {
-                        firstMatchedSlide = slideIndex;
+            document.querySelectorAll('.swiper-slide').forEach((slide, slideIndex) => {
+                let slideHasResult = false;
+
+                slide.querySelectorAll('[data-name]').forEach(card => {
+                    const name = card.dataset.name.toLowerCase();
+                    if (keyword === '' || name.includes(keyword)) {
+                        card.classList.remove('hidden');
+                        slideHasResult = true;
+                    } else {
+                        card.classList.add('hidden');
                     }
                 });
 
-                if (firstMatchedSlide !== null) {
-                    swiper.slideTo(firstMatchedSlide);
+                if (slideHasResult && firstMatchedSlide === null) {
+                    firstMatchedSlide = slideIndex;
                 }
+            });
 
-                swiper.update();
+            if (firstMatchedSlide !== null) {
+                swiper.slideTo(firstMatchedSlide);
+            }
+
+            swiper.update();
+        }
+
+        if (searchInput) {
+            // Ketika user mengetik di input search
+            searchInput.addEventListener('input', function() {
+                runSearch(this.value);
+            });
+
+            // Escape untuk clear & blur
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    this.value = '';
+                    runSearch('');
+                    this.blur();
+                }
             });
         }
 
+        // ═══════════════════════════════════════════════════════
+        // 🆕 GLOBAL KEYPRESS — auto-focus search saat user ngetik
+        // ═══════════════════════════════════════════════════════
+        document.addEventListener('keydown', function(e) {
+            if (!searchInput) return;
+
+            // Skip kalau user sedang fokus di input/textarea/select/contenteditable
+            const tag = (document.activeElement?.tagName || '').toLowerCase();
+            const isEditing =
+                tag === 'input' ||
+                tag === 'textarea' ||
+                tag === 'select' ||
+                document.activeElement?.isContentEditable;
+
+            // ─── Shortcut: "/" atau Ctrl+K / Cmd+K → fokus search ───
+            if (
+                (e.key === '/' && !isEditing) ||
+                ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')
+            ) {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+                return;
+            }
+
+            // ─── Escape: clear & blur ───
+            if (e.key === 'Escape' && document.activeElement === searchInput) {
+                searchInput.value = '';
+                runSearch('');
+                searchInput.blur();
+                return;
+            }
+
+            // ─── Auto-focus & type: kalau user ketik huruf/angka ───
+            if (isEditing) return; // sudah di input, biarkan native
+
+            // Cek apakah tombol printable (huruf, angka, simbol)
+            const isPrintable = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+            if (isPrintable) {
+                e.preventDefault();
+                searchInput.focus();
+
+                // Set value ke karakter yang diketik
+                searchInput.value = e.key;
+                runSearch(e.key);
+
+                // Letakkan cursor di akhir
+                const len = searchInput.value.length;
+                searchInput.setSelectionRange(len, len);
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════
+        // PAGE LAYOUT
+        // ═══════════════════════════════════════════════════════
         function pageLayout() {
             return {
                 collapsed: localStorage.getItem('sidebar-collapsed') === 'true',

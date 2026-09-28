@@ -1,3 +1,222 @@
+@php
+    // ═══════════════════════════════════════════════════════
+    // HELPER FUNCTIONS — Activity Log Display
+    // ═══════════════════════════════════════════════════════
+
+    if (!function_exists('activityFieldLabel')) {
+        function activityFieldLabel(string $field): string
+        {
+            $map = [
+                'name' => 'Nama',
+                'email' => 'Email',
+                'username' => 'Username',
+                'nip' => 'NIP',
+                'phone' => 'Telepon',
+                'position' => 'Jabatan',
+                'role' => 'Role',
+                'is_active' => 'Status Aktif',
+                'location_id' => 'Lokasi',
+                'department_id' => 'Departemen',
+                'user_id' => 'User',
+                'asset_id' => 'Aset',
+                'category_id' => 'Kategori',
+                'vendor_id' => 'Vendor',
+                'consumable_id' => 'Konsumable',
+                'current_user_id' => 'Pemakai',
+                'current_location_id' => 'Lokasi Saat Ini',
+                'from_location_id' => 'Lokasi Asal',
+                'to_location_id' => 'Lokasi Tujuan',
+                'status' => 'Status',
+                'condition_percent' => 'Kondisi (%)',
+                'condition_notes' => 'Catatan Kondisi',
+                'condition_before' => 'Kondisi Sebelum (%)',
+                'condition_after' => 'Kondisi Sesudah (%)',
+                'condition_on_assign' => 'Kondisi Saat Diserahkan (%)',
+                'condition_on_return' => 'Kondisi Saat Dikembalikan (%)',
+                'condition_on_loan' => 'Kondisi Saat Dipinjam (%)',
+                'notes' => 'Catatan',
+                'hostname' => 'Hostname',
+                'serial_number' => 'Serial Number',
+                'asset_code' => 'Kode Aset',
+                'brand' => 'Brand',
+                'model' => 'Model',
+                'os' => 'OS',
+                'os_license' => 'Lisensi OS',
+                'specification' => 'Spesifikasi',
+                'purchase_date' => 'Tanggal Beli',
+                'purchase_price' => 'Harga Beli',
+                'warranty_expire' => 'Garansi Berakhir',
+                'ownership_type' => 'Tipe Kepemilikan',
+                'invoice_number' => 'No. Invoice',
+                'monthly_cost' => 'Biaya Sewa/Bulan',
+                'contract_end' => 'Kontrak Berakhir',
+                'stock_total' => 'Stok Total',
+                'stock_available' => 'Stok Tersedia',
+                'stock_minimum' => 'Stok Minimum',
+                'unit' => 'Satuan',
+                'quantity' => 'Jumlah',
+                'type' => 'Tipe',
+                'assigned_at' => 'Tanggal Diserahkan',
+                'returned_at' => 'Tanggal Dikembalikan',
+                'loan_date' => 'Tanggal Pinjam',
+                'due_date' => 'Jatuh Tempo',
+                'purpose' => 'Keperluan',
+                'issue' => 'Masalah',
+                'action' => 'Tindakan',
+                'technician' => 'Teknisi',
+                'cost' => 'Biaya',
+                'start_date' => 'Tanggal Mulai',
+                'end_date' => 'Tanggal Selesai',
+                'transaction_date' => 'Tanggal Transaksi',
+                'assigned_by' => 'Diserahkan Oleh',
+                'received_by' => 'Diterima Oleh',
+                'approved_by' => 'Disetujui Oleh',
+                'requested_by' => 'Diminta Oleh',
+                'moved_by' => 'Dipindahkan Oleh',
+                'uploaded_by' => 'Diunggah Oleh',
+                'updated_at' => 'Terakhir Diubah',
+                'created_at' => 'Dibuat',
+                'deleted_at' => 'Dihapus',
+            ];
+            return $map[$field] ?? ucwords(str_replace('_', ' ', $field));
+        }
+    }
+
+    if (!function_exists('activityResolveValue')) {
+        function activityResolveValue(string $field, $value): string
+        {
+            // Skip fields yang bukan relasi ID
+            $skipFields = [
+                'status',
+                'type',
+                'ownership_type',
+                'role',
+                'os_license',
+                'unit',
+                'is_active',
+                'condition_percent',
+                'condition_before',
+                'condition_after',
+                'condition_on_assign',
+                'condition_on_return',
+                'condition_on_loan',
+                'quantity',
+                'stock_total',
+                'stock_available',
+                'stock_minimum',
+                'cost',
+                'monthly_cost',
+                'purchase_price',
+                'last_price',
+            ];
+            if (in_array($field, $skipFields)) {
+                return activityFormatValue($value);
+            }
+
+            // Mapping relasi ID → model
+            $idResolvers = [
+                // Departments
+                'department_id' => \App\Models\Department::class,
+
+                // Locations
+                'location_id' => \App\Models\Location::class,
+                'current_location_id' => \App\Models\Location::class,
+                'from_location_id' => \App\Models\Location::class,
+                'to_location_id' => \App\Models\Location::class,
+
+                // Users (berbagai role)
+                'user_id' => \App\Models\User::class,
+                'current_user_id' => \App\Models\User::class,
+                'assigned_by' => \App\Models\User::class,
+                'received_by' => \App\Models\User::class,
+                'approved_by' => \App\Models\User::class,
+                'requested_by' => \App\Models\User::class,
+                'moved_by' => \App\Models\User::class,
+                'uploaded_by' => \App\Models\User::class,
+
+                // Assets & categories
+                'asset_id' => \App\Models\Asset::class,
+                'category_id' => \App\Models\AssetCategory::class,
+
+                // Vendors
+                'vendor_id' => \App\Models\Vendor::class,
+
+                // Consumables
+                'consumable_id' => \App\Models\Consumable::class,
+            ];
+
+            if (!isset($idResolvers[$field])) {
+                return activityFormatValue($value);
+            }
+
+            if (is_null($value) || $value === '' || $value === 0 || $value === '0') {
+                return '(kosong)';
+            }
+
+            $modelClass = $idResolvers[$field];
+            $record = $modelClass::find($value);
+
+            if (!$record) {
+                return activityFormatValue($value);
+            }
+
+            // Resolve nama dengan prioritas
+            $name = null;
+
+            // 1. Cek field name
+            if (isset($record->name) && !empty($record->name)) {
+                $name = $record->name;
+            }
+            // 2. Cek full_name (locations)
+            elseif (isset($record->full_name) && !empty($record->full_name)) {
+                $name = $record->full_name;
+            }
+            // 3. Asset: brand + model + serial
+            elseif (isset($record->brand) && isset($record->serial_number)) {
+                $parts = array_filter([
+                    $record->brand,
+                    $record->model ?? null,
+                    $record->serial_number ? "({$record->serial_number})" : null,
+                ]);
+                $name = implode(' ', $parts);
+            }
+            // 4. Cek asset_code
+            elseif (isset($record->asset_code) && !empty($record->asset_code)) {
+                $name = $record->asset_code;
+            }
+            // 5. Cek code (categories, departments)
+            elseif (isset($record->code) && !empty($record->code)) {
+                $name = $record->code;
+            }
+            // 6. Fallback: ID
+            else {
+                $name = "ID: {$value}";
+            }
+
+            return trim((string) $name);
+        }
+    }
+
+    if (!function_exists('activityFormatValue')) {
+        function activityFormatValue($value): string
+        {
+            if (is_null($value)) {
+                return '(kosong)';
+            }
+            if (is_bool($value)) {
+                return $value ? 'Ya' : 'Tidak';
+            }
+            if (is_array($value) || is_object($value)) {
+                $json = json_encode($value, JSON_UNESCAPED_SLASHES);
+                return $json === false ? '(tidak bisa ditampilkan)' : $json;
+            }
+            if ($value === '') {
+                return '(kosong)';
+            }
+            return (string) $value;
+        }
+    }
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 
@@ -131,7 +350,7 @@
         </div>
 
         {{-- ============================================================ --}}
-        {{-- 🆕 PERUBAHAN DATA — HIGHLIGHT OLD → NEW --}}
+        {{-- PERUBAHAN DATA — HIGHLIGHT OLD → NEW --}}
         {{-- ============================================================ --}}
         @php
             $allProps = $activity->properties ?? collect();
@@ -178,13 +397,16 @@
                     <div class="space-y-2">
                         @foreach ($new as $key => $value)
                             @if (!in_array($key, ['id', 'created_at', 'updated_at']))
+                                @php
+                                    $fieldLabel = activityFieldLabel($key);
+                                    $display = activityResolveValue($key, $value);
+                                @endphp
                                 <div class="flex gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                                    <span
-                                        class="text-xs font-bold text-emerald-700 shrink-0 min-w-[130px] font-mono pt-0.5">
-                                        {{ $key }}
+                                    <span class="text-xs font-bold text-emerald-700 shrink-0 min-w-[140px] pt-0.5">
+                                        {{ $fieldLabel }}
                                     </span>
-                                    <span class="text-xs text-emerald-800 font-mono flex-1 break-all">
-                                        {{ is_array($value) ? json_encode($value) : $value ?? '-' }}
+                                    <span class="text-xs text-emerald-800 flex-1 break-all">
+                                        {{ $display }}
                                     </span>
                                 </div>
                             @endif
@@ -198,18 +420,32 @@
                         @foreach ($new as $key => $newVal)
                             @php
                                 $oldVal = $old[$key] ?? null;
-                                $isChanged = (string) $oldVal !== (string) $newVal;
+
+                                // Handle array/object aman
+                                $oldStr =
+                                    is_array($oldVal) || is_object($oldVal)
+                                        ? json_encode($oldVal, JSON_UNESCAPED_SLASHES)
+                                        : (string) ($oldVal ?? '');
+                                $newStr =
+                                    is_array($newVal) || is_object($newVal)
+                                        ? json_encode($newVal, JSON_UNESCAPED_SLASHES)
+                                        : (string) ($newVal ?? '');
+                                $isChanged = $oldStr !== $newStr;
+
+                                // Resolve tampilan
+                                $fieldLabel = activityFieldLabel($key);
+                                $oldDisplay = activityResolveValue($key, $oldVal);
+                                $newDisplay = activityResolveValue($key, $newVal);
                             @endphp
                             @if ($isChanged && !in_array($key, ['updated_at']))
                                 <div class="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                                    <span
-                                        class="text-xs font-bold text-amber-800 shrink-0 min-w-[130px] font-mono pt-0.5">
-                                        {{ $key }}
+                                    <span class="text-xs font-bold text-amber-800 shrink-0 min-w-[140px] pt-0.5">
+                                        {{ $fieldLabel }}
                                     </span>
-                                    <div class="flex-1 flex flex-wrap items-center gap-2 text-xs font-mono">
-                                        {{-- Nilai lama (merah, coret) --}}
+                                    <div class="flex-1 flex flex-wrap items-center gap-2 text-xs">
+                                        {{-- Nilai lama (merah) --}}
                                         <span class="px-2 py-1 rounded bg-red-100 text-red-700 line-through">
-                                            {{ is_array($oldVal) ? json_encode($oldVal) : $oldVal ?? '(kosong)' }}
+                                            {{ $oldDisplay }}
                                         </span>
 
                                         {{-- Arrow --}}
@@ -219,9 +455,9 @@
                                                 d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                         </svg>
 
-                                        {{-- Nilai baru (hijau, bold) --}}
+                                        {{-- Nilai baru (hijau) --}}
                                         <span class="px-2 py-1 rounded bg-green-100 text-green-700 font-bold">
-                                            {{ is_array($newVal) ? json_encode($newVal) : $newVal ?? '(kosong)' }}
+                                            {{ $newDisplay }}
                                         </span>
                                     </div>
                                 </div>
@@ -235,13 +471,16 @@
                     <div class="space-y-2">
                         @foreach ($old as $key => $value)
                             @if (!in_array($key, ['id', 'created_at', 'updated_at']))
+                                @php
+                                    $fieldLabel = activityFieldLabel($key);
+                                    $display = activityResolveValue($key, $value);
+                                @endphp
                                 <div class="flex gap-3 p-3 rounded-lg bg-red-50 border border-red-100">
-                                    <span
-                                        class="text-xs font-bold text-red-700 shrink-0 min-w-[130px] font-mono pt-0.5">
-                                        {{ $key }}
+                                    <span class="text-xs font-bold text-red-700 shrink-0 min-w-[140px] pt-0.5">
+                                        {{ $fieldLabel }}
                                     </span>
-                                    <span class="text-xs text-red-800 font-mono flex-1 break-all line-through">
-                                        {{ is_array($value) ? json_encode($value) : $value ?? '-' }}
+                                    <span class="text-xs text-red-800 flex-1 break-all line-through">
+                                        {{ $display }}
                                     </span>
                                 </div>
                             @endif
@@ -275,14 +514,17 @@
                 <div class="space-y-2">
                     @foreach ($props as $key => $value)
                         <div
-                            class="flex gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100
-                                    hover:bg-gray-100 transition">
+                            class="flex gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 transition">
                             <span class="text-xs font-bold text-gray-500 shrink-0 min-w-[110px] font-mono pt-0.5">
                                 {{ $key }}
                             </span>
                             <span class="text-xs text-gray-800 font-mono flex-1 break-all leading-relaxed">
                                 @if (is_array($value) || is_object($value))
                                     <pre class="whitespace-pre-wrap">{{ json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                @elseif (is_null($value))
+                                    <span class="text-gray-400 italic">null</span>
+                                @elseif (is_bool($value))
+                                    {{ $value ? 'true' : 'false' }}
                                 @else
                                     {{ $value }}
                                 @endif
@@ -295,6 +537,10 @@
 
         <!-- SUBJECT -->
         @if ($activity->subject)
+            @php
+                $subject = $activity->subject;
+                $subjectType = class_basename($activity->subject_type);
+            @endphp
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
                 <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
                     <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
@@ -315,15 +561,31 @@
                         <span
                             class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
                                      bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            {{ class_basename($activity->subject_type) }}
+                            {{ $subjectType }}
                         </span>
                         <span class="font-mono text-xs text-gray-500">
                             #{{ $activity->subject_id }}
                         </span>
                     </div>
 
-                    @if (method_exists($activity->subject, 'toArray'))
-                        <details class="group">
+                    {{-- Info subject human-readable --}}
+                    @if (isset($subject->name))
+                        <p class="text-sm font-bold text-gray-900 mb-1">{{ $subject->name }}</p>
+                    @endif
+                    @if (isset($subject->email))
+                        <p class="text-xs text-gray-500 mb-2">{{ $subject->email }}</p>
+                    @endif
+                    @if (isset($subject->serial_number) && !isset($subject->name))
+                        <p class="text-sm font-bold text-gray-900 mb-1 font-mono">{{ $subject->serial_number }}</p>
+                    @endif
+                    @if (isset($subject->brand) && !isset($subject->name))
+                        <p class="text-sm font-bold text-gray-900 mb-1">
+                            {{ $subject->brand }} {{ $subject->model ?? '' }}
+                        </p>
+                    @endif
+
+                    @if (method_exists($subject, 'toArray'))
+                        <details class="group mt-2">
                             <summary
                                 class="text-xs text-gray-500 cursor-pointer hover:text-gray-700 select-none inline-flex items-center gap-1 font-semibold">
                                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -336,7 +598,16 @@
                             <div
                                 class="mt-2 p-3 bg-white rounded-lg border border-gray-200
                                         text-[11px] text-gray-700 font-mono overflow-x-auto">
-                                <pre class="whitespace-pre-wrap break-all">{{ json_encode($activity->subject->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                <pre class="whitespace-pre-wrap break-all">@php
+                                    try {
+                                        echo json_encode(
+                                            $subject->toArray(),
+                                            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR,
+                                        );
+                                    } catch (\Throwable $e) {
+                                        echo '(tidak bisa ditampilkan)';
+                                    }
+                                @endphp</pre>
                             </div>
                         </details>
                     @endif
@@ -351,8 +622,7 @@
                     class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
                            bg-white border border-gray-200 hover:bg-gray-50
                            hover:border-gray-300
-                           text-gray-700 font-semibold text-sm transition
-                           shadow-sm">
+                           text-gray-700 font-semibold text-sm transition shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -369,8 +639,7 @@
                     class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
                            bg-white border border-gray-200 hover:bg-gray-50
                            hover:border-gray-300
-                           text-gray-700 font-semibold text-sm transition
-                           shadow-sm">
+                           text-gray-700 font-semibold text-sm transition shadow-sm">
                     <span class="text-[10px] text-gray-400 font-mono">#{{ $next->id }}</span>
                     Selanjutnya
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"

@@ -281,7 +281,17 @@
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showLogin = false">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative">
+                {{-- Tombol X untuk Close --}}
+                <button type="button" @click="showLogin = false"
+                    class="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+                    title="Tutup">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
                 <div class="flex items-center gap-3 mb-5">
                     <div
                         class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600
