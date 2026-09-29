@@ -17,57 +17,97 @@ class LogUserActivity
      * Route yang TIDAK dicatat (biar tidak spam / tidak relevan / sudah di-handle observer).
      */
     protected array $skipRoutes = [
+        // Auth
         'admin.login',
         'admin.logout',
+
+        // Chat
         'chat.send',
+
+        // Activity Log
         'activity.index',
         'activity.show',
         'activity.clear',
         'activity.destroy',
+
+        // Apps (Portal)
         'apps.store',
         'apps.update',
         'apps.destroy',
+
+        // Users
         'users.store',
         'users.update',
         'users.destroy',
+
+        // Knowledge
         'knowledge.store',
         'knowledge.update',
         'knowledge.destroy',
         'knowledge.pending.approve',
         'knowledge.pending.reject',
         'knowledge.pending.clear',
+
+        // SIAM — Assets
         'siam.assets.store',
         'siam.assets.update',
         'siam.assets.destroy',
+
+        // SIAM — Assignments
         'siam.assignments.store',
         'siam.assignments.return',
         'siam.assignments.destroy',
+
+        // SIAM — Loans
         'siam.loans.store',
         'siam.loans.return',
         'siam.loans.destroy',
+
+        // SIAM — Maintenances
         'siam.maintenances.store',
         'siam.maintenances.update',
         'siam.maintenances.destroy',
+
+        // SIAM — Categories
         'siam.categories.store',
         'siam.categories.update',
         'siam.categories.destroy',
+
+        // SIAM — Asset Types
         'siam.asset-types.store',
         'siam.asset-types.update',
         'siam.asset-types.destroy',
+
+        // SIAM — Consumables
         'siam.consumables.store',
         'siam.consumables.update',
         'siam.consumables.destroy',
+
+        // SIAM — Consumable Transactions
         'siam.consumable-transactions.store',
         'siam.consumable-transactions.destroy',
+
+        // SIAM — Vendors
         'siam.vendors.store',
         'siam.vendors.update',
         'siam.vendors.destroy',
+
+        // SIAM — Departments
         'siam.departments.store',
         'siam.departments.update',
         'siam.departments.destroy',
+
+        // SIAM — Locations
         'siam.locations.store',
         'siam.locations.update',
         'siam.locations.destroy',
+
+        // 🆕 Request / Pengajuan — sudah di-cover AssetRequestObserver
+        'requests.store',
+        'requests.cancel',
+        'requests.quick.store',
+        'admin.requests.approve',
+        'admin.requests.reject',
     ];
 
     public function handle(Request $request, Closure $next): Response
@@ -144,6 +184,8 @@ class LogUserActivity
             str_starts_with($routeName, 'knowledge.') => 'knowledge',
             str_starts_with($routeName, 'apps.') => 'app',
             str_starts_with($routeName, 'activity.') => 'activity',
+            str_starts_with($routeName, 'requests.') => 'request',           // 🆕
+            str_starts_with($routeName, 'admin.requests.') => 'request',     // 🆕
             default => 'app',
         };
     }
@@ -227,6 +269,8 @@ class LogUserActivity
             'knowledge' => 'Knowledge',
             'pending' => 'Pending Knowledge',
             'activity' => 'Activity Log',
+            'requests' => 'Requests',           // 🆕
+            'quick' => 'Quick Request',         // 🆕
         ];
 
         return $map[$resource] ?? ucwords(str_replace('-', ' ', $resource));

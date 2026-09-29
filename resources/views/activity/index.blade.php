@@ -23,9 +23,16 @@
                 'consumable_id' => 'Konsumable',
                 'current_user_id' => 'Pemakai',
                 'current_location_id' => 'Lokasi Saat Ini',
+                'from_location_id' => 'Lokasi Asal',
+                'to_location_id' => 'Lokasi Tujuan',
                 'status' => 'Status',
                 'condition_percent' => 'Kondisi (%)',
                 'condition_notes' => 'Catatan Kondisi',
+                'condition_before' => 'Kondisi Sebelum (%)',
+                'condition_after' => 'Kondisi Sesudah (%)',
+                'condition_on_assign' => 'Kondisi Saat Diserahkan (%)',
+                'condition_on_return' => 'Kondisi Saat Dikembalikan (%)',
+                'condition_on_loan' => 'Kondisi Saat Dipinjam (%)',
                 'notes' => 'Catatan',
                 'hostname' => 'Hostname',
                 'serial_number' => 'Serial Number',
@@ -34,6 +41,7 @@
                 'model' => 'Model',
                 'os' => 'OS',
                 'os_license' => 'Lisensi OS',
+                'specification' => 'Spesifikasi',
                 'purchase_date' => 'Tanggal Beli',
                 'purchase_price' => 'Harga Beli',
                 'warranty_expire' => 'Garansi Berakhir',
@@ -65,6 +73,23 @@
                 'requested_by' => 'Diminta Oleh',
                 'moved_by' => 'Dipindahkan Oleh',
                 'uploaded_by' => 'Diunggah Oleh',
+
+                // 🆕 Request / Pengajuan
+                'request_number' => 'No. Pengajuan',
+                'requested_at' => 'Tanggal Pengajuan',
+                'needed_date' => 'Tanggal Dibutuhkan',
+                'admin_notes' => 'Catatan Admin',
+                'rejection_reason' => 'Alasan Penolakan',
+                'loan_id' => 'ID Peminjaman',
+                'transaction_id' => 'ID Transaksi',
+                'source' => 'Sumber',
+                'old_status' => 'Status Lama',
+                'new_status' => 'Status Baru',
+                'cancelled_by' => 'Dibatalkan Oleh',
+                'cancelled_by_name' => 'Nama Pembatal',
+                'user_name' => 'Nama User',
+                'asset_serial' => 'Serial Aset',
+                'consumable_name' => 'Nama Konsumable',
             ];
             return $map[$field] ?? ucwords(str_replace('_', ' ', $field));
         }
@@ -95,6 +120,18 @@
                 'monthly_cost',
                 'purchase_price',
                 'last_price',
+
+                // 🆕 Request / Pengajuan
+                'old_status',
+                'new_status',
+                'request_number',
+                'source',
+                'cancelled_by_name',
+                'user_name',
+                'asset_serial',
+                'consumable_name',
+                'admin_notes',
+                'rejection_reason',
             ];
             if (in_array($field, $skipFields)) {
                 return activityFormatValue($value);
@@ -118,6 +155,10 @@
                 'category_id' => \App\Models\AssetCategory::class,
                 'vendor_id' => \App\Models\Vendor::class,
                 'consumable_id' => \App\Models\Consumable::class,
+
+                // 🆕 Request / Pengajuan
+                'loan_id' => \App\Models\AssetLoan::class,
+                'transaction_id' => \App\Models\ConsumableTransaction::class,
             ];
 
             if (!isset($idResolvers[$field])) {
@@ -152,6 +193,16 @@
             }
             if (isset($record->code) && !empty($record->code)) {
                 return trim((string) $record->code);
+            }
+            // 🆕 AssetLoan custom
+            if (isset($record->loan_date) && isset($record->asset_id)) {
+                $asset = \App\Models\Asset::find($record->asset_id);
+                return "Peminjaman {$asset?->serial_number} (" . ($record->loan_date?->format('d M Y') ?? '-') . ')';
+            }
+            // 🆕 ConsumableTransaction custom
+            if (isset($record->transaction_date) && isset($record->consumable_id)) {
+                $cons = \App\Models\Consumable::find($record->consumable_id);
+                return "Transaksi {$cons?->name} x{$record->quantity}";
             }
             return "ID: {$value}";
         }
@@ -374,6 +425,7 @@
                                                      @case('siam') bg-cyan-100 text-cyan-700 @break
                                                      @case('user') bg-indigo-100 text-indigo-700 @break
                                                      @case('activity') bg-rose-100 text-rose-700 @break
+                                                     @case('request') bg-purple-100 text-purple-700 @break
                                                      @default bg-gray-100 text-gray-700
                                                  @endswitch">
                                         {{ $act->log_name ?? 'general' }}

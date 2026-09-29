@@ -20,8 +20,6 @@ class AppServiceProvider extends ServiceProvider
     {
         // Existing
         \App\Models\AssetType::observe(\App\Observers\AssetTypeObserver::class);
-
-        // 🆕 Tambahkan ini
         \App\Models\Asset::observe(\App\Observers\AssetObserver::class);
         \App\Models\User::observe(\App\Observers\UserObserver::class);
         \App\Models\Consumable::observe(\App\Observers\ConsumableObserver::class);
@@ -32,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Vendor::observe(\App\Observers\VendorObserver::class);
         \App\Models\Department::observe(\App\Observers\DepartmentObserver::class);
         \App\Models\Location::observe(\App\Observers\LocationObserver::class);
+        \App\Models\AssetRequest::observe(\App\Observers\AssetRequestObserver::class);
     }
 }

@@ -77,6 +77,23 @@
                 'updated_at' => 'Terakhir Diubah',
                 'created_at' => 'Dibuat',
                 'deleted_at' => 'Dihapus',
+
+                // 🆕 Request / Pengajuan
+                'request_number' => 'No. Pengajuan',
+                'requested_at' => 'Tanggal Pengajuan',
+                'needed_date' => 'Tanggal Dibutuhkan',
+                'admin_notes' => 'Catatan Admin',
+                'rejection_reason' => 'Alasan Penolakan',
+                'loan_id' => 'ID Peminjaman',
+                'transaction_id' => 'ID Transaksi',
+                'source' => 'Sumber',
+                'old_status' => 'Status Lama',
+                'new_status' => 'Status Baru',
+                'cancelled_by' => 'Dibatalkan Oleh',
+                'cancelled_by_name' => 'Nama Pembatal',
+                'user_name' => 'Nama User',
+                'asset_serial' => 'Serial Aset',
+                'consumable_name' => 'Nama Konsumable',
             ];
             return $map[$field] ?? ucwords(str_replace('_', ' ', $field));
         }
@@ -108,6 +125,18 @@
                 'monthly_cost',
                 'purchase_price',
                 'last_price',
+
+                // 🆕 Request / Pengajuan
+                'old_status',
+                'new_status',
+                'request_number',
+                'source',
+                'cancelled_by_name',
+                'user_name',
+                'asset_serial',
+                'consumable_name',
+                'admin_notes',
+                'rejection_reason',
             ];
             if (in_array($field, $skipFields)) {
                 return activityFormatValue($value);
@@ -143,6 +172,10 @@
 
                 // Consumables
                 'consumable_id' => \App\Models\Consumable::class,
+
+                // 🆕 Request / Pengajuan
+                'loan_id' => \App\Models\AssetLoan::class,
+                'transaction_id' => \App\Models\ConsumableTransaction::class,
             ];
 
             if (!isset($idResolvers[$field])) {
@@ -188,7 +221,17 @@
             elseif (isset($record->code) && !empty($record->code)) {
                 $name = $record->code;
             }
-            // 6. Fallback: ID
+            // 🆕 6. AssetLoan custom
+            elseif (isset($record->loan_date) && isset($record->asset_id)) {
+                $asset = \App\Models\Asset::find($record->asset_id);
+                $name = "Peminjaman {$asset?->serial_number} (" . ($record->loan_date?->format('d M Y') ?? '-') . ')';
+            }
+            // 🆕 7. ConsumableTransaction custom
+            elseif (isset($record->transaction_date) && isset($record->consumable_id)) {
+                $cons = \App\Models\Consumable::find($record->consumable_id);
+                $name = "Transaksi {$cons?->name} x{$record->quantity}";
+            }
+            // 8. Fallback: ID
             else {
                 $name = "ID: {$value}";
             }
@@ -280,6 +323,7 @@
                                  @case('siam') bg-cyan-100 text-cyan-700 @break
                                  @case('user') bg-indigo-100 text-indigo-700 @break
                                  @case('activity') bg-rose-100 text-rose-700 @break
+                                 @case('request') bg-purple-100 text-purple-700 @break
                                  @default bg-gray-100 text-gray-700
                              @endswitch">
                     {{ $activity->log_name ?? 'general' }}
@@ -534,7 +578,210 @@
                 </div>
             </div>
         @endif
+        {{-- ============================================================ --}}
+        {{-- 🆕 INFO PENGAJUAN — khusus untuk log AssetRequest --}}
+        {{-- ============================================================ --}}
+        @if ($activity->subject_type === 'App\Models\AssetRequest' && $activity->subject)
+            @php
+                $req = $activity->subject;
+            @endphp
 
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+                <!-- HEADER -->
+                <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-900">Info Pengajuan</h2>
+                        <p class="text-xs text-gray-500">Ringkasan data pengajuan</p>
+                    </div>
+                </div>
+
+                <!-- GRID INFO -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    {{-- No. Pengajuan --}}
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div class="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">No. Pengajuan</p>
+                            <p class="text-sm font-bold text-gray-900 font-mono">{{ $req->request_number }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Tipe --}}
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div
+                            class="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 text-lg">
+                            {{ $req->type_icon }}
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Tipe Pengajuan</p>
+                            <p class="text-sm font-bold text-gray-900">{{ $req->type_label }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div
+                            class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0
+                    @switch($req->status_color)
+                        @case('yellow') bg-yellow-100 @break
+                        @case('green') bg-green-100 @break
+                        @case('red') bg-red-100 @break
+                        @case('gray') bg-gray-100 @break
+                        @default bg-gray-100
+                    @endswitch">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4
+                        @switch($req->status_color)
+                            @case('yellow') text-yellow-600 @break
+                            @case('green') text-green-600 @break
+                            @case('red') text-red-600 @break
+                            @case('gray') text-gray-600 @break
+                            @default text-gray-600
+                        @endswitch"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Status</p>
+                            <p class="text-sm font-bold text-gray-900">{{ $req->status_label }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Item --}}
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Item</p>
+                            <p class="text-sm font-bold text-gray-900">{{ $req->item_name }}</p>
+                            @if ($req->asset)
+                                <p class="text-[11px] text-gray-500 font-mono mt-0.5">SN:
+                                    {{ $req->asset->serial_number }}</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Pemohon --}}
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Pemohon</p>
+                            <p class="text-sm font-bold text-gray-900">{{ $req->user?->name ?? '-' }}</p>
+                            <p class="text-[11px] text-gray-500">{{ $req->user?->email ?? '' }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Keperluan --}}
+                    @if ($req->purpose)
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                            <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Keperluan</p>
+                                <p class="text-sm text-gray-800">{{ $req->purpose }}</p>
+                            </div>
+                        </div>
+                    @endif
+
+                </div>
+
+                {{-- INFO APPROVAL / REJECTION --}}
+                @if ($req->isApproved() && $req->approved_at)
+                    <div class="mt-4 p-4 rounded-xl bg-green-50 border border-green-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-xs font-bold text-green-700 uppercase tracking-wider">Disetujui</p>
+                        </div>
+                        <p class="text-sm text-green-800">
+                            Oleh <strong>{{ $req->approvedBy?->name ?? '-' }}</strong>
+                            pada {{ $req->approved_at->format('d M Y, H:i') }}
+                            ({{ $req->approved_at->diffForHumans() }})
+                        </p>
+                        @if ($req->admin_notes)
+                            <p class="text-xs text-green-700 mt-1">📝 {{ $req->admin_notes }}</p>
+                        @endif
+                    </div>
+                @endif
+
+                @if ($req->isRejected() && $req->rejection_reason)
+                    <div class="mt-4 p-4 rounded-xl bg-red-50 border border-red-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <p class="text-xs font-bold text-red-700 uppercase tracking-wider">Ditolak</p>
+                        </div>
+                        <p class="text-sm text-red-800">
+                            Oleh <strong>{{ $req->approvedBy?->name ?? '-' }}</strong>
+                            pada {{ $req->approved_at?->format('d M Y, H:i') }}
+                        </p>
+                        <p class="text-xs text-red-700 mt-1">📝 {{ $req->rejection_reason }}</p>
+                    </div>
+                @endif
+
+                @if ($req->isCancelled())
+                    <div class="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                        <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">Dibatalkan oleh user</p>
+                    </div>
+                @endif
+
+                {{-- LINK KE DETAIL PENGAJUAN --}}
+                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                    <a href="{{ route('requests.show', $req) }}"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+                       bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm
+                       shadow-lg shadow-purple-500/30 transition
+                       hover:scale-105 active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Lihat Detail Pengajuan
+                    </a>
+                </div>
+
+            </div>
+        @endif
         <!-- SUBJECT -->
         @if ($activity->subject)
             @php

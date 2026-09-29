@@ -10,6 +10,77 @@ use Illuminate\Support\Str;
 
 class CrossQueryService
 {
+    /**
+     * 🆕 Keyword yang menandakan pesan berkaitan dengan data aset.
+     * Dipakai untuk guard guest — kalau guest tanya hal ini, wajib login.
+     */
+    private const ASSET_KEYWORDS = [
+        'aset',
+        'asset',
+        'laptop',
+        'notebook',
+        'komputer',
+        'pc',
+        'desktop',
+        'monitor',
+        'printer',
+        'scanner',
+        'server',
+        'router',
+        'switch',
+        'proyektor',
+        'projector',
+        'ups',
+        'harddisk',
+        'ssd',
+        'flashdisk',
+        'konsumable',
+        'consumable',
+        'stok',
+        'stock',
+        'atk',
+        'sn',
+        'serial',
+        'hostname',
+        'asset code',
+        'kode aset',
+        'kode barang',
+        'brand',
+        'merek',
+        'model',
+        'tipe',
+        'garansi',
+        'warranty',
+        'hak milik',
+        'sewa',
+        'lease',
+        'owned',
+        'leased',
+        'rental',
+        'pemegang',
+        'pegang',
+        'dipegang',
+        'pemakai',
+        'memakai',
+        'dipegang siapa',
+        'yang pakai',
+        'yang pegang',
+        'pinjam',
+        'peminjaman',
+        'loan',
+        'maintenance',
+        'perbaikan',
+        'servis',
+        'rusak',
+        'hilang',
+        'pensiun',
+        'retired',
+        'serah terima',
+        'assignment',
+        'di-assign',
+        'diassign',
+    ];
+
     public function tryAnswer(string $pesan): ?array
     {
         $lower = Str::lower(trim($pesan));
@@ -17,6 +88,23 @@ class CrossQueryService
         if (strlen($lower) < 5) {
             return null;
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // 🆕 GUARD: Guest yang tanya tentang aset → wajib login
+        // CrossQueryService khusus handle "siapa pegang X" — sangat sensitif.
+        // ═══════════════════════════════════════════════════════════
+        if (!auth()->check() && $this->isAssetRelated($pesan)) {
+            return [
+                "🔒 Maaf, untuk mengakses **data aset** kamu harus **login** terlebih dahulu.\n\n"
+                . "**Cara login:**\n"
+                . "1. Klik tombol **Login** di pojok kanan atas\n"
+                . "2. Masukkan username & password SIAM kamu\n"
+                . "3. Setelah login, tanyakan lagi ke saya 😊\n\n"
+                . "_Kalau belum punya akun, hubungi IT Support._",
+                'database',
+            ];
+        }
+
         if (
             $this->matchAny($lower, ['siapa']) &&
             $this->matchAny($lower, ['pegang', 'memegang', 'punya', 'memakai', 'menggunakan']) &&
@@ -33,6 +121,78 @@ class CrossQueryService
 
         return null;
     }
+
+    // ============================================================
+    // 🆕 GUARD HELPERS
+    // ============================================================
+
+    /**
+     * 🆕 Deteksi apakah pesan berkaitan dengan data aset.
+     */
+    protected function isAssetRelated(string $pesan): bool
+    {
+        $lower = Str::lower($pesan);
+
+        // 1️⃣ SN/hostname pattern (contoh: NB-T14-005, AST-2026-0001)
+        if (preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan)) {
+            return true;
+        }
+
+        // 2️⃣ Keyword aset (word-boundary)
+        foreach (self::ASSET_KEYWORDS as $kw) {
+            $pattern = '/\b' . preg_quote($kw, '/') . '\b/i';
+            if (preg_match($pattern, $lower)) {
+                return true;
+            }
+        }
+
+        // 3️⃣ Kombinasi: kata tanya + objek
+        $questionWords = [
+            'berapa',
+            'jumlah',
+            'total',
+            'daftar',
+            'list',
+            'siapa',
+            'apa saja',
+            'tampilkan',
+            'lihat',
+            'cari',
+        ];
+        $objectWords = [
+            'aset',
+            'laptop',
+            'pc',
+            'komputer',
+            'printer',
+            'monitor',
+            'konsumable',
+            'stock',
+            'stok',
+        ];
+
+        $hasQuestion = false;
+        foreach ($questionWords as $qw) {
+            if (str_contains($lower, $qw)) {
+                $hasQuestion = true;
+                break;
+            }
+        }
+
+        $hasObject = false;
+        foreach ($objectWords as $ow) {
+            if (preg_match('/\b' . preg_quote($ow, '/') . '\b/i', $lower)) {
+                $hasObject = true;
+                break;
+            }
+        }
+
+        return $hasQuestion && $hasObject;
+    }
+
+    // ============================================================
+    // EXISTING METHODS
+    // ============================================================
 
     private function whoHoldsAsset(string $pesan): array
     {

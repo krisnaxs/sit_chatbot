@@ -335,7 +335,7 @@
                             Email / Username / NIP
                         </label>
                         <input type="text" name="email" required autocomplete="username"
-                            placeholder="admin atau 10000001"
+                            placeholder="Nip atau Username Email"
                             class="w-full border rounded-xl px-3.5 py-2.5 text-sm
                                    focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                     </div>

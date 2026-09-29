@@ -16,36 +16,228 @@ use Illuminate\Support\Str;
 class ChatController extends Controller
 {
     private const STOPWORDS = [
-        'yang', 'dan', 'atau', 'di', 'ke', 'dari', 'untuk', 'pada', 'dengan',
-        'adalah', 'itu', 'ini', 'saya', 'kamu', 'anda', 'apa', 'siapa',
-        'bagaimana', 'kapan', 'dimana', 'kenapa', 'mengapa', 'apakah',
-        'dong', 'sih', 'ya', 'kah', 'lah', 'kok', 'gimana', 'gini', 'gitu',
-        'kak', 'min', 'bang', 'pak', 'bu', 'mas', 'mbak', 'bro', 'gan',
-        'tolong', 'mohon', 'bisa', 'boleh', 'mau', 'ingin', 'pengen', 'coba',
-        'saja', 'aja', 'juga', 'sudah', 'udah', 'belum', 'lagi', 'versi',
-        'nya', 'tuh', 'deh', 'kami', 'kita', 'mereka',
+        'yang',
+        'dan',
+        'atau',
+        'di',
+        'ke',
+        'dari',
+        'untuk',
+        'pada',
+        'dengan',
+        'adalah',
+        'itu',
+        'ini',
+        'saya',
+        'kamu',
+        'anda',
+        'apa',
+        'siapa',
+        'bagaimana',
+        'kapan',
+        'dimana',
+        'kenapa',
+        'mengapa',
+        'apakah',
+        'dong',
+        'sih',
+        'ya',
+        'kah',
+        'lah',
+        'kok',
+        'gimana',
+        'gini',
+        'gitu',
+        'kak',
+        'min',
+        'bang',
+        'pak',
+        'bu',
+        'mas',
+        'mbak',
+        'bro',
+        'gan',
+        'tolong',
+        'mohon',
+        'bisa',
+        'boleh',
+        'mau',
+        'ingin',
+        'pengen',
+        'coba',
+        'saja',
+        'aja',
+        'juga',
+        'sudah',
+        'udah',
+        'belum',
+        'lagi',
+        'versi',
+        'nya',
+        'tuh',
+        'deh',
+        'kami',
+        'kita',
+        'mereka',
     ];
 
     private const QUESTION_WORDS = [
-        'berapa', 'apa', 'siapa', 'kapan', 'dimana', 'mana', 'jenis', 'tipe',
-        'type', 'kategori', 'merk', 'merek', 'brand', 'terbanyak', 'paling',
-        'top', 'tertinggi', 'terbesar', 'terendah', 'tersedikit', 'statistik',
-        'summary', 'rekap', 'total', 'jumlah', 'nilai', 'harga', 'distribusi',
+        'berapa',
+        'apa',
+        'siapa',
+        'kapan',
+        'dimana',
+        'mana',
+        'jenis',
+        'tipe',
+        'type',
+        'kategori',
+        'merk',
+        'merek',
+        'brand',
+        'terbanyak',
+        'paling',
+        'top',
+        'tertinggi',
+        'terbesar',
+        'terendah',
+        'tersedikit',
+        'statistik',
+        'summary',
+        'rekap',
+        'total',
+        'jumlah',
+        'nilai',
+        'harga',
+        'distribusi',
     ];
 
     private const FOLLOWUP_KEYWORDS = [
-        'lanjut', 'selanjutnya', 'next', 'sisanya', 'berikutnya', 'yang lainnya',
-        'yang lain', 'lainnya', 'yang itu', 'yang tadi', 'yang td',
-        'yang barusan', 'detailnya', 'hak milik', 'milik', 'sewa', 'owned',
-        'leased', 'nya', 'sn', 'serial', 'hostname', 'kode aset', 'asset code',
-        'detail', 'info', 'lengkap', 'jelaskan', 'dia', 'beliau', 'orang itu',
-        'itu', 'tadi', 'pegang', 'dipegang', 'pemegang', 'yang pakai',
+        'lanjut',
+        'selanjutnya',
+        'next',
+        'sisanya',
+        'berikutnya',
+        'yang lainnya',
+        'yang lain',
+        'lainnya',
+        'yang itu',
+        'yang tadi',
+        'yang td',
+        'yang barusan',
+        'detailnya',
+        'hak milik',
+        'milik',
+        'sewa',
+        'owned',
+        'leased',
+        'nya',
+        'sn',
+        'serial',
+        'hostname',
+        'kode aset',
+        'asset code',
+        'detail',
+        'info',
+        'lengkap',
+        'jelaskan',
+        'dia',
+        'beliau',
+        'orang itu',
+        'itu',
+        'tadi',
+        'pegang',
+        'dipegang',
+        'pemegang',
+        'yang pakai',
     ];
 
     private const CONTEXT_TTL = 30;
     private const INTENT_CACHE_TTL = 3600;
     private const INTENT_TIMEOUT = 8;
     private const QA_TIMEOUT = 60;
+
+    /**
+     * 🆕 Keyword yang menandakan pesan berkaitan dengan data aset.
+     * Dipakai untuk guard guest.
+     */
+    private const ASSET_KEYWORDS = [
+        // Aset fisik
+        'aset',
+        'asset',
+        'laptop',
+        'notebook',
+        'komputer',
+        'pc',
+        'desktop',
+        'monitor',
+        'printer',
+        'scanner',
+        'server',
+        'router',
+        'switch',
+        'proyektor',
+        'projector',
+        'ups',
+        'harddisk',
+        'ssd',
+        'flashdisk',
+        // Konsumable
+        'konsumable',
+        'consumable',
+        'stok',
+        'stock',
+        'atk',
+        // Field aset
+        'sn',
+        'serial',
+        'hostname',
+        'asset code',
+        'kode aset',
+        'kode barang',
+        'brand',
+        'merek',
+        'model',
+        'tipe',
+        'garansi',
+        'warranty',
+        // Ownership
+        'hak milik',
+        'sewa',
+        'lease',
+        'owned',
+        'leased',
+        'rental',
+        // Pemegang
+        'pemegang',
+        'pegang',
+        'dipegang',
+        'pemakai',
+        'memakai',
+        'dipegang siapa',
+        'yang pakai',
+        'yang pegang',
+        // Aksi pada aset
+        'pinjam',
+        'peminjaman',
+        'loan',
+        'maintenance',
+        'perbaikan',
+        'servis',
+        'rusak',
+        'hilang',
+        'pensiun',
+        'retired',
+        // Lokasi
+        'lokasi aset',
+        'ruangan aset',
+        'gedung aset',
+        // Assignment
+        'serah terima',
+        'assignment',
+        'di-assign',
+        'diassign',
+    ];
 
     public function index(Request $request)
     {
@@ -77,14 +269,41 @@ class ChatController extends Controller
             'request_id' => $requestId,
             'session_id' => $sessionId,
             'pesan_len' => strlen($pesan),
+            'user_id' => auth()->id(),
+            'is_guest' => !auth()->check(),
         ]);
 
-        if ($this->isWriteIntent($pesan)) {
+        // ═══════════════════════════════════════════════════════════
+        // 🆕 GUARD 0: Guest yang tanya tentang aset → wajib login
+        // ═══════════════════════════════════════════════════════════
+        if (!auth()->check() && $this->isAssetQuery($pesan)) {
+            $jawaban = "🔒 Maaf, untuk mengakses **data aset** kamu harus **login** terlebih dahulu.\n\n"
+                . "**Cara login:**\n"
+                . "1. Klik tombol **Login** di pojok kanan atas\n"
+                . "2. Masukkan username & password SIAM kamu\n"
+                . "3. Setelah login, tanyakan lagi ke saya 😊\n\n"
+                . "_Kalau belum punya akun, hubungi IT Support._";
+            $sumber = 'auth_guard';
+            $file = null;
+
+            Log::info('chat.send.guest_blocked', [
+                'request_id' => $requestId,
+                'pesan' => $pesan,
+            ]);
+        }
+        // ═══════════════════════════════════════════════════════════
+        // GUARD 1: Tolak intent tulis (hapus, ubah, tambah)
+        // ═══════════════════════════════════════════════════════════
+        elseif ($this->isWriteIntent($pesan)) {
             $jawaban = '🔒 Maaf, saya hanya bisa **membaca** data. '
                 . 'Untuk mengubah data, silakan gunakan menu **Aset Management** di SIAM.';
             $sumber = 'readonly_guard';
             $file = null;
-        } else {
+        }
+        // ═══════════════════════════════════════════════════════════
+        // FLOW NORMAL
+        // ═══════════════════════════════════════════════════════════
+        else {
             $followUp = $this->handleFollowUp($pesan, $request, $memory);
 
             if ($followUp) {
@@ -138,6 +357,57 @@ class ChatController extends Controller
         ]);
     }
 
+    // ============================================================
+    // 🆕 GUARD HELPERS
+    // ============================================================
+
+    /**
+     * 🆕 Deteksi apakah pesan berkaitan dengan data aset.
+     * Dipakai untuk memblokir guest sebelum menyentuh database.
+     */
+    private function isAssetQuery(string $pesan): bool
+    {
+        $lower = Str::lower($pesan);
+
+        // 1️⃣ SN/hostname pattern (contoh: NB-T14-005, AST-2026-0001)
+        if (preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan)) {
+            return true;
+        }
+
+        // 2️⃣ Keyword aset (word-boundary)
+        foreach (self::ASSET_KEYWORDS as $kw) {
+            $pattern = '/\b' . preg_quote($kw, '/') . '\b/i';
+            if (preg_match($pattern, $lower)) {
+                return true;
+            }
+        }
+
+        // 3️⃣ Kombinasi: kata tanya + objek
+        $questionWords = ['berapa', 'jumlah', 'total', 'daftar', 'list', 'siapa', 'apa saja', 'tampilkan', 'lihat', 'cari'];
+        $objectWords = ['aset', 'laptop', 'pc', 'komputer', 'printer', 'monitor', 'konsumable', 'stock', 'stok'];
+
+        $hasQuestion = false;
+        foreach ($questionWords as $qw) {
+            if (str_contains($lower, $qw)) {
+                $hasQuestion = true;
+                break;
+            }
+        }
+
+        $hasObject = false;
+        foreach ($objectWords as $ow) {
+            if (preg_match('/\b' . preg_quote($ow, '/') . '\b/i', $lower)) {
+                $hasObject = true;
+                break;
+            }
+        }
+
+        return $hasQuestion && $hasObject;
+    }
+
+    /**
+     * Deteksi intent tulis (hapus, ubah, tambah).
+     */
     private function isWriteIntent(string $pesan): bool
     {
         $lower = Str::lower($pesan);
@@ -215,7 +485,8 @@ class ChatController extends Controller
         // PRIORITAS 4: Question words → bukan follow-up (kecuali ada field)
         foreach (self::QUESTION_WORDS as $qw) {
             if (str_contains($lower, $qw)) {
-                if ($field) break;
+                if ($field)
+                    break;
                 return null;
             }
         }
@@ -459,7 +730,8 @@ class ChatController extends Controller
 
         for ($i = 0; $i < count($words) - 1; $i++) {
             $kandidat = $words[$i] . ' ' . $words[$i + 1];
-            if (strlen($kandidat) < 5) continue;
+            if (strlen($kandidat) < 5)
+                continue;
 
             if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
                 return true;
@@ -749,9 +1021,12 @@ class ChatController extends Controller
 
     private function formatSpec($spec): string
     {
-        if (!$spec) return '-';
-        if (is_string($spec)) $spec = json_decode($spec, true);
-        if (!is_array($spec) || empty($spec)) return '-';
+        if (!$spec)
+            return '-';
+        if (is_string($spec))
+            $spec = json_decode($spec, true);
+        if (!is_array($spec) || empty($spec))
+            return '-';
 
         $lines = [];
         foreach ($spec as $k => $v) {
@@ -1436,7 +1711,8 @@ class ChatController extends Controller
             $words = preg_split('/\s+/', $pesan);
             for ($i = 0; $i < count($words) - 1; $i++) {
                 $kandidat = $words[$i] . ' ' . $words[$i + 1];
-                if (strlen($kandidat) < 5) continue;
+                if (strlen($kandidat) < 5)
+                    continue;
                 if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
                     $userName = $kandidat;
                     break;
@@ -1446,7 +1722,8 @@ class ChatController extends Controller
 
         if (!$userName) {
             foreach (preg_split('/\s+/', $pesan) as $word) {
-                if (strlen($word) < 4) continue;
+                if (strlen($word) < 4)
+                    continue;
                 if (in_array(strtolower($word), ['yang', 'aset', 'laptop', 'pegang', 'punya', 'pakai', 'siapa', 'pinjam'], true)) {
                     continue;
                 }
@@ -1636,7 +1913,8 @@ class ChatController extends Controller
 
         foreach (preg_split('/\s+/', $pesan) as $word) {
             $clean = preg_replace('/[^\p{L}\p{N}]/u', '', $word);
-            if (strlen($clean) < 4) continue;
+            if (strlen($clean) < 4)
+                continue;
             if (in_array(strtolower($clean), ['kalau', 'nya', 'yang', 'dan', 'atau', 'untuk', 'apa', 'siapa'], true)) {
                 continue;
             }
@@ -1658,14 +1936,16 @@ class ChatController extends Controller
 
         $q = \App\Models\Asset::with('category');
 
-        if ($status) $q->where('status', $status);
+        if ($status)
+            $q->where('status', $status);
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
                     ->orWhere('model', 'like', "%{$category}%");
             });
         }
-        if ($brand) $q->where('brand', 'like', "%{$brand}%");
+        if ($brand)
+            $q->where('brand', 'like', "%{$brand}%");
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
@@ -1681,7 +1961,8 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** aset:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname) $jawaban .= " ({$a->hostname})";
+            if ($a->hostname)
+                $jawaban .= " ({$a->hostname})";
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
@@ -1708,14 +1989,16 @@ class ChatController extends Controller
 
         $q = \App\Models\Asset::with('category');
 
-        if ($ownership) $q->where('ownership_type', $ownership);
+        if ($ownership)
+            $q->where('ownership_type', $ownership);
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
                     ->orWhere('model', 'like', "%{$category}%");
             });
         }
-        if ($brand) $q->where('brand', 'like', "%{$brand}%");
+        if ($brand)
+            $q->where('brand', 'like', "%{$brand}%");
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
@@ -1731,7 +2014,8 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** aset:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname) $jawaban .= " ({$a->hostname})";
+            if ($a->hostname)
+                $jawaban .= " ({$a->hostname})";
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
@@ -1845,7 +2129,8 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** peminjaman aktif:\n\n";
         foreach ($items as $l) {
             $jawaban .= "• {$l->asset?->serial_number} — {$l->user?->name}";
-            if ($l->due_date) $jawaban .= " (jatuh tempo {$l->due_date->format('d M Y')})";
+            if ($l->due_date)
+                $jawaban .= " (jatuh tempo {$l->due_date->format('d M Y')})";
             $jawaban .= "\n";
         }
 
@@ -1884,7 +2169,8 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** serah terima aktif:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->asset?->serial_number}";
-            if ($a->asset?->hostname) $jawaban .= " ({$a->asset->hostname})";
+            if ($a->asset?->hostname)
+                $jawaban .= " ({$a->asset->hostname})";
             $jawaban .= " — {$a->user?->name}\n";
         }
 
@@ -2048,14 +2334,16 @@ class ChatController extends Controller
 
     private function pickBestMatch($candidates, string $pesanBersih): ?Knowledge
     {
-        if ($candidates->isEmpty()) return null;
+        if ($candidates->isEmpty())
+            return null;
 
         $pesanWords = collect(explode(' ', $pesanBersih))
             ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
             ->values()
             ->all();
 
-        if (empty($pesanWords)) return null;
+        if (empty($pesanWords))
+            return null;
 
         $best = null;
         $bestScore = 0;
@@ -2067,7 +2355,8 @@ class ChatController extends Controller
                 ->values()
                 ->all();
 
-            if (empty($keyWords)) continue;
+            if (empty($keyWords))
+                continue;
 
             $matched = 0;
             foreach ($pesanWords as $pw) {
@@ -2100,7 +2389,8 @@ class ChatController extends Controller
 
     private function extractFile(Knowledge $knowledge): ?array
     {
-        if (!$knowledge->file_path) return null;
+        if (!$knowledge->file_path)
+            return null;
 
         return [
             'path' => $knowledge->file_path,
@@ -2113,7 +2403,8 @@ class ChatController extends Controller
     private function matchAny(string $haystack, array $needles): bool
     {
         foreach ($needles as $n) {
-            if (str_contains($haystack, $n)) return true;
+            if (str_contains($haystack, $n))
+                return true;
         }
         return false;
     }

@@ -405,8 +405,8 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-1.5">
                             Email / Username / NIP
                         </label>
-                        <input type="text" name="email" required
-                            placeholder="admin atau admin@admin.com atau 10000001" autocomplete="username"
+                        <input type="text" name="email" required placeholder="Nip atau Username Email"
+                            autocomplete="username"
                             class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5
                                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                         <p class="text-[11px] text-gray-400 mt-1">
