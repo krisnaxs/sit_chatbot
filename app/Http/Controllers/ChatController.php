@@ -8,6 +8,7 @@ use App\Models\PendingKnowledge;
 use App\Services\AutoLearningService;
 use App\Services\ChatMemoryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -15,143 +16,36 @@ use Illuminate\Support\Str;
 class ChatController extends Controller
 {
     private const STOPWORDS = [
-        'yang',
-        'dan',
-        'atau',
-        'di',
-        'ke',
-        'dari',
-        'untuk',
-        'pada',
-        'dengan',
-        'adalah',
-        'itu',
-        'ini',
-        'saya',
-        'kamu',
-        'anda',
-        'apa',
-        'siapa',
-        'bagaimana',
-        'kapan',
-        'dimana',
-        'kenapa',
-        'mengapa',
-        'apakah',
-        'dong',
-        'sih',
-        'ya',
-        'kah',
-        'lah',
-        'kok',
-        'gimana',
-        'gini',
-        'gitu',
-        'kak',
-        'min',
-        'bang',
-        'pak',
-        'bu',
-        'mas',
-        'mbak',
-        'bro',
-        'gan',
-        'tolong',
-        'mohon',
-        'bisa',
-        'boleh',
-        'mau',
-        'ingin',
-        'pengen',
-        'coba',
-        'saja',
-        'aja',
-        'juga',
-        'sudah',
-        'udah',
-        'belum',
-        'lagi',
-        'versi',
-        'nya',
-        'tuh',
-        'deh',
-        'kami',
-        'kita',
-        'mereka',
+        'yang', 'dan', 'atau', 'di', 'ke', 'dari', 'untuk', 'pada', 'dengan',
+        'adalah', 'itu', 'ini', 'saya', 'kamu', 'anda', 'apa', 'siapa',
+        'bagaimana', 'kapan', 'dimana', 'kenapa', 'mengapa', 'apakah',
+        'dong', 'sih', 'ya', 'kah', 'lah', 'kok', 'gimana', 'gini', 'gitu',
+        'kak', 'min', 'bang', 'pak', 'bu', 'mas', 'mbak', 'bro', 'gan',
+        'tolong', 'mohon', 'bisa', 'boleh', 'mau', 'ingin', 'pengen', 'coba',
+        'saja', 'aja', 'juga', 'sudah', 'udah', 'belum', 'lagi', 'versi',
+        'nya', 'tuh', 'deh', 'kami', 'kita', 'mereka',
     ];
 
     private const QUESTION_WORDS = [
-        'berapa',
-        'apa',
-        'siapa',
-        'kapan',
-        'dimana',
-        'mana',
-        'jenis',
-        'tipe',
-        'type',
-        'kategori',
-        'merk',
-        'merek',
-        'brand',
-        'terbanyak',
-        'paling',
-        'top',
-        'tertinggi',
-        'terbesar',
-        'terendah',
-        'tersedikit',
-        'statistik',
-        'summary',
-        'rekap',
-        'total',
-        'jumlah',
-        'nilai',
-        'harga',
-        'distribusi',
+        'berapa', 'apa', 'siapa', 'kapan', 'dimana', 'mana', 'jenis', 'tipe',
+        'type', 'kategori', 'merk', 'merek', 'brand', 'terbanyak', 'paling',
+        'top', 'tertinggi', 'terbesar', 'terendah', 'tersedikit', 'statistik',
+        'summary', 'rekap', 'total', 'jumlah', 'nilai', 'harga', 'distribusi',
     ];
 
     private const FOLLOWUP_KEYWORDS = [
-        'lanjut',
-        'selanjutnya',
-        'next',
-        'sisanya',
-        'berikutnya',
-        'yang lainnya',
-        'yang lain',
-        'lainnya',
-        'yang itu',
-        'yang tadi',
-        'yang td',
-        'yang barusan',
-        'detailnya',
-        'hak milik',
-        'milik',
-        'sewa',
-        'owned',
-        'leased',
-        'nya',
-        'sn',
-        'serial',
-        'hostname',
-        'kode aset',
-        'asset code',
-        'detail',
-        'info',
-        'lengkap',
-        'jelaskan',
-        'dia',
-        'beliau',
-        'orang itu',
-        'itu',
-        'tadi',
-        'pegang',
-        'dipegang',
-        'pemegang',
-        'yang pakai',
+        'lanjut', 'selanjutnya', 'next', 'sisanya', 'berikutnya', 'yang lainnya',
+        'yang lain', 'lainnya', 'yang itu', 'yang tadi', 'yang td',
+        'yang barusan', 'detailnya', 'hak milik', 'milik', 'sewa', 'owned',
+        'leased', 'nya', 'sn', 'serial', 'hostname', 'kode aset', 'asset code',
+        'detail', 'info', 'lengkap', 'jelaskan', 'dia', 'beliau', 'orang itu',
+        'itu', 'tadi', 'pegang', 'dipegang', 'pemegang', 'yang pakai',
     ];
 
     private const CONTEXT_TTL = 30;
+    private const INTENT_CACHE_TTL = 3600;
+    private const INTENT_TIMEOUT = 8;
+    private const QA_TIMEOUT = 60;
 
     public function index(Request $request)
     {
@@ -175,10 +69,16 @@ class ChatController extends Controller
 
         $pesan = trim($request->input('pesan'));
         $sessionId = $request->session()->getId();
+        $requestId = (string) Str::uuid();
 
         $memory = new ChatMemoryService($sessionId);
 
-        // 🛡️ Guard: tolak intent tulis
+        Log::info('chat.send.start', [
+            'request_id' => $requestId,
+            'session_id' => $sessionId,
+            'pesan_len' => strlen($pesan),
+        ]);
+
         if ($this->isWriteIntent($pesan)) {
             $jawaban = '🔒 Maaf, saya hanya bisa **membaca** data. '
                 . 'Untuk mengubah data, silakan gunakan menu **Aset Management** di SIAM.';
@@ -191,7 +91,7 @@ class ChatController extends Controller
                 [$jawaban, $sumber] = $followUp;
                 $file = null;
             } else {
-                [$jawaban, $sumber, $file] = $this->cariJawaban($pesan, $memory);
+                [$jawaban, $sumber, $file] = $this->cariJawaban($pesan, $memory, $requestId);
             }
         }
 
@@ -222,6 +122,12 @@ class ChatController extends Controller
             ];
         }
 
+        Log::info('chat.send.done', [
+            'request_id' => $requestId,
+            'sumber' => $sumber,
+            'jawaban_len' => strlen($jawaban),
+        ]);
+
         return response()->json([
             'status' => 'ok',
             'pesan' => $chat->pesan,
@@ -242,6 +148,10 @@ class ChatController extends Controller
         );
     }
 
+    // ============================================================
+    // FOLLOW-UP HANDLER
+    // ============================================================
+
     private function handleFollowUp(string $pesan, Request $request, ChatMemoryService $memory): ?array
     {
         $lower = Str::lower(trim($pesan));
@@ -249,60 +159,22 @@ class ChatController extends Controller
         // PRIORITAS 0: User + "pegang/punya/pakai"
         $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
         if ($userAssetsByName) {
+            if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
+                $memory->remember('user_assets', $userAssetsByName[2], self::CONTEXT_TTL);
+            }
             return $userAssetsByName;
         }
 
         // PRIORITAS 1: SN/hostname BARU di pesan
-        if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
-            $identifier = strtoupper($m[1]);
-            $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang'];
-
-            if (!in_array(strtolower($identifier), $blacklist, true)) {
-                $asset = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
-                    ->where(function ($q) use ($identifier) {
-                        $q->where('hostname', 'like', "%{$identifier}%")
-                            ->orWhere('serial_number', 'like', "%{$identifier}%")
-                            ->orWhere('asset_code', 'like', "%{$identifier}%");
-                    })
-                    ->first();
-
-                if ($asset) {
-                    $memory->remember('asset', [
-                        'asset_id' => $asset->id,
-                        'serial_number' => $asset->serial_number,
-                        'hostname' => $asset->hostname,
-                    ], 30, "Aset {$asset->hostname}");
-
-                    if ($this->matchAny($lower, ['siapa', 'pegang', 'memegang', 'pakai', 'gunakan', 'dipegang', 'pemakai', 'pemegang', 'yang pakai'])) {
-                        return $this->answerWhoHoldsAsset($asset, $memory);
-                    }
-
-                    $field = $this->detectFieldQuery($lower);
-                    if ($field) {
-                        return $this->answerAssetField($asset->id, $field, $memory);
-                    }
-
-                    return $this->answerAssetShort($asset, $memory);
-                }
-            }
+        $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
+        if ($snAnswer) {
+            return $snAnswer;
         }
 
         // PRIORITAS 2: Field query dari memory asset terakhir
         $field = $this->detectFieldQuery($lower);
         if ($field) {
-            // 🆕 Skip kalau ada nama user di pesan
-            $hasUserNameInMessage = false;
-            $cleanPesan = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $pesan);
-            $words = explode(' ', $cleanPesan);
-            for ($i = 0; $i < count($words) - 1; $i++) {
-                $kandidat = $words[$i] . ' ' . $words[$i + 1];
-                if (strlen($kandidat) < 5)
-                    continue;
-                if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
-                    $hasUserNameInMessage = true;
-                    break;
-                }
-            }
+            $hasUserNameInMessage = $this->detectUserNameInMessage($pesan);
 
             if (!$hasUserNameInMessage) {
                 $lastAsset = $memory->recall('asset');
@@ -310,7 +182,6 @@ class ChatController extends Controller
                     return $this->answerAssetField((int) $lastAsset['asset_id'], $field, $memory);
                 }
 
-                // Fallback: cek context user_assets
                 $userCtx = $memory->recall('user_assets');
                 if ($userCtx && isset($userCtx['asset_id'])) {
                     return $this->answerAssetField((int) $userCtx['asset_id'], $field, $memory);
@@ -335,18 +206,16 @@ class ChatController extends Controller
             return $this->followUpTopAssetByModel($ctxTopAsset, 0, 10, $memory);
         }
 
-        // 🆕 PRIORITAS 3.6: "kalau dewi" / "dewi" — panggil user + asetnya
+        // PRIORITAS 3.6: Implicit user
         $implicitUser = $this->tryAnswerImplicitUser($pesan, $memory);
         if ($implicitUser) {
             return $implicitUser;
         }
 
-        // PRIORITAS 4: Question words → bukan follow-up
+        // PRIORITAS 4: Question words → bukan follow-up (kecuali ada field)
         foreach (self::QUESTION_WORDS as $qw) {
             if (str_contains($lower, $qw)) {
-                if ($field) {
-                    break;
-                }
+                if ($field) break;
                 return null;
             }
         }
@@ -381,8 +250,7 @@ class ChatController extends Controller
         return match ($type) {
             'top_asset_by_model' => $this->followUpTopAssetByModel($ctx, $offset, $limit, $memory),
             'user_assets' => $this->followUpUserAssets($ctx, $offset, $limit, $memory),
-            'asset_by_status',
-            'list_asset_by_status' => $this->followUpAssetByStatus($ctx, $offset, $limit, $memory),
+            'asset_by_status', 'list_asset_by_status' => $this->followUpAssetByStatus($ctx, $offset, $limit, $memory),
             'asset_by_ownership' => $this->followUpAssetByOwnership($ctx, $offset, $limit, $memory),
             'low_stock_consumable' => $this->followUpLowStockConsumable($ctx, $offset, $limit, $memory),
             'overdue_loans' => $this->followUpOverdueLoans($ctx, $offset, $limit, $memory),
@@ -391,6 +259,252 @@ class ChatController extends Controller
             default => null,
         };
     }
+
+    // ============================================================
+    // CORE: CARI JAWABAN
+    // ============================================================
+
+    private function cariJawaban(string $pesan, ChatMemoryService $memory, string $requestId): array
+    {
+        // 1️⃣ SN/hostname regex
+        $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
+        if ($snAnswer) {
+            return $snAnswer;
+        }
+
+        // 2️⃣ User + field spesifik
+        $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
+        if ($userAssetAnswer) {
+            return $userAssetAnswer;
+        }
+
+        // 3️⃣ User + "pegang apa"
+        $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
+        if ($userAssetsByName) {
+            if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
+                $memory->remember('user_assets', $userAssetsByName[2], self::CONTEXT_TTL);
+            }
+            return $userAssetsByName;
+        }
+
+        // 4️⃣ OLLAMA INTENT PARSER
+        $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
+        if ($intentResult) {
+            return $intentResult;
+        }
+
+        // 5️⃣ QueryRouter regex fallback
+        try {
+            $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
+            if ($dbAnswer) {
+                if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
+                    session()->put('last_query_context', $dbAnswer[2]);
+                    $type = $dbAnswer[2]['type'] ?? 'query';
+                    $memory->remember($type, $dbAnswer[2], self::CONTEXT_TTL);
+                }
+                return [$dbAnswer[0], 'database', null];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('QueryRouter error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // 6️⃣ AutoLearning
+        $learning = null;
+        try {
+            $learning = app(AutoLearningService::class);
+            $learned = $learning->findAnswer($pesan);
+
+            if ($learned) {
+                $learned->increment('frequency');
+                return [$learned->answer, 'learned', null];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('AutoLearning findAnswer error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
+            $learning = app(AutoLearningService::class);
+        }
+
+        // 7️⃣ Knowledge
+        $knowledgeAnswer = $this->tryKnowledge($pesan);
+        if ($knowledgeAnswer) {
+            return $knowledgeAnswer;
+        }
+
+        // 8️⃣ Ollama Q&A fallback
+        $jawaban = $this->tanyaOllama($pesan);
+
+        if (strlen($jawaban) >= 50 && !str_contains($jawaban, 'Maaf,') && $learning) {
+            try {
+                $learning->process($pesan, $jawaban, 'ai');
+            } catch (\Throwable $e) {
+                Log::warning('AutoLearning process error', [
+                    'request_id' => $requestId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return [$jawaban, 'ai', null];
+    }
+
+    private function tryOllamaIntent(string $pesan, ChatMemoryService $memory, string $requestId): ?array
+    {
+        $cacheKey = 'intent:v2:' . md5(Str::lower(trim($pesan)));
+
+        try {
+            $intent = Cache::remember($cacheKey, self::INTENT_CACHE_TTL, function () use ($pesan) {
+                return app(\App\Services\Ai\OllamaIntentParser::class)->parse($pesan);
+            });
+        } catch (\Throwable $e) {
+            Log::warning('OllamaIntentParser error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        if (!$intent || ($intent['intent'] ?? 'other') === 'other') {
+            return null;
+        }
+
+        try {
+            $result = app(\App\Services\Ai\IntentExecutor::class)->execute($intent);
+        } catch (\Throwable $e) {
+            Log::warning('IntentExecutor error', [
+                'request_id' => $requestId,
+                'intent' => $intent['intent'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        if (!$result || !isset($result['answer'])) {
+            return null;
+        }
+
+        // Simpan context ke memory biar follow-up jalan
+        if (isset($result['context']) && is_array($result['context'])) {
+            $type = $result['context']['type'] ?? ($intent['intent'] ?? 'intent');
+            $memory->remember($type, $result['context'], self::CONTEXT_TTL);
+
+            $memory->remember('last_intent', [
+                'type' => $type,
+                'intent_name' => $intent['intent'] ?? null,
+                'time' => now()->toDateTimeString(),
+            ], self::CONTEXT_TTL);
+        }
+
+        Log::info('intent.executed', [
+            'request_id' => $requestId,
+            'intent' => $intent['intent'] ?? null,
+            'has_context' => isset($result['context']),
+        ]);
+
+        return [$result['answer'], 'database', null];
+    }
+
+    private function tryAnswerBySnPattern(string $pesan, ChatMemoryService $memory): ?array
+    {
+        if (!preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
+            return null;
+        }
+
+        $identifier = strtoupper($m[1]);
+        $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang'];
+
+        if (in_array(strtolower($identifier), $blacklist, true)) {
+            return null;
+        }
+
+        $asset = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
+            ->where(function ($q) use ($identifier) {
+                $q->where('hostname', 'like', "%{$identifier}%")
+                    ->orWhere('serial_number', 'like', "%{$identifier}%")
+                    ->orWhere('asset_code', 'like', "%{$identifier}%");
+            })
+            ->first();
+
+        if (!$asset) {
+            return null;
+        }
+
+        $memory->remember('asset', [
+            'asset_id' => $asset->id,
+            'serial_number' => $asset->serial_number,
+            'hostname' => $asset->hostname,
+        ], self::CONTEXT_TTL, "Aset {$asset->hostname}");
+
+        $lower = Str::lower($pesan);
+        if ($this->matchAny($lower, ['siapa', 'pegang', 'memegang', 'pakai', 'gunakan', 'dipegang', 'pemakai', 'pemegang', 'yang pakai'])) {
+            return $this->answerWhoHoldsAsset($asset, $memory);
+        }
+
+        $field = $this->detectFieldQuery($lower);
+        if ($field) {
+            return $this->answerAssetField($asset->id, $field, $memory);
+        }
+
+        return $this->answerAssetShort($asset, $memory);
+    }
+
+    private function detectUserNameInMessage(string $pesan): bool
+    {
+        $cleanPesan = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $pesan);
+        $words = explode(' ', $cleanPesan);
+
+        for ($i = 0; $i < count($words) - 1; $i++) {
+            $kandidat = $words[$i] . ' ' . $words[$i + 1];
+            if (strlen($kandidat) < 5) continue;
+
+            if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function tryKnowledge(string $pesan): ?array
+    {
+        $pesanBersih = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($pesan));
+        $pesanBersih = preg_replace('/\s+/', ' ', trim($pesanBersih));
+
+        if (empty($pesanBersih)) {
+            return null;
+        }
+
+        $knowledge = Knowledge::whereRaw('LOWER(kata_kunci) = ?', [$pesanBersih])->first();
+
+        if ($knowledge) {
+            return [
+                $knowledge->jawaban,
+                'database',
+                $this->extractFile($knowledge),
+            ];
+        }
+
+        $candidates = Knowledge::search($pesanBersih)->take(20)->get();
+        $best = $this->pickBestMatch($candidates, $pesanBersih);
+
+        if ($best) {
+            return [
+                $best->jawaban,
+                'database',
+                $this->extractFile($best),
+            ];
+        }
+
+        return null;
+    }
+
+    // ============================================================
+    // FOLLOW-UP METHOD IMPLEMENTATIONS
+    // ============================================================
 
     private function followUpTopAssetByModel(array $ctx, int $offset, int $limit, ChatMemoryService $memory): ?array
     {
@@ -484,7 +598,7 @@ class ChatController extends Controller
                     'asset_id' => $asset->id,
                     'serial_number' => $asset->serial_number,
                     'hostname' => $asset->hostname,
-                ], 30, "Aset {$asset->hostname}");
+                ], self::CONTEXT_TTL, "Aset {$asset->hostname}");
 
                 return [$jawaban, 'database'];
             }
@@ -528,29 +642,17 @@ class ChatController extends Controller
             'spec' => ['spek', 'spesifikasi', 'spec', 'ram', 'prosesor', 'processor', 'ssd', 'harddisk', 'hdd', 'vga', 'jeroan', 'dapur pacu'],
             'os' => ['os', 'sistem operasi', 'windows', 'linux', 'mac', 'macos', 'ubuntu', 'operating system', 'win 10', 'win 11'],
             'garansi' => ['garansi', 'warranty', 'masa garansi', 'expired garansi', 'garansi sampai kapan', 'abis garansi'],
-            'tanggal_beli' => [
-                'tanggal beli',
-                'tanggal pembelian',
-                'kapan dibeli',
-                'tgl beli',
-                'kapan pengadaan',
-                'nota beli',
-                'tgl pengadaan',
-                'tanggal berapa',
-                'dari tanggal',
-                'tanggal',
-                'tgl',
-            ],
+            'tanggal_beli' => ['tanggal beli', 'tanggal pembelian', 'kapan dibeli', 'tgl beli', 'kapan pengadaan', 'nota beli', 'tgl pengadaan', 'tanggal berapa', 'dari tanggal', 'tanggal', 'tgl'],
             'tahun_beli' => ['tahun beli', 'tahun pembelian', 'tahun pengadaan', 'tahun berapa beli', 'tahun berapa dibeli', 'beli tahun berapa', 'tahun perolehan', 'dibeli tahun', 'dibeli kapan'],
             'full' => ['detail lengkap', 'semua info', 'info lengkap', 'full detail', 'semuanya', 'tampilkan semua', 'all info', 'selengkapnya', 'profil aset'],
-            'assigned_at' => ['sejak kapan', 'semenjak kapan', 'semenjak', 'dari kapan', 'kapan dipegang', 'mulai kapan', 'kapan di-assign', 'kapan diassign', 'kapan dipegang', 'sejak dipegang', 'dari dipegang', 'kapan mulai', 'sejak kapan dipegang', 'semenjak kapan dipegang', 'tgl serah terima', 'kapan dikasih ke', 'mulai pakai'],
+            'assigned_at' => ['sejak kapan', 'semenjak kapan', 'semenjak', 'dari kapan', 'kapan dipegang', 'mulai kapan', 'kapan di-assign', 'kapan diassign', 'sejak dipegang', 'dari dipegang', 'kapan mulai', 'tgl serah terima', 'kapan dikasih ke', 'mulai pakai'],
             'returned_at' => ['kapan dikembalikan', 'kapan selesai', 'kapan return', 'kapan kembali', 'tgl pengembalian', 'kapan dibalikin', 'dibalikin kapan'],
             'riwayat' => ['riwayat lengkap', 'riwayat aset', 'history lengkap', 'history aset', 'rekam jejak', 'log aset', 'jurnal aset'],
             'semua_pemegang' => ['siapa saja yang pernah pegang', 'siapa aja yang pernah pegang', 'pernah dipegang siapa', 'daftar pemegang', 'semua pemegang', 'mantan pemegang', 'siapa aja usernya', 'list user', 'user terdahulu', 'siapa aja yang pernah pakai'],
             'durasi' => ['berapa lama dipegang', 'berapa lama dipakai', 'sudah berapa lama dipegang', 'lama dipegang', 'durasi pakai', 'lama pemakaian', 'berapa bulan dipakai', 'berapa tahun dipakai'],
             'loan_info' => ['kapan dipinjam', 'sedang dipinjam siapa', 'siapa yang minjam', 'siapa yang meminjam', 'dipinjam ke siapa', 'status pinjam', 'lagi dipinjam', 'peminjam'],
             'loan_history' => ['riwayat peminjaman', 'riwayat pinjam', 'history peminjaman', 'pernah dipinjam siapa', 'log pinjam', 'daftar peminjam'],
-            'maintenance_last' => ['kapan terakhir diperbaiki', 'terakhir servis', 'terakhir maintenance', 'kapan terakhir rusak', 'terakhir diservis', 'kapan terakhir diperbaiki', 'kapan terakhir oprek'],
+            'maintenance_last' => ['kapan terakhir diperbaiki', 'terakhir servis', 'terakhir maintenance', 'kapan terakhir rusak', 'terakhir diservis', 'kapan terakhir oprek'],
             'maintenance_count' => ['berapa kali rusak', 'berapa kali diperbaiki', 'berapa kali maintenance', 'jumlah perbaikan', 'frekuensi rusak', 'sering rusak ga', 'berapa kali masuk servis'],
             'maintenance_history' => ['riwayat perbaikan', 'riwayat maintenance', 'riwayat servis', 'history perbaikan', 'log servis', 'catatan perbaikan', 'pernah rusak apa aja'],
             'maintenance_cost' => ['biaya perbaikan', 'biaya servis', 'biaya maintenance', 'total biaya perbaikan', 'habis biaya berapa', 'biaya rusak', 'ongkos servis', 'pengeluaran maintenance'],
@@ -594,7 +696,7 @@ class ChatController extends Controller
             'asset_id' => $asset->id,
             'serial_number' => $asset->serial_number,
             'hostname' => $asset->hostname,
-        ], 30, "Aset {$asset->serial_number}");
+        ], self::CONTEXT_TTL, "Aset {$asset->serial_number}");
 
         if ($field === 'full') {
             return [$this->formatFullDetail($asset), 'database'];
@@ -647,12 +749,9 @@ class ChatController extends Controller
 
     private function formatSpec($spec): string
     {
-        if (!$spec)
-            return '-';
-        if (is_string($spec))
-            $spec = json_decode($spec, true);
-        if (!is_array($spec) || empty($spec))
-            return '-';
+        if (!$spec) return '-';
+        if (is_string($spec)) $spec = json_decode($spec, true);
+        if (!is_array($spec) || empty($spec)) return '-';
 
         $lines = [];
         foreach ($spec as $k => $v) {
@@ -1207,7 +1306,7 @@ class ChatController extends Controller
             'user_id' => $user->id,
             'name' => $user->name,
             'position' => $user->position,
-        ], 30, "User {$user->name}");
+        ], self::CONTEXT_TTL, "User {$user->name}");
 
         if ($assets->count() === 1) {
             $a = $assets->first();
@@ -1215,7 +1314,7 @@ class ChatController extends Controller
                 'asset_id' => $a->id,
                 'serial_number' => $a->serial_number,
                 'hostname' => $a->hostname,
-            ], 30, "Aset {$a->serial_number}");
+            ], self::CONTEXT_TTL, "Aset {$a->serial_number}");
         }
 
         $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
@@ -1314,7 +1413,6 @@ class ChatController extends Controller
             }
         }
 
-        // Harus ada kata kerja "pegang/punya/pakai/memegang/pinjam"
         if (!$this->matchAny($lower, ['pegang', 'memegang', 'punya', 'pakai', 'gunakan', 'dipegang', 'pinjam', 'dipinjam'])) {
             return null;
         }
@@ -1329,7 +1427,6 @@ class ChatController extends Controller
             )
         ) {
             $kandidat = trim($m[1]);
-            // Validasi: kandidat harus benar-benar user di DB
             if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
                 $userName = $kandidat;
             }
@@ -1339,8 +1436,7 @@ class ChatController extends Controller
             $words = preg_split('/\s+/', $pesan);
             for ($i = 0; $i < count($words) - 1; $i++) {
                 $kandidat = $words[$i] . ' ' . $words[$i + 1];
-                if (strlen($kandidat) < 5)
-                    continue;
+                if (strlen($kandidat) < 5) continue;
                 if (\App\Models\User::where('name', 'like', "%{$kandidat}%")->exists()) {
                     $userName = $kandidat;
                     break;
@@ -1350,8 +1446,7 @@ class ChatController extends Controller
 
         if (!$userName) {
             foreach (preg_split('/\s+/', $pesan) as $word) {
-                if (strlen($word) < 4)
-                    continue;
+                if (strlen($word) < 4) continue;
                 if (in_array(strtolower($word), ['yang', 'aset', 'laptop', 'pegang', 'punya', 'pakai', 'siapa', 'pinjam'], true)) {
                     continue;
                 }
@@ -1381,7 +1476,6 @@ class ChatController extends Controller
             ];
         }
 
-        // 🆕 Cek field spesifik atau filter status
         $field = $this->detectFieldQuery($lower);
         $statusFilter = null;
 
@@ -1395,12 +1489,10 @@ class ChatController extends Controller
             $statusFilter = 'maintenance';
         }
 
-        // Filter aset berdasarkan status
         if ($statusFilter) {
             $assets = $assets->filter(fn($a) => $a->status === $statusFilter);
         }
 
-        // Kalau ada filter status atau field spesifik, tampilkan dengan format berbeda
         if ($statusFilter || $field) {
             $statusLabel = $statusFilter ? ucfirst($statusFilter) : null;
             $jawaban = "👤 **{$user->name}**";
@@ -1438,14 +1530,13 @@ class ChatController extends Controller
             return [trim($jawaban), 'database', null];
         }
 
-        // Hapus memory asset lama biar tidak nyangkut
         $memory->forget('asset');
 
         $memory->remember('user', [
             'user_id' => $user->id,
             'name' => $user->name,
             'position' => $user->position,
-        ], 30, "User {$user->name}");
+        ], self::CONTEXT_TTL, "User {$user->name}");
 
         if ($assets->count() === 1) {
             $a = $assets->first();
@@ -1453,7 +1544,7 @@ class ChatController extends Controller
                 'asset_id' => $a->id,
                 'serial_number' => $a->serial_number,
                 'hostname' => $a->hostname,
-            ], 30, "Aset {$a->hostname}");
+            ], self::CONTEXT_TTL, "Aset {$a->hostname}");
         }
 
         $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
@@ -1484,9 +1575,6 @@ class ChatController extends Controller
         ];
     }
 
-    /**
-     * 🆕 Ambil nilai field dari aset.
-     */
     private function getFieldValue($asset, string $field): string
     {
         return match ($field) {
@@ -1512,9 +1600,6 @@ class ChatController extends Controller
         };
     }
 
-    /**
-     * 🆕 Label untuk field.
-     */
     private function getFieldLabel(string $field): string
     {
         return match ($field) {
@@ -1536,9 +1621,6 @@ class ChatController extends Controller
         };
     }
 
-    /**
-     * 🆕 Handle "kalau dewi" / "dewi" / "dewi lestari"
-     */
     private function tryAnswerImplicitUser(string $pesan, ChatMemoryService $memory): ?array
     {
         $lower = Str::lower(trim($pesan));
@@ -1554,8 +1636,7 @@ class ChatController extends Controller
 
         foreach (preg_split('/\s+/', $pesan) as $word) {
             $clean = preg_replace('/[^\p{L}\p{N}]/u', '', $word);
-            if (strlen($clean) < 4)
-                continue;
+            if (strlen($clean) < 4) continue;
             if (in_array(strtolower($clean), ['kalau', 'nya', 'yang', 'dan', 'atau', 'untuk', 'apa', 'siapa'], true)) {
                 continue;
             }
@@ -1577,16 +1658,14 @@ class ChatController extends Controller
 
         $q = \App\Models\Asset::with('category');
 
-        if ($status)
-            $q->where('status', $status);
+        if ($status) $q->where('status', $status);
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
                     ->orWhere('model', 'like', "%{$category}%");
             });
         }
-        if ($brand)
-            $q->where('brand', 'like', "%{$brand}%");
+        if ($brand) $q->where('brand', 'like', "%{$brand}%");
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
@@ -1602,14 +1681,13 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** aset:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
-                $jawaban .= " ({$a->hostname})";
+            if ($a->hostname) $jawaban .= " ({$a->hostname})";
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
         $ctx['offset'] = $end;
         $ctx['time'] = now()->toDateTimeString();
-        $memory->remember('asset_by_status', $ctx, 30);
+        $memory->remember('asset_by_status', $ctx, self::CONTEXT_TTL);
 
         $sisa = $total - $end;
         if ($sisa > 0) {
@@ -1630,16 +1708,14 @@ class ChatController extends Controller
 
         $q = \App\Models\Asset::with('category');
 
-        if ($ownership)
-            $q->where('ownership_type', $ownership);
+        if ($ownership) $q->where('ownership_type', $ownership);
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
                     ->orWhere('model', 'like', "%{$category}%");
             });
         }
-        if ($brand)
-            $q->where('brand', 'like', "%{$brand}%");
+        if ($brand) $q->where('brand', 'like', "%{$brand}%");
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
@@ -1655,14 +1731,13 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** aset:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
-            if ($a->hostname)
-                $jawaban .= " ({$a->hostname})";
+            if ($a->hostname) $jawaban .= " ({$a->hostname})";
             $jawaban .= " — {$a->brand} {$a->model}\n";
         }
 
         $ctx['offset'] = $end;
         $ctx['time'] = now()->toDateTimeString();
-        $memory->remember('asset_by_ownership', $ctx, 30);
+        $memory->remember('asset_by_ownership', $ctx, self::CONTEXT_TTL);
 
         $sisa = $total - $end;
         if ($sisa > 0) {
@@ -1698,7 +1773,7 @@ class ChatController extends Controller
 
         $ctx['offset'] = $end;
         $ctx['time'] = now()->toDateTimeString();
-        $memory->remember('low_stock_consumable', $ctx, 30);
+        $memory->remember('low_stock_consumable', $ctx, self::CONTEXT_TTL);
 
         $sisa = $total - $end;
         if ($sisa > 0) {
@@ -1737,7 +1812,7 @@ class ChatController extends Controller
 
         $ctx['offset'] = $end;
         $ctx['time'] = now()->toDateTimeString();
-        $memory->remember('overdue_loans', $ctx, 30);
+        $memory->remember('overdue_loans', $ctx, self::CONTEXT_TTL);
 
         $sisa = $total - $end;
         if ($sisa > 0) {
@@ -1770,14 +1845,13 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** peminjaman aktif:\n\n";
         foreach ($items as $l) {
             $jawaban .= "• {$l->asset?->serial_number} — {$l->user?->name}";
-            if ($l->due_date)
-                $jawaban .= " (jatuh tempo {$l->due_date->format('d M Y')})";
+            if ($l->due_date) $jawaban .= " (jatuh tempo {$l->due_date->format('d M Y')})";
             $jawaban .= "\n";
         }
 
         $ctx['offset'] = $end;
         $ctx['time'] = now()->toDateTimeString();
-        $memory->remember('active_loans', $ctx, 30);
+        $memory->remember('active_loans', $ctx, self::CONTEXT_TTL);
 
         $sisa = $total - $end;
         if ($sisa > 0) {
@@ -1810,14 +1884,13 @@ class ChatController extends Controller
         $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** serah terima aktif:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->asset?->serial_number}";
-            if ($a->hostname)
-                $jawaban .= " ({$a->hostname})";
+            if ($a->asset?->hostname) $jawaban .= " ({$a->asset->hostname})";
             $jawaban .= " — {$a->user?->name}\n";
         }
 
         $ctx['offset'] = $end;
         $ctx['time'] = now()->toDateTimeString();
-        $memory->remember('active_assignments', $ctx, 30);
+        $memory->remember('active_assignments', $ctx, self::CONTEXT_TTL);
 
         $sisa = $total - $end;
         if ($sisa > 0) {
@@ -1869,138 +1942,6 @@ class ChatController extends Controller
                 'status' => 'pending',
             ]);
         }
-    }
-
-    private function cariJawaban(string $pesan, ChatMemoryService $memory): array
-    {
-        // 1️⃣ Regex-based QueryRouter
-        $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
-        if ($dbAnswer) {
-            if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
-                session()->put('last_query_context', $dbAnswer[2]);
-                $type = $dbAnswer[2]['type'] ?? 'query';
-                $memory->remember($type, $dbAnswer[2], 30);
-            }
-            return [$dbAnswer[0], 'database', null];
-        }
-
-        // 2️⃣ Intent parser via Ollama
-        $intent = app(\App\Services\Ai\OllamaIntentParser::class)->parse($pesan);
-        if ($intent && ($intent['intent'] ?? 'other') !== 'other') {
-            $result = app(\App\Services\Ai\IntentExecutor::class)->execute($intent);
-            if ($result) {
-                return [$result['answer'], 'database', null];
-            }
-        }
-
-        // 3️⃣ SN pattern fallback
-        if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
-            $identifier = strtoupper($m[1]);
-
-            $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang'];
-            if (!in_array(strtolower($identifier), $blacklist, true)) {
-                $asset = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
-                    ->where(function ($q) use ($identifier) {
-                        $q->where('hostname', 'like', "%{$identifier}%")
-                            ->orWhere('serial_number', 'like', "%{$identifier}%")
-                            ->orWhere('asset_code', 'like', "%{$identifier}%");
-                    })
-                    ->first();
-
-                if ($asset) {
-                    $memory->remember('asset', [
-                        'asset_id' => $asset->id,
-                        'serial_number' => $asset->serial_number,
-                        'hostname' => $asset->hostname,
-                    ], 30, "Aset {$asset->serial_number}");
-
-                    $jawaban = "🔍 **{$asset->serial_number}**";
-                    if ($asset->hostname) {
-                        $jawaban .= " ({$asset->hostname})";
-                    }
-                    $jawaban .= "\n\n"
-                        . "• Brand/Model: {$asset->brand} {$asset->model}\n"
-                        . "• Kategori: " . ($asset->category?->name ?? '-') . "\n"
-                        . "• Status: {$asset->status}\n"
-                        . "• Hak Kepemilikan: " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa') . "\n";
-
-                    if ($asset->currentUser) {
-                        $jawaban .= "\n👤 **Pemegang saat ini:** {$asset->currentUser->name}";
-                        if ($asset->currentUser->position) {
-                            $jawaban .= " ({$asset->currentUser->position})";
-                        }
-                    } else {
-                        $jawaban .= "\n👤 **Pemegang saat ini:** *tidak ada* (aset tersedia)";
-                    }
-
-                    if ($asset->currentLocation) {
-                        $jawaban .= "\n📍 **Lokasi:** {$asset->currentLocation->full_name}";
-                    }
-
-                    return [$jawaban, 'database', null];
-                }
-            }
-        }
-
-        // 3.5️⃣ Field aset spesifik dari user
-        $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
-        if ($userAssetAnswer) {
-            return $userAssetAnswer;
-        }
-
-        // 3.6️⃣ Fallback: user + "pegang apa"
-        $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
-        if ($userAssetsByName) {
-            if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
-                $memory->remember('user_assets', $userAssetsByName[2], 30);
-            }
-            return $userAssetsByName;
-        }
-
-        // 4️⃣ AutoLearning
-        $learning = app(AutoLearningService::class);
-        $learned = $learning->findAnswer($pesan);
-
-        if ($learned) {
-            $learned->increment('frequency');
-            return [$learned->answer, 'learned', null];
-        }
-
-        // 5️⃣ Knowledge
-        $pesanBersih = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($pesan));
-        $pesanBersih = preg_replace('/\s+/', ' ', trim($pesanBersih));
-
-        if (!empty($pesanBersih)) {
-            $knowledge = Knowledge::whereRaw('LOWER(kata_kunci) = ?', [$pesanBersih])->first();
-
-            if ($knowledge) {
-                return [
-                    $knowledge->jawaban,
-                    'database',
-                    $this->extractFile($knowledge),
-                ];
-            }
-
-            $candidates = Knowledge::search($pesanBersih)->take(20)->get();
-            $best = $this->pickBestMatch($candidates, $pesanBersih);
-
-            if ($best) {
-                return [
-                    $best->jawaban,
-                    'database',
-                    $this->extractFile($best),
-                ];
-            }
-        }
-
-        // 6️⃣ Ollama fallback (Q&A umum)
-        $jawaban = $this->tanyaOllama($pesan);
-
-        if (strlen($jawaban) >= 50 && !str_contains($jawaban, 'Maaf,')) {
-            $learning->process($pesan, $jawaban, 'ai');
-        }
-
-        return [$jawaban, 'ai', null];
     }
 
     private function tryAnswerUserAssetField(string $pesan, ChatMemoryService $memory): ?array
@@ -2071,7 +2012,7 @@ class ChatController extends Controller
             'user_id' => $user->id,
             'name' => $user->name,
             'position' => $user->position,
-        ], 30, "User {$user->name}");
+        ], self::CONTEXT_TTL, "User {$user->name}");
 
         if ($assets->count() === 1) {
             $a = $assets->first();
@@ -2079,7 +2020,7 @@ class ChatController extends Controller
                 'asset_id' => $a->id,
                 'serial_number' => $a->serial_number,
                 'hostname' => $a->hostname,
-            ], 30, "Aset {$a->serial_number}");
+            ], self::CONTEXT_TTL, "Aset {$a->serial_number}");
         }
 
         $fieldLabels = [
@@ -2107,16 +2048,14 @@ class ChatController extends Controller
 
     private function pickBestMatch($candidates, string $pesanBersih): ?Knowledge
     {
-        if ($candidates->isEmpty())
-            return null;
+        if ($candidates->isEmpty()) return null;
 
         $pesanWords = collect(explode(' ', $pesanBersih))
             ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
             ->values()
             ->all();
 
-        if (empty($pesanWords))
-            return null;
+        if (empty($pesanWords)) return null;
 
         $best = null;
         $bestScore = 0;
@@ -2128,8 +2067,7 @@ class ChatController extends Controller
                 ->values()
                 ->all();
 
-            if (empty($keyWords))
-                continue;
+            if (empty($keyWords)) continue;
 
             $matched = 0;
             foreach ($pesanWords as $pw) {
@@ -2162,8 +2100,7 @@ class ChatController extends Controller
 
     private function extractFile(Knowledge $knowledge): ?array
     {
-        if (!$knowledge->file_path)
-            return null;
+        if (!$knowledge->file_path) return null;
 
         return [
             'path' => $knowledge->file_path,
@@ -2176,8 +2113,7 @@ class ChatController extends Controller
     private function matchAny(string $haystack, array $needles): bool
     {
         foreach ($needles as $n) {
-            if (str_contains($haystack, $n))
-                return true;
+            if (str_contains($haystack, $n)) return true;
         }
         return false;
     }
@@ -2188,19 +2124,13 @@ class ChatController extends Controller
         $model = trim(config('services.ollama.model', ''));
         $endpoint = $url . '/api/chat';
 
-        Log::info('=== OLLAMA REQUEST ===', [
-            'url' => $endpoint,
-            'model' => $model,
-            'pesan' => $pesan,
-        ]);
-
         if (empty($model)) {
             Log::error('Ollama: model kosong. Cek .env OLLAMA_MODEL.');
             return 'Maaf, konfigurasi AI belum lengkap. Hubungi admin.';
         }
 
         try {
-            $response = Http::timeout(config('services.ollama.timeout', 60))->post($endpoint, [
+            $response = Http::timeout(self::QA_TIMEOUT)->post($endpoint, [
                 'model' => $model,
                 'stream' => false,
                 'options' => [
@@ -2208,34 +2138,8 @@ class ChatController extends Controller
                     'num_predict' => 256,
                 ],
                 'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => "Kamu adalah **SIS Assistant** — asisten virtual untuk karyawan **PLN UBP Suralaya**.\n\n"
-                            . "**KONTEKS SISTEM:**\n"
-                            . "• **SIS (Suralaya Information System)** adalah portal informasi aplikasi & layanan IT perusahaan.\n"
-                            . "• **SIAM (Sistem Informasi Aset Manajemen)** adalah salah satu **modul di dalam SIS** untuk mengelola aset IT (laptop, PC, printer, monitor, konsumable).\n"
-                            . "• SIS dan SIAM adalah **aplikasi web**, bukan aplikasi desktop. Tidak ada 'keyboard virtual' atau 'keyboard khusus' di dalamnya — user pakai keyboard perangkat sendiri.\n\n"
-                            . "**KEAHLIAN KAMU:**\n"
-                            . "1. **SIS & SIAM** — portal aplikasi, manajemen aset IT (hak milik/sewa, status, serah terima, BAST, peminjaman, perbaikan, vendor, garansi, kontrak sewa).\n"
-                            . "2. **IT Umum** — hardware, software, jaringan, keamanan, database, Microsoft Office, email, printer, cloud, troubleshooting dasar.\n"
-                            . "3. **Aplikasi internal** — helpdesk, ERP, Maximo, IAM, dll.\n\n"
-                            . "**ATURAN JAWAB:**\n"
-                            . "• SELALU jawab dalam Bahasa Indonesia.\n"
-                            . "• Jawab SINGKAT — maksimal 3-4 kalimat, LANGSUNG ke inti.\n"
-                            . "• JANGAN mulai dengan sapaan 'Halo' kecuali user menyapa duluan.\n"
-                            . "• Kalau tidak tahu, katakan: *\"Maaf, saya belum punya info tentang itu. Coba tanya dengan cara lain atau hubungi IT Support.\"*\n"
-                            . "• **JANGAN MENGARANG** fakta yang tidak kamu ketahui. Jangan pernah menganggap SIS/SIAM sebagai sistem lain.\n\n"
-                            . "**KHUSUS — KODE ASET:**\n"
-                            . "Kode seperti `NB-T14-005`, `AST-2026-0001`, `T14-SN-0005`, `PC-DESK-003` adalah **HOSTNAME / SN / ASSET CODE** dari aset IT perusahaan.\n"
-                            . "JANGAN menganggapnya sebagai nomor meteran listrik, nomor rekening, atau nomor seri barang lain.\n"
-                            . "Kalau tidak tahu detail asetnya, arahkan user ke menu **Aset di SIAM**.\n\n"
-                            . "**GAYA:**\n"
-                            . "Ramah, profesional, solutif. Gunakan emoji secukupnya. Jangan sebut dirimu AI atau language model.",
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => $pesan,
-                    ],
+                    ['role' => 'system', 'content' => $this->systemPrompt()],
+                    ['role' => 'user', 'content' => $pesan],
                 ],
             ]);
 
@@ -2243,13 +2147,10 @@ class ChatController extends Controller
                 $data = $response->json();
                 $jawaban = trim($data['message']['content'] ?? '');
 
-                if ($jawaban !== '') {
-                    return $jawaban;
-                }
-
-                return 'Maaf, saya belum bisa menjawab pertanyaan itu.';
+                return $jawaban !== '' ? $jawaban : 'Maaf, saya belum bisa menjawab pertanyaan itu.';
             }
 
+            Log::warning('Ollama non-2xx', ['status' => $response->status()]);
             return 'Maaf, saya belum bisa menjawab pertanyaan itu.';
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::error('Ollama connection error: ' . $e->getMessage());
@@ -2258,5 +2159,29 @@ class ChatController extends Controller
             Log::error('Ollama exception: ' . $e->getMessage());
             return 'Maaf, layanan AI sedang tidak tersedia. Coba lagi nanti.';
         }
+    }
+
+    private function systemPrompt(): string
+    {
+        return "Kamu adalah **SIS Assistant** — asisten virtual untuk karyawan **PLN UBP Suralaya**.\n\n"
+            . "**KONTEKS SISTEM:**\n"
+            . "• **SIS (Suralaya Information System)** adalah portal informasi aplikasi & layanan IT perusahaan.\n"
+            . "• **SIAM (Sistem Informasi Aset Manajemen)** adalah salah satu **modul di dalam SIS** untuk mengelola aset IT (laptop, PC, printer, monitor, konsumable).\n"
+            . "• SIS dan SIAM adalah **aplikasi web**, bukan aplikasi desktop. Tidak ada 'keyboard virtual' atau 'keyboard khusus' di dalamnya — user pakai keyboard perangkat sendiri.\n\n"
+            . "**KEAHLIAN KAMU:**\n"
+            . "1. **SIS & SIAM** — portal aplikasi, manajemen aset IT.\n"
+            . "2. **IT Umum** — hardware, software, jaringan, keamanan, database, Microsoft Office, email, printer, cloud, troubleshooting dasar.\n"
+            . "3. **Aplikasi internal** — helpdesk, ERP, Maximo, IAM, dll.\n\n"
+            . "**ATURAN JAWAB:**\n"
+            . "• SELALU jawab dalam Bahasa Indonesia.\n"
+            . "• Jawab SINGKAT — maksimal 3-4 kalimat, LANGSUNG ke inti.\n"
+            . "• JANGAN mulai dengan sapaan 'Halo' kecuali user menyapa duluan.\n"
+            . "• Kalau tidak tahu, katakan: *\"Maaf, saya belum punya info tentang itu. Coba tanya dengan cara lain atau hubungi IT Support.\"*\n"
+            . "• **JANGAN MENGARANG** fakta yang tidak kamu ketahui.\n\n"
+            . "**KHUSUS — KODE ASET:**\n"
+            . "Kode seperti `NB-T14-005`, `AST-2026-0001`, `T14-SN-0005`, `PC-DESK-003` adalah **HOSTNAME / SN / ASSET CODE** dari aset IT perusahaan.\n"
+            . "JANGAN menganggapnya sebagai nomor meteran listrik, nomor rekening, atau nomor seri barang lain.\n\n"
+            . "**GAYA:**\n"
+            . "Ramah, profesional, solutif. Gunakan emoji secukupnya. Jangan sebut dirimu AI atau language model.";
     }
 }

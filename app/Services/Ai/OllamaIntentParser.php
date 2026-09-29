@@ -11,35 +11,63 @@ class OllamaIntentParser
     {
         $url = rtrim(config('services.ollama.url', 'http://127.0.0.1:11434'), '/');
         $model = config('services.ollama.model', 'llama3.2');
+        $timeout = (int) config('services.ollama.intent_timeout', 8);
+
+        if (empty($model)) {
+            Log::warning('OllamaIntentParser: model kosong');
+            return null;
+        }
 
         $system = $this->buildSystemPrompt();
 
         try {
-            $response = Http::timeout(30)->post("{$url}/api/chat", [
-                'model' => $model,
-                'stream' => false,
-                'format' => 'json',
-                'options' => ['temperature' => 0.1],
-                'messages' => [
-                    ['role' => 'system', 'content' => $system],
-                    ['role' => 'user', 'content' => $pesan],
-                ],
-            ]);
+            $response = Http::timeout($timeout)
+                ->connectTimeout(3)
+                ->post("{$url}/api/chat", [
+                    'model' => $model,
+                    'stream' => false,
+                    'format' => 'json',
+                    'options' => [
+                        'temperature' => 0.1,
+                        'num_predict' => 256,
+                    ],
+                    'messages' => [
+                        ['role' => 'system', 'content' => $system],
+                        ['role' => 'user', 'content' => $pesan],
+                    ],
+                ]);
 
             if (!$response->successful()) {
-                Log::warning('OllamaIntentParser: HTTP fail', ['status' => $response->status()]);
+                Log::warning('OllamaIntentParser: HTTP fail', [
+                    'status' => $response->status(),
+                ]);
                 return null;
             }
 
             $content = $response->json('message.content', '');
+
+            // Sanitasi: buang markdown code fence kalau ada
+            $content = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', trim($content));
+
             $parsed = json_decode($content, true);
 
             if (!is_array($parsed) || empty($parsed['intent'])) {
-                Log::warning('OllamaIntentParser: JSON invalid', ['raw' => $content]);
+                Log::warning('OllamaIntentParser: JSON invalid', [
+                    'raw' => mb_substr($content, 0, 200),
+                ]);
                 return null;
             }
 
+            // Normalisasi params
+            if (!isset($parsed['params']) || !is_array($parsed['params'])) {
+                $parsed['params'] = [];
+            }
+
             if (($parsed['confidence'] ?? 1) < 0.5) {
+                Log::info('OllamaIntentParser: low confidence', [
+                    'intent' => $parsed['intent'],
+                    'confidence' => $parsed['confidence'] ?? null,
+                ]);
                 return null;
             }
 
@@ -55,6 +83,7 @@ class OllamaIntentParser
     {
         $categories = \App\Models\AssetCategory::where('is_consumable', false)
             ->pluck('name')->take(30)->implode(', ') ?: '(kosong)';
+
         $locations = \App\Models\Location::where('is_active', true)
             ->pluck('room')->take(30)->implode(', ') ?: '(kosong)';
 

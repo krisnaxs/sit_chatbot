@@ -87,9 +87,9 @@ return [
         'asYouType' => false,
         'searchBoolean' => env('TNTSEARCH_BOOLEAN', false),
 
-        'maxDocs' => 500,
+        'maxDocs' => 5000,
 
-        'stemmer' => \TeamTNT\TNTSearch\Stemmer\PorterStemmer::class,
+        'stemmer' => null,
     ],
 
     /*

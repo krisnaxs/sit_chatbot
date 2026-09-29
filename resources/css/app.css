@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
 @source '../../storage/framework/views/*.php';
+
 @source '../**/*.blade.php';
+
 @source '../**/*.js';
 
 @theme {
@@ -12,17 +15,67 @@
         "Noto Color Emoji";
 }
 
-/* ===== Swiper Pagination (fixed) ===== */
+/* =========================================================
+   SWIPER PAGINATION
+========================================================= */
+
 .swiper-pagination {
-    position: fixed !important;
-    bottom: 24px !important;
+    position: relative !important;
+
+    left: auto !important;
+    right: auto !important;
+
+    bottom: auto !important;
+
+    width: 100% !important;
 }
 
-/* ===== Chat Widget — Typing Indicator ===== */
+/* =========================================================
+   SWIPER NAVIGATION
+========================================================= */
+
+#prevButton,
+#nextButton {
+    display: flex !important;
+
+    align-items: center;
+    justify-content: center;
+
+    visibility: visible !important;
+
+    position: relative;
+
+    z-index: 9999 !important;
+
+    -webkit-tap-highlight-color: transparent;
+
+    touch-action: manipulation;
+}
+
+/*
+ * Disabled jangan dibuat hilang.
+ */
+
+#prevButton.swiper-button-disabled,
+#nextButton.swiper-button-disabled {
+    display: flex !important;
+
+    visibility: visible !important;
+
+    opacity: 0.4 !important;
+}
+
+/* =========================================================
+   CHAT WIDGET — TYPING INDICATOR
+========================================================= */
+
 .typing-dot {
     width: 6px;
+
     height: 6px;
+
     border-radius: 50%;
+
     animation: typingDot 1.4s infinite;
 }
 
@@ -39,16 +92,21 @@
     60%,
     100% {
         transform: translateY(0);
+
         opacity: 0.4;
     }
 
     30% {
         transform: translateY(-5px);
+
         opacity: 1;
     }
 }
 
-/* ===== Chat Widget — Custom Scrollbar ===== */
+/* =========================================================
+   CHAT WIDGET — CUSTOM SCROLLBAR
+========================================================= */
+
 .chat-scroll::-webkit-scrollbar {
     width: 4px;
 }
@@ -59,6 +117,7 @@
 
 .chat-scroll::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.15);
+
     border-radius: 2px;
 }
 
@@ -66,7 +125,10 @@
     background: rgba(0, 0, 0, 0.3);
 }
 
-/* ===== FAB Pulse Animation ===== */
+/* =========================================================
+   FAB PULSE ANIMATION
+========================================================= */
+
 @keyframes chatPulse {
     0%,
     100% {
@@ -84,4 +146,37 @@
 
 .chat-fab {
     animation: chatPulse 2.5s ease-in-out infinite;
+}
+
+/* =========================================================
+   MOBILE SAFETY
+========================================================= */
+
+html,
+body {
+    max-width: 100%;
+
+    overflow-x: hidden;
+}
+
+/*
+ * Mencegah browser Android melakukan zoom
+ * ketika elemen tertentu disentuh.
+ */
+
+button,
+a {
+    touch-action: manipulation;
+}
+
+/* =========================================================
+   SAFE AREA
+========================================================= */
+
+@supports (padding: max(0px)) {
+    body {
+        padding-left: env(safe-area-inset-left);
+
+        padding-right: env(safe-area-inset-right);
+    }
 }

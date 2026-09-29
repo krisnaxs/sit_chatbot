@@ -16,49 +16,182 @@ class IntentExecutor
         'lost',
     ];
 
+    protected array $validFields = [
+        'sn',
+        'hostname',
+        'asset_code',
+        'all',
+    ];
+
     public function __construct(protected QueryRouter $router)
     {
     }
 
     /**
-     * Return: [jawaban, context] atau null kalau intent tidak valid.
+     * Return assoc array:
+     *   [
+     *     'answer'  => string,
+     *     'context' => array|null,
+     *     'source'  => 'database',
+     *   ]
+     * atau null kalau tidak bisa dieksekusi.
      */
     public function execute(array $intent): ?array
     {
         $name = $intent['intent'] ?? null;
         $params = $intent['params'] ?? [];
+        $confidence = (float) ($intent['confidence'] ?? 1.0);
 
         if (!$name || $name === 'other') {
             return null;
         }
 
-        if (!$this->validateParams($name, $params)) {
-            Log::warning('IntentExecutor: params invalid', compact('name', 'params'));
+        if ($confidence < 0.5) {
+            Log::info('IntentExecutor: low confidence, skip', [
+                'intent' => $name,
+                'confidence' => $confidence,
+            ]);
             return null;
+        }
+
+        if (!$this->validateParams($name, $params)) {
+            Log::warning('IntentExecutor: params invalid', [
+                'intent' => $name,
+                'params' => $params,
+            ]);
+            return null;
+        }
+
+        // Handler khusus: list_asset_by_user punya format pesan sendiri
+        if ($name === 'list_asset_by_user') {
+            return $this->executeListAssetByUser($params);
         }
 
         $pesan = $this->intentToPesan($name, $params);
         if (!$pesan) {
+            Log::info('IntentExecutor: intentToPesan null', ['intent' => $name]);
             return null;
         }
 
-        $result = $this->router->tryAnswer($pesan);
-        if (!$result) {
+        try {
+            $result = $this->router->tryAnswer($pesan);
+        } catch (\Throwable $e) {
+            Log::warning('IntentExecutor: QueryRouter exception', [
+                'intent' => $name,
+                'pesan' => $pesan,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        if (!$result || !isset($result[0])) {
             return null;
         }
 
         return [
             'answer' => $result[0],
             'context' => $result[2] ?? null,
-            'pesan' => $pesan,
-            'intent' => $intent,
+            'source' => 'database',
+        ];
+    }
+
+    /**
+     * Khusus list_asset_by_user — langsung query DB, tidak lewat QueryRouter.
+     */
+    protected function executeListAssetByUser(array $params): ?array
+    {
+        $userName = trim($params['user_name'] ?? '');
+        $field = $params['field'] ?? 'all';
+
+        if ($userName === '') {
+            return null;
+        }
+
+        if (!in_array($field, $this->validFields, true)) {
+            $field = 'all';
+        }
+
+        $user = \App\Models\User::where('name', 'like', "%{$userName}%")->first();
+        if (!$user) {
+            return null;
+        }
+
+        $assets = $user->currentAssets()->with('category')->get();
+
+        if ($assets->isEmpty()) {
+            return [
+                'answer' => "User **{$user->name}** sedang tidak memegang aset.",
+                'context' => [
+                    'type' => 'user_assets',
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                    'time' => now()->toDateTimeString(),
+                ],
+                'source' => 'database',
+            ];
+        }
+
+        if ($field === 'all') {
+            $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+            foreach ($assets as $a) {
+                $jawaban .= "• **{$a->hostname}**";
+                if ($a->serial_number && $a->serial_number !== $a->hostname) {
+                    $jawaban .= " (SN: `{$a->serial_number}`)";
+                }
+                $jawaban .= "\n  {$a->brand} {$a->model}\n";
+                if ($a->category) {
+                    $jawaban .= "  Kategori: {$a->category->name}\n";
+                }
+                $jawaban .= "\n";
+            }
+        } else {
+            $fieldLabels = [
+                'sn' => 'Serial Number',
+                'hostname' => 'Hostname',
+                'asset_code' => 'Asset Code',
+            ];
+            $dbField = match ($field) {
+                'sn' => 'serial_number',
+                'hostname' => 'hostname',
+                'asset_code' => 'asset_code',
+                default => 'serial_number',
+            };
+            $label = $fieldLabels[$field] ?? $field;
+
+            $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+            foreach ($assets as $a) {
+                $value = $a->{$dbField} ?? null;
+                $jawaban .= "• **{$a->hostname}**";
+                if ($a->serial_number && $dbField !== 'serial_number' && $a->serial_number !== $a->hostname) {
+                    $jawaban .= " (SN: `{$a->serial_number}`)";
+                }
+                $jawaban .= "\n"
+                    . "  {$label}: `" . ($value ?: '-') . "`\n"
+                    . "  {$a->brand} {$a->model}\n\n";
+            }
+        }
+
+        $first = $assets->first();
+
+        return [
+            'answer' => trim($jawaban),
+            'context' => [
+                'type' => 'user_assets',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'asset_id' => $first->id,
+                'serial_number' => $first->serial_number,
+                'hostname' => $first->hostname,
+                'time' => now()->toDateTimeString(),
+            ],
+            'source' => 'database',
         ];
     }
 
     protected function validateParams(string $intent, array $params): bool
     {
-        if (in_array($intent, ['count_asset_by_status', 'list_asset_by_status'])) {
-            if (empty($params['status']) || !in_array($params['status'], $this->validStatus)) {
+        if (in_array($intent, ['count_asset_by_status', 'list_asset_by_status'], true)) {
+            if (empty($params['status']) || !in_array($params['status'], $this->validStatus, true)) {
                 return false;
             }
         }
@@ -66,13 +199,13 @@ class IntentExecutor
         if ($intent === 'count_asset_by_ownership') {
             if (
                 empty($params['ownership_type'])
-                || !in_array($params['ownership_type'], ['owned', 'leased'])
+                || !in_array($params['ownership_type'], ['owned', 'leased'], true)
             ) {
                 return false;
             }
         }
 
-        if (in_array($intent, ['who_holds_asset', 'find_asset'])) {
+        if (in_array($intent, ['who_holds_asset', 'find_asset'], true)) {
             if (empty($params['identifier'])) {
                 return false;
             }
@@ -81,11 +214,18 @@ class IntentExecutor
             }
         }
 
-        // 🆕 Validasi list_asset_by_user
         if ($intent === 'list_asset_by_user') {
             if (empty($params['user_name'])) {
                 return false;
             }
+        }
+
+        if ($intent === 'list_asset_by_category' && empty($params['category'])) {
+            return false;
+        }
+
+        if ($intent === 'list_asset_by_brand' && empty($params['brand'])) {
+            return false;
         }
 
         return true;
@@ -119,9 +259,6 @@ class IntentExecutor
             'list_asset_by_category' => 'daftar aset kategori ' . ($params['category'] ?? ''),
             'list_asset_by_brand' => 'daftar aset brand ' . ($params['brand'] ?? ''),
 
-            // 🆕 list_asset_by_user dengan field spesifik
-            'list_asset_by_user' => $this->buildUserAssetQuery($params),
-
             'who_holds_asset' => 'siapa yang pegang ' . ($params['identifier'] ?? ''),
             'find_asset' => 'info ' . ($params['identifier'] ?? ''),
 
@@ -136,25 +273,6 @@ class IntentExecutor
             'count_vendors' => 'berapa vendor',
 
             default => null,
-        };
-    }
-
-    /**
-     * 🆕 Bangun pesan untuk user + field spesifik.
-     * QueryRouter regex mengenali "aset yang dipegang X" untuk field "all".
-     * Untuk field spesifik (sn/hostname), kita gunakan format khusus yang
-     * akan ditangkap oleh ChatController::tryAnswerUserAssetField().
-     */
-    protected function buildUserAssetQuery(array $params): string
-    {
-        $name = trim($params['user_name'] ?? '');
-        $field = $params['field'] ?? 'all';
-
-        return match ($field) {
-            'sn' => "sn {$name} nya berapa",
-            'hostname' => "hostname {$name} nya berapa",
-            'asset_code' => "asset code {$name} nya berapa",
-            default => "aset yang dipegang {$name}",
         };
     }
 

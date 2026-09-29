@@ -48,8 +48,10 @@ return [
 
     'ollama' => [
         'url' => env('OLLAMA_URL', 'http://127.0.0.1:11434'),
-        'model' => env('OLLAMA_MODEL', 'llama3.2'),
+        'model' => env('OLLAMA_MODEL', 'llama3.2:3b'),
         'timeout' => env('OLLAMA_TIMEOUT', 60),
+        'intent_timeout' => env('OLLAMA_INTENT_TIMEOUT', 8),
+        'use_formatter' => env('OLLAMA_USE_FORMATTER', false),
     ],
 
 ];
