@@ -225,10 +225,10 @@
                             <div class="text-4xl font-extrabold">{{ $ownershipBreakdown['owned']['total'] }}</div>
                             <div class="text-sm text-slate-400 mb-1">unit</div>
                         </div>
-                        <div class="text-[11px] text-slate-400 mb-3">
+                        {{-- <div class="text-[11px] text-slate-400 mb-3">
                             Rp {{ number_format($ownershipBreakdown['owned']['value'], 0, ',', '.') }}
                             <span class="text-slate-500">(nilai beli)</span>
-                        </div>
+                        </div> --}}
 
                         @php
                             $ownedTotal = max($ownershipBreakdown['owned']['total'], 1);
@@ -246,8 +246,14 @@
                             <div class="h-full bg-orange-400"
                                 style="width: {{ ($ownershipBreakdown['owned']['maintenance'] / $ownedTotal) * 100 }}%"
                                 title="Perbaikan"></div>
+                            <div class="h-full bg-gray-400"
+                                style="width: {{ ($ownershipBreakdown['owned']['retired'] / $ownedTotal) * 100 }}%"
+                                title="Pensiun"></div>
+                            <div class="h-full bg-red-400"
+                                style="width: {{ ($ownershipBreakdown['owned']['lost'] / $ownedTotal) * 100 }}%"
+                                title="Hilang"></div>
                         </div>
-                        <div class="grid grid-cols-4 gap-1 mt-2 text-[9px] text-slate-400">
+                        <div class="grid grid-cols-6 gap-1 mt-2 text-[9px] text-slate-400">
                             <span><span class="text-emerald-400">●</span>
                                 {{ $ownershipBreakdown['owned']['available'] }}</span>
                             <span><span class="text-blue-400">●</span>
@@ -256,6 +262,10 @@
                                 {{ $ownershipBreakdown['owned']['loaned'] }}</span>
                             <span><span class="text-orange-400">●</span>
                                 {{ $ownershipBreakdown['owned']['maintenance'] }}</span>
+                            <span><span class="text-gray-400">●</span>
+                                {{ $ownershipBreakdown['owned']['retired'] }}</span>
+                            <span><span class="text-red-400">●</span>
+                                {{ $ownershipBreakdown['owned']['lost'] }}</span>
                         </div>
                     </div>
 
@@ -286,10 +296,10 @@
                             </div>
                             <div class="text-sm text-slate-400 mb-1">unit</div>
                         </div>
-                        <div class="text-[11px] text-slate-400 mb-3">
+                        {{-- <div class="text-[11px] text-slate-400 mb-3">
                             Rp {{ number_format($ownershipBreakdown['leased']['monthly_cost'], 0, ',', '.') }}
                             <span class="text-slate-500">/ bulan</span>
-                        </div>
+                        </div> --}}
 
                         @php
                             $leasedTotal = max($ownershipBreakdown['leased']['total'], 1);
@@ -307,8 +317,14 @@
                             <div class="h-full bg-orange-400"
                                 style="width: {{ ($ownershipBreakdown['leased']['maintenance'] / $leasedTotal) * 100 }}%"
                                 title="Perbaikan"></div>
+                            <div class="h-full bg-gray-400"
+                                style="width: {{ ($ownershipBreakdown['leased']['retired'] / $leasedTotal) * 100 }}%"
+                                title="Pensiun"></div>
+                            <div class="h-full bg-red-400"
+                                style="width: {{ ($ownershipBreakdown['leased']['lost'] / $leasedTotal) * 100 }}%"
+                                title="Hilang"></div>
                         </div>
-                        <div class="grid grid-cols-4 gap-1 mt-2 text-[9px] text-slate-400">
+                        <div class="grid grid-cols-6 gap-1 mt-2 text-[9px] text-slate-400">
                             <span><span class="text-emerald-400">●</span>
                                 {{ $ownershipBreakdown['leased']['available'] }}</span>
                             <span><span class="text-blue-400">●</span>
@@ -317,6 +333,10 @@
                                 {{ $ownershipBreakdown['leased']['loaned'] }}</span>
                             <span><span class="text-orange-400">●</span>
                                 {{ $ownershipBreakdown['leased']['maintenance'] }}</span>
+                            <span><span class="text-gray-400">●</span>
+                                {{ $ownershipBreakdown['leased']['retired'] }}</span>
+                            <span><span class="text-red-400">●</span>
+                                {{ $ownershipBreakdown['leased']['lost'] }}</span>
                         </div>
                     </div>
 
@@ -339,7 +359,7 @@
                 <div>
                     <h2 class="font-bold text-gray-800">Breakdown per Kategori</h2>
                     <p class="text-xs text-gray-500">
-                        Perbandingan Hak Milik & Sewa di setiap kategori
+                        Perbandingan Hak Milik & Sewa di setiap kategori (6 status)
                         @if ($hasFilter)
                             <span class="text-indigo-600 font-semibold">(terfilter)</span>
                         @endif
@@ -361,9 +381,12 @@
                                     Hak Milik</th>
                                 <th class="text-center py-2 px-2 font-semibold bg-orange-50 text-orange-700 rounded-t-lg">
                                     Sewa</th>
-                                <th class="text-center py-2 px-2 font-semibold">Tersedia</th>
-                                <th class="text-center py-2 px-2 font-semibold">Dipakai</th>
-                                <th class="text-center py-2 px-2 font-semibold">Perbaikan</th>
+                                <th class="text-center py-2 px-2 font-semibold text-emerald-700">Tersedia</th>
+                                <th class="text-center py-2 px-2 font-semibold text-blue-700">Dipakai</th>
+                                <th class="text-center py-2 px-2 font-semibold text-amber-700">Dipinjam</th>
+                                <th class="text-center py-2 px-2 font-semibold text-orange-700">Perbaikan</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700">Pensiun</th>
+                                <th class="text-center py-2 px-2 font-semibold text-red-700">Hilang</th>
                                 <th class="text-center py-2 px-2 font-semibold">Distribusi</th>
                             </tr>
                         </thead>
@@ -379,7 +402,8 @@
                                         @if ($row['owned']['total'] > 0)
                                             <div class="text-[9px] text-emerald-500 mt-0.5">
                                                 {{ $row['owned']['available'] }} tersedia ·
-                                                {{ $row['owned']['in_use'] }} dipakai
+                                                {{ $row['owned']['in_use'] }} dipakai ·
+                                                {{ $row['owned']['loaned'] }} dipinjam
                                             </div>
                                         @endif
                                     </td>
@@ -389,7 +413,8 @@
                                         @if ($row['leased']['total'] > 0)
                                             <div class="text-[9px] text-orange-500 mt-0.5">
                                                 {{ $row['leased']['available'] }} tersedia ·
-                                                {{ $row['leased']['in_use'] }} dipakai
+                                                {{ $row['leased']['in_use'] }} dipakai ·
+                                                {{ $row['leased']['loaned'] }} dipinjam
                                             </div>
                                         @endif
                                     </td>
@@ -400,8 +425,17 @@
                                     <td class="py-2 px-2 text-center text-blue-700 font-semibold">
                                         {{ $row['owned']['in_use'] + $row['leased']['in_use'] }}
                                     </td>
+                                    <td class="py-2 px-2 text-center text-amber-700 font-semibold">
+                                        {{ $row['owned']['loaned'] + $row['leased']['loaned'] }}
+                                    </td>
                                     <td class="py-2 px-2 text-center text-orange-700 font-semibold">
                                         {{ $row['owned']['maintenance'] + $row['leased']['maintenance'] }}
+                                    </td>
+                                    <td class="py-2 px-2 text-center text-gray-700 font-semibold">
+                                        {{ $row['owned']['retired'] + $row['leased']['retired'] }}
+                                    </td>
+                                    <td class="py-2 px-2 text-center text-red-700 font-semibold">
+                                        {{ $row['owned']['lost'] + $row['leased']['lost'] }}
                                     </td>
 
                                     <td class="py-2 px-2 w-32">
@@ -423,7 +457,7 @@
                     </table>
                 </div>
 
-                <div class="flex items-center gap-4 mt-3 text-[10px] text-gray-500">
+                <div class="flex items-center gap-4 mt-3 text-[10px] text-gray-500 flex-wrap">
                     <span class="flex items-center gap-1">
                         <span class="w-3 h-3 rounded-sm bg-emerald-500"></span> Hak Milik
                     </span>
@@ -449,7 +483,7 @@
                 <div>
                     <h2 class="font-bold text-gray-800">Breakdown per Model / Type</h2>
                     <p class="text-xs text-gray-500">
-                        Perbandingan Hak Milik & Sewa di setiap model (Top 15)
+                        Perbandingan Hak Milik & Sewa di setiap model (Top 15, 6 status)
                         @if ($hasFilter)
                             <span class="text-indigo-600 font-semibold">(terfilter)</span>
                         @endif
@@ -472,9 +506,12 @@
                                     Hak Milik</th>
                                 <th class="text-center py-2 px-2 font-semibold bg-orange-50 text-orange-700 rounded-t-lg">
                                     Sewa</th>
-                                <th class="text-center py-2 px-2 font-semibold">Tersedia</th>
-                                <th class="text-center py-2 px-2 font-semibold">Dipakai</th>
-                                <th class="text-center py-2 px-2 font-semibold">Perbaikan</th>
+                                <th class="text-center py-2 px-2 font-semibold text-emerald-700">Tersedia</th>
+                                <th class="text-center py-2 px-2 font-semibold text-blue-700">Dipakai</th>
+                                <th class="text-center py-2 px-2 font-semibold text-amber-700">Dipinjam</th>
+                                <th class="text-center py-2 px-2 font-semibold text-orange-700">Perbaikan</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700">Pensiun</th>
+                                <th class="text-center py-2 px-2 font-semibold text-red-700">Hilang</th>
                                 <th class="text-center py-2 px-2 font-semibold">Distribusi</th>
                             </tr>
                         </thead>
@@ -498,7 +535,8 @@
                                         @if ($row['owned']['total'] > 0)
                                             <div class="text-[9px] text-emerald-500 mt-0.5">
                                                 {{ $row['owned']['available'] }} tersedia ·
-                                                {{ $row['owned']['in_use'] }} dipakai
+                                                {{ $row['owned']['in_use'] }} dipakai ·
+                                                {{ $row['owned']['loaned'] }} dipinjam
                                             </div>
                                         @endif
                                     </td>
@@ -510,7 +548,8 @@
                                         @if ($row['leased']['total'] > 0)
                                             <div class="text-[9px] text-orange-500 mt-0.5">
                                                 {{ $row['leased']['available'] }} tersedia ·
-                                                {{ $row['leased']['in_use'] }} dipakai
+                                                {{ $row['leased']['in_use'] }} dipakai ·
+                                                {{ $row['leased']['loaned'] }} dipinjam
                                             </div>
                                         @endif
                                     </td>
@@ -521,8 +560,17 @@
                                     <td class="py-2 px-2 text-center text-blue-700 font-semibold">
                                         {{ $row['owned']['in_use'] + $row['leased']['in_use'] }}
                                     </td>
+                                    <td class="py-2 px-2 text-center text-amber-700 font-semibold">
+                                        {{ $row['owned']['loaned'] + $row['leased']['loaned'] }}
+                                    </td>
                                     <td class="py-2 px-2 text-center text-orange-700 font-semibold">
                                         {{ $row['owned']['maintenance'] + $row['leased']['maintenance'] }}
+                                    </td>
+                                    <td class="py-2 px-2 text-center text-gray-700 font-semibold">
+                                        {{ $row['owned']['retired'] + $row['leased']['retired'] }}
+                                    </td>
+                                    <td class="py-2 px-2 text-center text-red-700 font-semibold">
+                                        {{ $row['owned']['lost'] + $row['leased']['lost'] }}
                                     </td>
 
                                     <td class="py-2 px-2 w-32">
@@ -544,7 +592,7 @@
                     </table>
                 </div>
 
-                <div class="flex items-center gap-4 mt-3 text-[10px] text-gray-500">
+                <div class="flex items-center gap-4 mt-3 text-[10px] text-gray-500 flex-wrap">
                     <span class="flex items-center gap-1">
                         <span class="w-3 h-3 rounded-sm bg-emerald-500"></span> Hak Milik
                     </span>

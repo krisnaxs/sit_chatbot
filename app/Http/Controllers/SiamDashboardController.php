@@ -143,6 +143,8 @@ class SiamDashboardController extends Controller
                         'in_use' => $ownedRows->where('status', 'in_use')->sum('total'),
                         'maintenance' => $ownedRows->where('status', 'maintenance')->sum('total'),
                         'loaned' => $ownedRows->where('status', 'loaned')->sum('total'),
+                        'retired' => $ownedRows->where('status', 'retired')->sum('total'),
+                        'lost' => $ownedRows->where('status', 'lost')->sum('total'),
                     ],
                     'leased' => [
                         'total' => $leasedRows->sum('total'),
@@ -150,6 +152,8 @@ class SiamDashboardController extends Controller
                         'in_use' => $leasedRows->where('status', 'in_use')->sum('total'),
                         'maintenance' => $leasedRows->where('status', 'maintenance')->sum('total'),
                         'loaned' => $leasedRows->where('status', 'loaned')->sum('total'),
+                        'retired' => $leasedRows->where('status', 'retired')->sum('total'),
+                        'lost' => $leasedRows->where('status', 'lost')->sum('total'),
                     ],
                 ];
             })
@@ -180,6 +184,8 @@ class SiamDashboardController extends Controller
                         'in_use' => $ownedRows->where('status', 'in_use')->sum('total'),
                         'maintenance' => $ownedRows->where('status', 'maintenance')->sum('total'),
                         'loaned' => $ownedRows->where('status', 'loaned')->sum('total'),
+                        'retired' => $ownedRows->where('status', 'retired')->sum('total'),
+                        'lost' => $ownedRows->where('status', 'lost')->sum('total'),
                     ],
                     'leased' => [
                         'total' => $leasedRows->sum('total'),
@@ -187,6 +193,8 @@ class SiamDashboardController extends Controller
                         'in_use' => $leasedRows->where('status', 'in_use')->sum('total'),
                         'maintenance' => $leasedRows->where('status', 'maintenance')->sum('total'),
                         'loaned' => $leasedRows->where('status', 'loaned')->sum('total'),
+                        'retired' => $leasedRows->where('status', 'retired')->sum('total'),
+                        'lost' => $leasedRows->where('status', 'lost')->sum('total'),
                     ],
                 ];
             })

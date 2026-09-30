@@ -1,7 +1,7 @@
 @props(['title' => 'Portal Aplikasi', 'placeholder' => 'Cari aplikasi...'])
 
 <div x-data="headerApp"
-    class="fixed top-0 left-0 right-0 z-40 bg-white shadow-md px-4 py-3
+    class="fixed top-0 left-0 right-0 z-[100] bg-white shadow-md px-4 py-3
             flex items-center h-16">
 
     {{-- LEFT: Hamburger + Logo --}}

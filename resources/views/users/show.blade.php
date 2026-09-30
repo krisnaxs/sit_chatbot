@@ -132,7 +132,6 @@
                     <div class="text-2xl font-bold text-pink-600">{{ $user->consumableTransactions->count() }}</div>
                 </div>
             </div>
-
             {{-- ============================================================ --}}
             {{-- ASET YANG SEDANG DIPEGANG --}}
             {{-- ============================================================ --}}
@@ -156,6 +155,8 @@
                         @foreach ($user->currentAssets as $asset)
                             <a href="{{ route('siam.assets.show', $asset) }}"
                                 class="flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 transition group">
+
+                                {{-- Icon --}}
                                 <div class="w-12 h-12 rounded-lg bg-cyan-100 flex items-center justify-center shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-600" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -163,43 +164,85 @@
                                             d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                     </svg>
                                 </div>
+
+                                {{-- Content --}}
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-medium text-gray-800 truncate">
-                                        {{ $asset->brand }} {{ $asset->model }}
+
+                                    {{-- 🆕 Nama + Badge Status --}}
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <div class="font-medium text-gray-800 truncate">
+                                            {{ $asset->brand }} {{ $asset->model }}
+                                        </div>
+
+                                        @php
+                                            $statusMap = [
+                                                'available' => [
+                                                    'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                                    'Tersedia',
+                                                ],
+                                                'in_use' => ['bg-blue-100 text-blue-700 border-blue-200', 'Dipakai'],
+                                                'loaned' => [
+                                                    'bg-amber-100 text-amber-700 border-amber-200',
+                                                    'Dipinjam',
+                                                ],
+                                                'maintenance' => [
+                                                    'bg-orange-100 text-orange-700 border-orange-200',
+                                                    'Perbaikan',
+                                                ],
+                                                'retired' => ['bg-gray-100 text-gray-700 border-gray-200', 'Pensiun'],
+                                                'lost' => ['bg-red-100 text-red-700 border-red-200', 'Hilang'],
+                                            ];
+                                            [$statusCls, $statusLabel] = $statusMap[$asset->status] ?? [
+                                                'bg-gray-100 text-gray-700 border-gray-200',
+                                                $asset->status,
+                                            ];
+                                        @endphp
+                                        <span
+                                            class="px-2 py-0.5 text-[10px] rounded-full font-bold border {{ $statusCls }} shrink-0">
+                                            {{ $statusLabel }}
+                                        </span>
                                     </div>
+
+                                    {{-- SN --}}
                                     <div class="text-xs text-gray-500 font-mono">
                                         SN: {{ $asset->serial_number }}
                                     </div>
 
+                                    {{-- Hostname --}}
                                     @if ($asset->hostname)
                                         <div class="text-xs text-gray-600 font-mono mt-0.5">
                                             🖥️ {{ $asset->hostname }}
                                         </div>
                                     @endif
 
+                                    {{-- Kategori + Lokasi --}}
                                     <div class="text-xs text-gray-500 mt-1">
                                         {{ $asset->category?->name }}
                                         @if ($asset->currentLocation)
                                             • 📍 {{ $asset->currentLocation->full_name }}
                                         @endif
                                     </div>
+
+                                    {{-- Kondisi --}}
                                     @if ($asset->condition_percent !== null)
                                         <div class="mt-2 flex items-center gap-2">
                                             <div class="w-20 bg-gray-200 rounded-full h-1.5">
                                                 <div class="h-1.5 rounded-full
-                                                    {{ $asset->condition_percent >= 80
-                                                        ? 'bg-green-500'
-                                                        : ($asset->condition_percent >= 60
-                                                            ? 'bg-yellow-500'
-                                                            : ($asset->condition_percent >= 40
-                                                                ? 'bg-orange-500'
-                                                                : 'bg-red-500')) }}"
+                                        {{ $asset->condition_percent >= 80
+                                            ? 'bg-green-500'
+                                            : ($asset->condition_percent >= 60
+                                                ? 'bg-yellow-500'
+                                                : ($asset->condition_percent >= 40
+                                                    ? 'bg-orange-500'
+                                                    : 'bg-red-500')) }}"
                                                     style="width: {{ $asset->condition_percent }}%"></div>
                                             </div>
                                             <span class="text-xs text-gray-600">{{ $asset->condition_percent }}%</span>
                                         </div>
                                     @endif
                                 </div>
+
+                                {{-- Arrow --}}
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                     class="h-4 w-4 text-gray-400 group-hover:text-cyan-600 transition shrink-0"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

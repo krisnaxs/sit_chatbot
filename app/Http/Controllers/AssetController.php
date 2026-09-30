@@ -556,7 +556,7 @@ class AssetController extends Controller
                 AssetOwnership::create(array_merge($ownershipData, ['asset_id' => $asset->id]));
             }
 
-            // 🆕 AssetAssignment — kalau status in_use + ada data assign
+            //  AssetAssignment — kalau status in_use + ada data assign
             if ($newStatus === 'in_use' && !empty($validated['assign']['user_id'])) {
                 $a = $validated['assign'];
 
@@ -696,6 +696,54 @@ class AssetController extends Controller
             ->setPaper('a4', 'landscape');
 
         return $pdf->download('daftar-aset-' . now()->format('Ymd-His') . '.pdf');
+    }
+
+    /**
+     * Halaman QR single aset (sudah ada).
+     */
+
+    /**
+     * Halaman QR code untuk 1 aset.
+     */
+    public function qrCode(Asset $asset)
+    {
+        return view('assets.qr', compact('asset'));
+    }
+
+    /**
+     * Batch QR — cetak massal.
+     * Bisa dari: selected IDs (checkbox) atau filter.
+     */
+    public function qrBatch(Request $request)
+    {
+        $query = Asset::query();
+
+        // Kalau dari checkbox (ids[])
+        if ($request->filled('ids')) {
+            $ids = is_array($request->ids)
+                ? $request->ids
+                : explode(',', $request->ids);
+            $query->whereIn('id', $ids);
+        } else {
+            // Fallback: filter dari query string
+            if ($request->filled('category_id'))
+                $query->where('category_id', $request->category_id);
+            if ($request->filled('status'))
+                $query->where('status', $request->status);
+            if ($request->filled('ownership_type'))
+                $query->where('ownership_type', $request->ownership_type);
+            if ($request->filled('brand'))
+                $query->where('brand', $request->brand);
+            if ($request->filled('model'))
+                $query->where('model', $request->model);
+
+            // Safety limit
+            $query->limit(500);
+        }
+
+        $assets = $query->orderBy('asset_code')->get();
+
+        return view('assets.qr-batch', compact('assets'));
     }
 
     public function destroy(Asset $asset)

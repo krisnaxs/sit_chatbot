@@ -26,6 +26,7 @@ use App\Http\Controllers\SiamDashboardController;
 use App\Http\Controllers\AssetRequestController;
 use App\Http\Controllers\MyAssetController;
 use App\Http\Controllers\QuickRequestController;
+use App\Http\Controllers\AssetPublicController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,12 @@ Route::post('/chat/send', [ChatController::class, 'send'])
 Route::get('/request/quick', [QuickRequestController::class, 'index'])->name('requests.quick');
 Route::post('/request/quick', [QuickRequestController::class, 'store'])->name('requests.quick.store');
 Route::get('/request/quick/receipt/{assetRequest}', [QuickRequestController::class, 'receipt'])->name('requests.quick.receipt');
+
+// Route publik — pakai SN
+Route::get('/a/{serial}', [AssetPublicController::class, 'show'])
+    ->where('serial', '.*')
+    ->middleware('throttle:60,1')
+    ->name('assets.public');
 
 
 Route::middleware(['auth'])->group(function () {
@@ -145,6 +152,15 @@ Route::middleware(['auth'])->group(function () {
             // Aset
             Route::get('assets/export/excel', [AssetController::class, 'exportExcel'])->name('assets.export.excel');
             Route::get('assets/export/pdf', [AssetController::class, 'exportPdf'])->name('assets.export.pdf');
+            Route::get('assets/{asset}/qr', [AssetController::class, 'qrCode'])
+                ->name('assets.qr');
+            // Batch QR — cetak massal
+            Route::get('assets/qr-batch', [AssetController::class, 'qrBatch'])
+                ->name('assets.qr.batch');
+
+            // QR by SN (untuk preview dari index, tanpa buka detail)
+            Route::get('assets/qr-preview/{asset}', [AssetController::class, 'qrPreview'])
+                ->name('assets.qr.preview');
             Route::resource('assets', AssetController::class);
 
             // Serah Terima

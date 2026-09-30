@@ -498,22 +498,6 @@
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Pengajuan
                             Saya</span>
                     </a>
-
-                    <a href="{{ route('requests.create') }}"
-                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
-                        {{ request()->routeIs('requests.create') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
-                            {{ request()->routeIs('requests.create') ? 'bg-emerald-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                        </span>
-                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Buat
-                            Pengajuan</span>
-                    </a>
                 @endif
 
                 {{-- ════════════════════════════════════════════════════════ --}}
@@ -567,14 +551,14 @@
                             Saya</span>
                     </a>
 
-                    {{-- Buat Pengajuan --}}
+                    {{-- Buat Pengajuan
                     <a href="{{ route('requests.create') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
-        {{ request()->routeIs('requests.create') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                                    {{ request()->routeIs('requests.create') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
-            {{ request()->routeIs('requests.create') ? 'bg-emerald-100' : 'bg-gray-100' }}">
+                                    {{ request()->routeIs('requests.create') ? 'bg-emerald-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -582,7 +566,7 @@
                         </span>
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Buat
                             Pengajuan</span>
-                    </a>
+                    </a> --}}
                 @endif
 
                 {{-- ════════════════════════════════════════════════════════ --}}

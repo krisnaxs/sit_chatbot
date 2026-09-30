@@ -257,4 +257,8 @@ class Asset extends Model
             default => 'red',
         };
     }
+    public function getPublicUrlAttribute(): string
+    {
+        return route('assets.public', ['serial' => rawurlencode($this->serial_number)]);
+    }
 }

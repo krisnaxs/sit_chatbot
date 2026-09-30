@@ -195,25 +195,45 @@ class AssetAssignmentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $validated['assigned_by'] = auth()->id();
-        $validated['received_by'] = $request->user_id;
+        DB::transaction(function () use ($request, $validated) {
+            $asset = Asset::findOrFail($validated['asset_id']);
 
-        $assignment = AssetAssignment::create($validated);
-        $updateData = [
-            'status' => 'in_use',
-            'current_user_id' => $assignment->user_id,
-            'current_location_id' => $assignment->location_id,
-        ];
+            // 🆕 TUTUP SEMUA ASSIGNMENT AKTIF untuk aset ini
+            // (baik pindah user baru, maupun assign ulang ke user yang sama)
+            AssetAssignment::where('asset_id', $asset->id)
+                ->whereNull('returned_at')
+                ->update(['returned_at' => now()]);
 
-        if ($request->filled('hostname')) {
-            $updateData['hostname'] = $request->hostname;
-        }
+            // Buat assignment baru
+            AssetAssignment::create([
+                'asset_id' => $validated['asset_id'],
+                'user_id' => $validated['user_id'],
+                'location_id' => $validated['location_id'] ?? null,
+                'department_id' => $validated['department_id'] ?? null,
+                'assigned_at' => $validated['assigned_at'],
+                'condition_on_assign' => $validated['condition_on_assign'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'assigned_by' => auth()->id(),
+                'received_by' => $validated['user_id'],
+            ]);
 
-        $assignment->asset->update($updateData);
+            // Update asset
+            $updateData = [
+                'status' => 'in_use',
+                'current_user_id' => $validated['user_id'],
+                'current_location_id' => $validated['location_id'] ?? null,
+            ];
+
+            if (!empty($validated['hostname'])) {
+                $updateData['hostname'] = $validated['hostname'];
+            }
+
+            $asset->update($updateData);
+        });
 
         return redirect()
-            ->route('siam.assets.show', $assignment->asset_id)
-            ->with('success', 'Aset berhasil di-assign ke user.');
+            ->route('siam.assets.show', $validated['asset_id'])
+            ->with('success', 'Aset berhasil di-assign / dipindahkan ke user baru.');
     }
 
     /**

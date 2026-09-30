@@ -39,7 +39,7 @@
                         PDF
                     </a>
 
-                    {{-- Brand & Model --}}
+                    {{-- Brand & Model
                     <a href="{{ route('siam.asset-types.index') }}"
                         class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium inline-flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -48,6 +48,18 @@
                                 d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                         </svg>
                         Brand & Model
+                    </a> --}}
+
+                    {{-- 🆕 Cetak QR Massal (semua aset sesuai filter) --}}
+                    <a href="{{ route('siam.assets.qr.batch', request()->query()) }}" target="_blank"
+                        title="Cetak QR semua aset (sesuai filter)"
+                        class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 text-sm font-medium inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                        </svg>
+                        Cetak QR Massal
                     </a>
 
                     {{-- Tambah Aset --}}
@@ -296,12 +308,59 @@
                 </div>
             @endif
 
+            {{-- 🆕 TOOLBAR BATCH QR (muncul kalau ada yang dicentang) --}}
+            <div id="qrBatchBar"
+                class="hidden bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-bold text-indigo-900 text-sm">
+                            <span id="selectedCount">0</span> aset dipilih
+                        </p>
+                        <p class="text-xs text-indigo-600">Cetak QR untuk aset yang dipilih</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="clearSelection()"
+                        class="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 text-sm font-medium transition">
+                        Batal Pilih
+                    </button>
+                    <button type="button" onclick="submitBatchQR()"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium inline-flex items-center gap-2 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Cetak QR Terpilih
+                    </button>
+                </div>
+            </div>
+
+            {{-- 🆕 FORM TERSEMBUNYI untuk submit batch QR --}}
+            <form id="qrBatchForm" method="GET" action="{{ route('siam.assets.qr.batch') }}" target="_blank"
+                class="hidden">
+                {{-- checkbox di tabel akan di-submit lewat form ini --}}
+            </form>
+
             {{-- TABEL ASET --}}
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
                         <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                             <tr>
+                                {{-- 🆕 Kolom Checkbox --}}
+                                <th class="px-3 py-2 text-center w-10">
+                                    <input type="checkbox" id="selectAllCheckbox"
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                        onchange="toggleSelectAll(this)">
+                                </th>
                                 <th class="px-3 py-2 text-left w-12">No</th>
                                 <th class="px-3 py-2 text-left">SN</th>
                                 <th class="px-3 py-2 text-left">Brand & Model</th>
@@ -337,6 +396,7 @@
                                         'routes' => [
                                             'show' => route('siam.assets.show', $asset),
                                             'edit' => route('siam.assets.edit', $asset),
+                                            'qr' => route('siam.assets.qr', $asset),
                                             'assign' => route('siam.assignments.create', ['asset_id' => $asset->id]),
                                             'loan' => route('siam.loans.create', ['asset_id' => $asset->id]),
                                             'maintenance' => route('siam.maintenances.create', [
@@ -347,19 +407,33 @@
                                     ];
                                 @endphp
 
-                                <tr @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
-                                    class="hover:bg-indigo-50 cursor-pointer transition-colors">
-                                    <td class="px-3 py-2 text-xs text-gray-500 font-medium">
+                                <tr class="hover:bg-indigo-50 transition-colors">
+                                    {{-- 🆕 Checkbox --}}
+                                    <td class="px-3 py-2 text-center">
+                                        <input type="checkbox" name="ids[]" value="{{ $asset->id }}"
+                                            form="qrBatchForm"
+                                            class="asset-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                            onclick="event.stopPropagation()">
+                                    </td>
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 text-xs text-gray-500 font-medium cursor-pointer">
                                         {{ $assets->firstItem() + $index }}
                                     </td>
-                                    <td class="px-3 py-2 font-mono text-xs text-indigo-700">{{ $asset->serial_number }}
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 font-mono text-xs text-indigo-700 cursor-pointer">
+                                        {{ $asset->serial_number }}
                                     </td>
-                                    <td class="px-3 py-2">
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 cursor-pointer">
                                         <div class="font-semibold text-gray-800">{{ $asset->brand }}</div>
                                         <div class="text-xs text-gray-600">{{ $asset->model }}</div>
                                     </td>
-                                    <td class="px-3 py-2 text-xs text-gray-500">{{ $asset->category?->name }}</td>
-                                    <td class="px-3 py-2">
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 text-xs text-gray-500 cursor-pointer">
+                                        {{ $asset->category?->name }}
+                                    </td>
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 cursor-pointer">
                                         @php
                                             $ownColor =
                                                 $asset->ownership_type === 'owned'
@@ -369,7 +443,8 @@
                                         <span
                                             class="px-2 py-0.5 text-xs rounded {{ $ownColor }}">{{ $asset->ownership_label }}</span>
                                     </td>
-                                    <td class="px-3 py-2">
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 cursor-pointer">
                                         @if ($asset->currentUser)
                                             <div class="text-gray-800">{{ $asset->currentUser->name }}</div>
                                             <div class="text-xs text-gray-500">{{ $asset->currentUser->position }}</div>
@@ -377,7 +452,8 @@
                                             <span class="text-xs text-gray-400 italic">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-3 py-2 text-xs">
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 text-xs cursor-pointer">
                                         @if ($asset->currentLocation)
                                             <div>{{ $asset->currentLocation->building }}</div>
                                             <div class="text-gray-500">
@@ -390,15 +466,19 @@
                                             <span class="text-gray-400 italic">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-3 py-2 text-xs">
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 text-xs cursor-pointer">
                                         @if ($asset->purchase_date)
                                             <span class="font-medium">{{ $asset->purchase_date->format('Y') }}</span>
                                         @else
                                             <span class="text-gray-400 italic">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-3 py-2 text-xs font-mono">{{ $asset->hostname ?? '-' }}</td>
-                                    <td class="px-3 py-2">
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 text-xs font-mono cursor-pointer">{{ $asset->hostname ?? '-' }}
+                                    </td>
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 cursor-pointer">
                                         @php
                                             $statusColor = match ($asset->status) {
                                                 'available' => 'bg-green-100 text-green-700',
@@ -413,7 +493,8 @@
                                         <span
                                             class="px-2 py-0.5 text-xs rounded {{ $statusColor }}">{{ $asset->status_label }}</span>
                                     </td>
-                                    <td class="px-3 py-2">
+                                    <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                        class="px-3 py-2 cursor-pointer">
                                         @if ($asset->condition_percent !== null)
                                             @php
                                                 $c = $asset->condition_percent;
@@ -439,7 +520,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="px-3 py-8 text-center text-gray-400">
+                                    <td colspan="12" class="px-3 py-8 text-center text-gray-400">
                                         Tidak ada aset ditemukan.
                                     </td>
                                 </tr>
@@ -540,6 +621,22 @@
                             <div class="min-w-0">
                                 <div class="font-semibold text-sm text-gray-800">Detail</div>
                                 <div class="text-xs text-gray-500">Lihat info lengkap</div>
+                            </div>
+                        </a>
+
+                        {{-- 🆕 QR CODE --}}
+                        <a :href="selectedAsset?.routes.qr" target="_blank"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 transition group">
+                            <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-gray-800">QR Code</div>
+                                <div class="text-xs text-gray-500">Lihat & cetak QR</div>
                             </div>
                         </a>
 
@@ -771,7 +868,7 @@
                             this.showBlock('Aset Sedang Dipinjam',
                                 `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
                                 `Kembalikan aset terlebih dahulu di menu <strong>Peminjaman</strong> sebelum dipinjamkan lagi.`
-                                );
+                            );
                             return;
                         }
                         if (status === 'in_use') {
@@ -803,7 +900,7 @@
                             this.showBlock('Aset Sedang Dipinjam',
                                 `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
                                 `Kembalikan aset terlebih dahulu di menu <strong>Peminjaman</strong> sebelum diserahkan ke user.`
-                                );
+                            );
                             return;
                         }
                         if (status === 'maintenance') {
@@ -916,8 +1013,80 @@
             }
         }
 
+        // ═══════════════════════════════════════════════════════════
+        //  AUTO-SUBMIT FILTER
+        // ═══════════════════════════════════════════════════════════
         document.querySelectorAll('[data-auto-submit]').forEach(el => {
             el.addEventListener('change', () => el.closest('form').submit());
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        //  🆕 BATCH QR — Checkbox & Toolbar
+        // ═══════════════════════════════════════════════════════════
+        function getCheckboxes() {
+            return document.querySelectorAll('.asset-checkbox');
+        }
+
+        function updateSelectedCount() {
+            const boxes = getCheckboxes();
+            const checked = document.querySelectorAll('.asset-checkbox:checked').length;
+            const bar = document.getElementById('qrBatchBar');
+            const countEl = document.getElementById('selectedCount');
+            const selectAll = document.getElementById('selectAllCheckbox');
+
+            if (countEl) countEl.textContent = checked;
+
+            if (bar) {
+                if (checked > 0) {
+                    bar.classList.remove('hidden');
+                } else {
+                    bar.classList.add('hidden');
+                }
+            }
+
+            if (selectAll) {
+                const total = boxes.length;
+                selectAll.checked = checked === total && total > 0;
+                selectAll.indeterminate = checked > 0 && checked < total;
+            }
+        }
+
+        function toggleSelectAll(master) {
+            getCheckboxes().forEach(cb => {
+                cb.checked = master.checked;
+            });
+            updateSelectedCount();
+        }
+
+        function clearSelection() {
+            getCheckboxes().forEach(cb => {
+                cb.checked = false;
+            });
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+            updateSelectedCount();
+        }
+
+        function submitBatchQR() {
+            const checked = document.querySelectorAll('.asset-checkbox:checked');
+            if (checked.length === 0) {
+                alert('Pilih minimal 1 aset terlebih dahulu.');
+                return;
+            }
+
+            const form = document.getElementById('qrBatchForm');
+            if (form) form.submit();
+        }
+
+        // Pasang listener saat DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            getCheckboxes().forEach(cb => {
+                cb.addEventListener('change', updateSelectedCount);
+            });
+            updateSelectedCount();
         });
     </script>
 @endpush
