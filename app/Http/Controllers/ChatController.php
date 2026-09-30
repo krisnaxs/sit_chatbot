@@ -227,6 +227,47 @@ class ChatController extends Controller
         'diassign',
     ];
 
+    // ============================================================
+    // 🆕 ROLE-BASED ACCESS HELPERS
+    // ============================================================
+
+    /**
+     * Cek apakah user privileged (bisa lihat semua aset).
+     */
+    private function isPrivileged(): bool
+    {
+        $user = auth()->user();
+        if (!$user)
+            return false;
+
+        $role = $user->role ?? null;
+        return in_array($role, ['admin', 'support'], true);
+    }
+
+    /**
+     * Scope query aset berdasarkan role.
+     * - admin/support → semua aset
+     * - user biasa → hanya aset yang dipegangnya
+     */
+    private function scopeAssetQuery($query)
+    {
+        if ($this->isPrivileged()) {
+            return $query;
+        }
+        return $query->where('current_user_id', auth()->id());
+    }
+
+    /**
+     * Cek apakah user boleh lihat aset tertentu.
+     */
+    private function canViewAsset($asset): bool
+    {
+        if ($this->isPrivileged()) {
+            return true;
+        }
+        return (int) $asset->current_user_id === (int) auth()->id();
+    }
+
     public function index(Request $request)
     {
         $sessionId = $request->session()->getId();
@@ -259,6 +300,7 @@ class ChatController extends Controller
             'pesan_len' => strlen($pesan),
             'user_id' => auth()->id(),
             'is_guest' => !auth()->check(),
+            'is_privileged' => $this->isPrivileged(),
         ]);
 
         // GUARD 0: Guest yang tanya tentang aset → wajib login
@@ -409,9 +451,7 @@ class ChatController extends Controller
             return $snAnswer;
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // 🆕 PRIORITAS 1.5: Konsumable — HARUS sebelum deteksi field aset
-        // ═══════════════════════════════════════════════════════════
+        // PRIORITAS 1.5: Konsumable
         if ($this->isConsumableQuery($lower, $memory)) {
             $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
             if ($consumableAnswer) {
@@ -482,8 +522,6 @@ class ChatController extends Controller
             return null;
         }
 
-        // 🆕 Ambil context yang TIPENYA COCOK untuk follow-up
-        // Jangan pakai recall() tanpa argumen — bisa ambil 'last_intent'
         $ctx = $memory->recall('asset_by_status')
             ?? $memory->recall('list_asset_by_status')
             ?? $memory->recall('count_asset_by_status')
@@ -498,7 +536,6 @@ class ChatController extends Controller
             ?? $memory->recall('active_loans')
             ?? $memory->recall('list_active_loans')
             ?? $memory->recall('active_assignments');
-
 
         if (!$ctx) {
             return null;
@@ -518,7 +555,6 @@ class ChatController extends Controller
             'offset' => $offset,
         ]);
 
-        // 🆕 Normalisasi SEMUA type count & list → type handler yang ada
         $type = match ($type) {
             'list_asset_by_status', 'count_asset_by_status' => 'asset_by_status',
             'list_asset_by_ownership', 'count_asset_by_ownership' => 'asset_by_ownership',
@@ -542,6 +578,7 @@ class ChatController extends Controller
             default => null,
         };
     }
+
     // ============================================================
     // CORE: CARI JAWABAN
     // ============================================================
@@ -571,7 +608,7 @@ class ChatController extends Controller
             return $userAssetsByName;
         }
 
-        // 3.5 🆕 Konsumable — cek dulu sebelum Ollama intent
+        // 3.5 Konsumable
         if ($this->isConsumableQuery($lower, $memory)) {
             $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
             if ($consumableAnswer) {
@@ -595,7 +632,6 @@ class ChatController extends Controller
                     $memory->remember($type, $dbAnswer[2], self::CONTEXT_TTL);
                 }
 
-                // 🆕 Simpan konteks konsumable
                 if (preg_match('/\b(konsumable|consumable|konsumebel|habis pakai|daftar konsumable)\b/i', $lower)) {
                     $memory->remember('consumable_list', [
                         'type' => 'consumable_list',
@@ -653,6 +689,7 @@ class ChatController extends Controller
 
         return [$jawaban, 'ai', null];
     }
+
     private function tryOllamaIntent(string $pesan, ChatMemoryService $memory, string $requestId): ?array
     {
         $cacheKey = 'intent:v2:' . md5(Str::lower(trim($pesan)));
@@ -688,15 +725,6 @@ class ChatController extends Controller
             return null;
         }
 
-        // 🆕 Normalisasi type: 'list_asset_by_status' → 'asset_by_status'
-        // biar konsisten dengan key yang dicek di executeFollowUp
-        $rawType = $result['context']['type'] ?? ($intent['intent'] ?? 'intent');
-        $type = match ($rawType) {
-            'list_asset_by_status' => 'asset_by_status',
-            default => $rawType,
-        };
-
-
         $rawType = $result['context']['type'] ?? ($intent['intent'] ?? 'intent');
         $type = match ($rawType) {
             'list_asset_by_status', 'count_asset_by_status' => 'asset_by_status',
@@ -706,10 +734,8 @@ class ChatController extends Controller
         };
 
         if (isset($result['context']) && is_array($result['context'])) {
-            // 🆕 Ambil params dari intent
             $params = $intent['params'] ?? [];
 
-            // 🆕 Flatten: pastikan status, category, brand, dll ada di ROOT context
             $context = array_merge($result['context'], [
                 'type' => $type,
                 '_type' => $type,
@@ -721,7 +747,6 @@ class ChatController extends Controller
                 'user_name' => $result['context']['user_name'] ?? $params['user_name'] ?? null,
             ]);
 
-            // 🆕 Normalisasi category "all" → null (biar tidak filter aneh)
             if (($context['category'] ?? null) === 'all') {
                 $context['category'] = null;
             }
@@ -735,7 +760,6 @@ class ChatController extends Controller
                 'offset' => $context['offset'] ?? 0,
             ]);
         } else {
-            // Fallback: simpan context minimal
             $memory->remember($type, [
                 'type' => $type,
                 '_type' => $type,
@@ -748,8 +772,6 @@ class ChatController extends Controller
                 'type' => $type,
             ]);
         }
-
-        // ❌ HAPUS: $memory->remember('last_intent', ...) — bikin recall() salah
 
         Log::info('intent.executed', [
             'request_id' => $requestId,
@@ -773,15 +795,36 @@ class ChatController extends Controller
             return null;
         }
 
-        $asset = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
+        // 🆕 Scope by role
+        $query = \App\Models\Asset::with(['category', 'currentUser', 'currentLocation'])
             ->where(function ($q) use ($identifier) {
                 $q->where('hostname', 'like', "%{$identifier}%")
                     ->orWhere('serial_number', 'like', "%{$identifier}%")
                     ->orWhere('asset_code', 'like', "%{$identifier}%");
-            })
-            ->first();
+            });
+
+        $query = $this->scopeAssetQuery($query);
+        $asset = $query->first();
 
         if (!$asset) {
+            // 🆕 User biasa cari aset yang bukan miliknya
+            if (!$this->isPrivileged() && auth()->check()) {
+                // Cek apakah aset ada sama sekali (untuk feedback)
+                $exists = \App\Models\Asset::where(function ($q) use ($identifier) {
+                    $q->where('hostname', 'like', "%{$identifier}%")
+                        ->orWhere('serial_number', 'like', "%{$identifier}%")
+                        ->orWhere('asset_code', 'like', "%{$identifier}%");
+                })->exists();
+
+                if ($exists) {
+                    return [
+                        "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.\n\n"
+                        . "Aset `{$identifier}` ditemukan di sistem, tapi bukan milikmu.\n"
+                        . "_Hubungi Admin atau Support kalau kamu butuh info ini._",
+                        'database',
+                    ];
+                }
+            }
             return null;
         }
 
@@ -866,11 +909,14 @@ class ChatController extends Controller
             return null;
         }
 
-        $assets = \App\Models\Asset::with(['currentUser', 'category', 'currentLocation'])
+        // 🆕 Scope by role
+        $query = \App\Models\Asset::with(['currentUser', 'category', 'currentLocation'])
             ->where('model', 'like', "%{$model}%")
             ->whereHas('currentUser')
-            ->limit(50)
-            ->get();
+            ->limit(50);
+
+        $query = $this->scopeAssetQuery($query);
+        $assets = $query->get();
 
         if ($assets->isEmpty()) {
             return [
@@ -888,8 +934,13 @@ class ChatController extends Controller
         $total = $assets->count();
         $userCount = count($grouped);
 
-        $jawaban = "👥 Pemegang aset {$model}\n"
-            . "({$total} unit dipegang oleh {$userCount} orang):\n\n";
+        // 🆕 Header berbeda untuk user biasa
+        $header = $this->isPrivileged()
+            ? "👥 Pemegang aset {$model}"
+            : "📋 Aset {$model} yang Anda pegang";
+
+        $jawaban = "{$header}\n"
+            . "({$total} unit" . ($this->isPrivileged() ? " dipegang oleh {$userCount} orang" : "") . "):\n\n";
 
         $i = 0;
         foreach ($grouped as $name => $items) {
@@ -922,6 +973,14 @@ class ChatController extends Controller
             return null;
         }
 
+        // 🆕 User biasa cuma boleh lihat asetnya sendiri
+        if (!$this->isPrivileged() && (int) $userId !== (int) auth()->id()) {
+            return [
+                "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.",
+                'database',
+            ];
+        }
+
         $user = \App\Models\User::find($userId);
         if (!$user) {
             return null;
@@ -931,7 +990,7 @@ class ChatController extends Controller
             $asset = \App\Models\Asset::with(['category', 'currentLocation'])
                 ->find($assetId);
 
-            if ($asset) {
+            if ($asset && $this->canViewAsset($asset)) {
                 $jawaban = "📋 {$asset->hostname}";
                 if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
                     $jawaban .= " (SN: `{$asset->serial_number}`)";
@@ -1043,6 +1102,14 @@ class ChatController extends Controller
 
         if (!$asset) {
             return ["Aset tidak ditemukan.", 'database'];
+        }
+
+        // 🆕 Guard: user biasa hanya boleh lihat aset miliknya
+        if (!$this->canViewAsset($asset)) {
+            return [
+                "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.",
+                'database',
+            ];
         }
 
         $memory->remember('asset', [
@@ -1647,6 +1714,14 @@ class ChatController extends Controller
 
     private function answerUserAssets(int $userId, ChatMemoryService $memory): array
     {
+        // 🆕 Guard: user biasa hanya boleh lihat asetnya sendiri
+        if (!$this->isPrivileged() && (int) $userId !== (int) auth()->id()) {
+            return [
+                "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.",
+                'database',
+            ];
+        }
+
         $user = \App\Models\User::find($userId);
         if (!$user) {
             return ["User tidak ditemukan.", 'database'];
@@ -1691,6 +1766,14 @@ class ChatController extends Controller
 
     private function answerWhoHoldsAsset($asset, ChatMemoryService $memory): array
     {
+        // 🆕 Guard
+        if (!$this->canViewAsset($asset)) {
+            return [
+                "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.",
+                'database',
+            ];
+        }
+
         $header = "🔍 {$asset->hostname}";
         if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
             $header .= "\nSN: `{$asset->serial_number}`";
@@ -1721,6 +1804,14 @@ class ChatController extends Controller
 
     private function answerAssetShort($asset, ChatMemoryService $memory): array
     {
+        // 🆕 Guard
+        if (!$this->canViewAsset($asset)) {
+            return [
+                "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.",
+                'database',
+            ];
+        }
+
         $header = "🔍 {$asset->hostname}";
         if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
             $header .= "\nSN: `{$asset->serial_number}`";
@@ -1822,6 +1913,16 @@ class ChatController extends Controller
         $user = \App\Models\User::where('name', 'like', "%{$userName}%")->first();
         if (!$user) {
             return null;
+        }
+
+        // 🆕 Guard: user biasa hanya boleh cari asetnya sendiri
+        if (!$this->isPrivileged() && (int) $user->id !== (int) auth()->id()) {
+            return [
+                "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.\n\n"
+                . "_Untuk melihat aset user lain, hubungi Admin atau Support._",
+                'database',
+                null,
+            ];
         }
 
         $assets = $user->currentAssets()->with('category')->get();
@@ -1954,7 +2055,6 @@ class ChatController extends Controller
             'umur' => $asset->purchase_date
                 ? floor($asset->purchase_date->diffInDays(now()) / 365) . ' tahun'
                 : '-',
-            // 🆕 Field assignment & riwayat
             'assigned_at' => $this->resolveAssignedAt($asset),
             'returned_at' => $this->resolveReturnedAt($asset),
             'durasi' => $this->resolveDuration($asset),
@@ -1964,13 +2064,8 @@ class ChatController extends Controller
         };
     }
 
-    /**
-     * 🆕 Cek apakah pesan tentang konsumable.
-     * Return true kalau pesan mengarah ke konsumable, bukan aset.
-     */
     private function isConsumableQuery(string $lower, ChatMemoryService $memory): bool
     {
-        // 1. Kata kunci konsumable eksplisit
         $consumableKeywords = [
             'konsumable',
             'consumable',
@@ -1981,7 +2076,6 @@ class ChatController extends Controller
             'habis pakai',
             'atk',
             'alat tulis',
-            // Nama item konsumable (harus cocok word boundary)
             'keyboard',
             'mouse',
             'tinta',
@@ -2012,18 +2106,14 @@ class ChatController extends Controller
             return false;
         }
 
-        // 2. Kalau ADA konteks konsumable sebelumnya → konsumable
         if ($memory->recall('consumable') || $memory->recall('consumable_list')) {
             return true;
         }
 
-        // 3. Kalau TIDAK ada konteks aset → konsumable
-        //    (karena user biasanya langsung tanya konsumable)
         if (!$memory->recall('asset')) {
             return true;
         }
 
-        // 4. Kalau ada konteks ASET, cek kata kunci yang KHUSUS aset
         $assetOnlyKeywords = [
             'cpu',
             'ram',
@@ -2050,11 +2140,10 @@ class ChatController extends Controller
         ];
         foreach ($assetOnlyKeywords as $kw) {
             if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $lower)) {
-                return false; // ini tentang aset
+                return false;
             }
         }
 
-        // 5. Kalau ada kata khas konsumable → konsumable
         if (preg_match('/\b(stok|sisa|terpakai|dipakai|habis|jumlah|rendah|minimum|restock|masuk|keluar)\b/i', $lower)) {
             return true;
         }
@@ -2062,12 +2151,8 @@ class ChatController extends Controller
         return false;
     }
 
-    /**
-     * 🆕 Jawab pertanyaan konsumable berdasarkan keyword (HDD, keyboard, dll).
-     */
     private function tryAnswerConsumableByKeyword(string $lower, ChatMemoryService $memory): ?array
     {
-        // Kumpulkan keyword konsumable yang match
         $keywords = [
             'hdd' => ['hdd', 'harddisk', 'hard disk', 'hardisk'],
             'flashdisk' => ['flashdisk', 'flash disk', 'usb drive'],
@@ -2095,7 +2180,6 @@ class ChatController extends Controller
             return null;
         }
 
-        // Cari konsumable di DB yang match kategori
         try {
             $consumables = \App\Models\Consumable::where(function ($q) use ($keywords, $matchedCategory) {
                 foreach ($keywords[$matchedCategory] as $alias) {
@@ -2113,7 +2197,6 @@ class ChatController extends Controller
             return null;
         }
 
-        // Simpan konteks konsumable
         $first = $consumables->first();
         $memory->remember('consumable', [
             'type' => 'consumable',
@@ -2123,12 +2206,10 @@ class ChatController extends Controller
             'time' => now()->toDateTimeString(),
         ], self::CONTEXT_TTL, "Consumable {$first->name}");
 
-        // Kalau cuma 1 konsumable → tampilkan detail
         if ($consumables->count() === 1) {
             return $this->formatConsumableAnswer($consumables->first(), $lower);
         }
 
-        // Kalau >1 → tampilkan list
         $jawaban = "📦 Ditemukan " . $consumables->count() . " konsumable:\n\n";
         foreach ($consumables as $c) {
             $stok = (int) ($c->stock_available ?? 0);
@@ -2142,9 +2223,6 @@ class ChatController extends Controller
         return [$jawaban, 'database'];
     }
 
-    /**
-     * 🆕 Format jawaban konsumable tunggal.
-     */
     private function formatConsumableAnswer($c, string $lower): array
     {
         $available = (int) ($c->stock_available ?? 0);
@@ -2153,7 +2231,6 @@ class ChatController extends Controller
         $unit = $c->unit ?? 'pcs';
         $terpakai = max(0, $total - $available);
 
-        // Deteksi field
         $isTerpakai = (bool) preg_match('/\b(terpakai|dipakai|pakai|keluar|habis|used)\b/i', $lower);
         $isStok = (bool) preg_match('/\b(stok|stoknya|sisa|available|tersedia|ready|ada)\b/i', $lower);
 
@@ -2178,7 +2255,6 @@ class ChatController extends Controller
             return [$jawaban, 'database'];
         }
 
-        // Default
         $jawaban = "📦 **{$c->name}**";
         if ($c->brand)
             $jawaban .= " ({$c->brand})";
@@ -2192,9 +2268,6 @@ class ChatController extends Controller
         return [$jawaban, 'database'];
     }
 
-    /**
-     * 🆕 Ambil tanggal assignment aktif.
-     */
     private function resolveAssignedAt($asset): string
     {
         $assignment = \App\Models\AssetAssignment::where('asset_id', $asset->id)
@@ -2211,9 +2284,6 @@ class ChatController extends Controller
             . " (sekarang, {$days} hari)";
     }
 
-    /**
-     * 🆕 Ambil tanggal pengembalian terakhir.
-     */
     private function resolveReturnedAt($asset): string
     {
         $assignment = \App\Models\AssetAssignment::where('asset_id', $asset->id)
@@ -2228,9 +2298,6 @@ class ChatController extends Controller
         return $assignment->returned_at->format('d M Y');
     }
 
-    /**
-     * 🆕 Ambil durasi pemakaian aktif.
-     */
     private function resolveDuration($asset): string
     {
         $assignment = \App\Models\AssetAssignment::where('asset_id', $asset->id)
@@ -2256,9 +2323,6 @@ class ChatController extends Controller
         return "{$days} hari";
     }
 
-    /**
-     * 🆕 Info peminjaman (loan).
-     */
     private function resolveLoanInfo($asset): string
     {
         $loan = \App\Models\AssetLoan::where('asset_id', $asset->id)
@@ -2275,9 +2339,6 @@ class ChatController extends Controller
         return "Dipinjam {$user}, jatuh tempo {$due}";
     }
 
-    /**
-     * 🆕 Riwayat singkat.
-     */
     private function resolveRiwayat($asset): string
     {
         $total = \App\Models\AssetAssignment::where('asset_id', $asset->id)->count();
@@ -2335,6 +2396,10 @@ class ChatController extends Controller
 
             $user = \App\Models\User::where('name', 'like', "%{$clean}%")->first();
             if ($user) {
+                // 🆕 Guard: user biasa hanya boleh lihat asetnya sendiri
+                if (!$this->isPrivileged() && (int) $user->id !== (int) auth()->id()) {
+                    continue;
+                }
                 return $this->answerUserAssets($user->id, $memory);
             }
         }
@@ -2344,7 +2409,6 @@ class ChatController extends Controller
 
     private function followUpAssetByStatus(array $ctx, int $offset, int $limit, ChatMemoryService $memory): array
     {
-        // 🆕 Ambil dari berbagai kemungkinan struktur
         $status = $ctx['status']
             ?? $ctx['params']['status']
             ?? $ctx['intent']['params']['status']
@@ -2360,7 +2424,6 @@ class ChatController extends Controller
             ?? $ctx['intent']['params']['brand']
             ?? null;
 
-        // Normalisasi "all" → null
         if ($category === 'all')
             $category = null;
         if ($brand === 'all')
@@ -2372,7 +2435,6 @@ class ChatController extends Controller
             'brand' => $brand,
         ]);
 
-        // Guard
         if (!$status) {
             Log::warning('followUpAssetByStatus.no_status', ['ctx' => $ctx]);
             return ["_Maaf, saya kehilangan konteks pencarian sebelumnya. Coba ulangi pertanyaan awal._", 'database'];
@@ -2380,6 +2442,9 @@ class ChatController extends Controller
 
         $q = \App\Models\Asset::with('category');
         $q->where('status', $status);
+
+        // 🆕 Scope by role
+        $q = $this->scopeAssetQuery($q);
 
         if ($category) {
             $q->where(function ($x) use ($category) {
@@ -2403,7 +2468,12 @@ class ChatController extends Controller
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan {$start}-{$end} dari {$total} aset:\n\n";
+        // 🆕 Header berbeda untuk user biasa
+        $header = $this->isPrivileged()
+            ? "Menampilkan {$start}-{$end} dari {$total} aset"
+            : "📋 Aset Anda (menampilkan {$start}-{$end} dari {$total})";
+
+        $jawaban = "{$header}:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
             if ($a->hostname)
@@ -2432,15 +2502,17 @@ class ChatController extends Controller
         $category = $ctx['category'] ?? null;
         $brand = $ctx['brand'] ?? null;
 
-        // 🆕 Guard
         if (!$ownership) {
             Log::warning('followUpAssetByOwnership.no_ownership', ['ctx' => $ctx]);
             return ["_Maaf, konteks kepemilikan hilang. Coba tanya ulang._", 'database'];
         }
 
         $q = \App\Models\Asset::with('category');
-
         $q->where('ownership_type', $ownership);
+
+        // 🆕 Scope by role
+        $q = $this->scopeAssetQuery($q);
+
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
@@ -2462,7 +2534,11 @@ class ChatController extends Controller
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan {$start}-{$end} dari {$total} aset:\n\n";
+        $header = $this->isPrivileged()
+            ? "Menampilkan {$start}-{$end} dari {$total} aset"
+            : "📋 Aset Anda (menampilkan {$start}-{$end} dari {$total})";
+
+        $jawaban = "{$header}:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
             if ($a->hostname)
@@ -2528,6 +2604,11 @@ class ChatController extends Controller
             ->with(['asset', 'user'])
             ->orderBy('due_date');
 
+        // 🆕 Scope: user biasa hanya lihat pinjaman sendiri
+        if (!$this->isPrivileged()) {
+            $q->where('user_id', auth()->id());
+        }
+
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
 
@@ -2565,6 +2646,11 @@ class ChatController extends Controller
         $q = \App\Models\AssetLoan::where('status', 'borrowed')
             ->with(['asset', 'user'])
             ->orderByDesc('loan_date');
+
+        // 🆕 Scope
+        if (!$this->isPrivileged()) {
+            $q->where('user_id', auth()->id());
+        }
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
@@ -2605,6 +2691,11 @@ class ChatController extends Controller
         $q = \App\Models\AssetAssignment::whereNull('returned_at')
             ->with(['asset', 'user'])
             ->orderByDesc('assigned_at');
+
+        // 🆕 Scope
+        if (!$this->isPrivileged()) {
+            $q->where('user_id', auth()->id());
+        }
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
@@ -2733,6 +2824,15 @@ class ChatController extends Controller
         $user = \App\Models\User::where('name', 'like', "%{$userName}%")->first();
         if (!$user) {
             return null;
+        }
+
+        // 🆕 Guard
+        if (!$this->isPrivileged() && (int) $user->id !== (int) auth()->id()) {
+            return [
+                "🔒 Maaf, kamu hanya bisa melihat **aset yang sedang kamu pegang**.",
+                'database',
+                null,
+            ];
         }
 
         $assets = $user->currentAssets()->with('category')->get();
