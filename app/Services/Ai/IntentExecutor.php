@@ -27,15 +27,7 @@ class IntentExecutor
     {
     }
 
-    /**
-     * Return assoc array:
-     *   [
-     *     'answer'  => string,
-     *     'context' => array|null,
-     *     'source'  => 'database',
-     *   ]
-     * atau null kalau tidak bisa dieksekusi.
-     */
+
     public function execute(array $intent): ?array
     {
         $name = $intent['intent'] ?? null;
@@ -95,9 +87,7 @@ class IntentExecutor
         ];
     }
 
-    /**
-     * Khusus list_asset_by_user — langsung query DB, tidak lewat QueryRouter.
-     */
+
     protected function executeListAssetByUser(array $params): ?array
     {
         $userName = trim($params['user_name'] ?? '');
@@ -120,7 +110,7 @@ class IntentExecutor
 
         if ($assets->isEmpty()) {
             return [
-                'answer' => "User **{$user->name}** sedang tidak memegang aset.",
+                'answer' => "User {$user->name} sedang tidak memegang aset.",
                 'context' => [
                     'type' => 'user_assets',
                     'user_id' => $user->id,
@@ -132,9 +122,9 @@ class IntentExecutor
         }
 
         if ($field === 'all') {
-            $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+            $jawaban = "👤 {$user->name} memegang {$assets->count()} aset:\n\n";
             foreach ($assets as $a) {
-                $jawaban .= "• **{$a->hostname}**";
+                $jawaban .= "• {$a->hostname}";
                 if ($a->serial_number && $a->serial_number !== $a->hostname) {
                     $jawaban .= " (SN: `{$a->serial_number}`)";
                 }
@@ -158,10 +148,10 @@ class IntentExecutor
             };
             $label = $fieldLabels[$field] ?? $field;
 
-            $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+            $jawaban = "👤 {$user->name} memegang {$assets->count()} aset:\n\n";
             foreach ($assets as $a) {
                 $value = $a->{$dbField} ?? null;
-                $jawaban .= "• **{$a->hostname}**";
+                $jawaban .= "• {$a->hostname}";
                 if ($a->serial_number && $dbField !== 'serial_number' && $a->serial_number !== $a->hostname) {
                     $jawaban .= " (SN: `{$a->serial_number}`)";
                 }

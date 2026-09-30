@@ -1,32 +1,17 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', 'Detail Transaksi — SIAM')
 
-    <title>Detail Transaksi — SIAM</title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans">
-
-    <x-header title="Detail Transaksi" />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-3xl mx-auto p-6 mt-4 lg:mr-auto transition-all duration-300">
+@section('content')
+    <div class="max-w-3xl mx-auto">
 
         {{-- BREADCRUMB --}}
         <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
             <a href="{{ route('siam.consumable-transactions.index') }}" class="hover:text-pink-600 transition">
                 Transaksi Konsumable
             </a>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
             <span class="text-gray-900 font-semibold">#{{ $transaction->id }}</span>
@@ -169,20 +154,4 @@
         </div>
 
     </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
-    </script>
-
-</body>
-
-</html>
+@endsection

@@ -7,14 +7,11 @@ use Illuminate\Support\Facades\Log;
 
 class OllamaResponseFormatter
 {
-    /**
-     * Format jawaban. HANYA dipakai untuk merapikan jawaban pendek.
-     * Jangan dipakai di jalur utama — boros latency.
-     */
+
     public function format(string $userMessage, string $rawAnswer): string
     {
-        // Kalau jawaban sudah cukup jelas (ada **markdown** atau panjang), return as-is
-        if (str_contains($rawAnswer, '**') || strlen($rawAnswer) > 200) {
+        // Kalau jawaban sudah cukup jelas (ada markdown atau panjang), return as-is
+        if (str_contains($rawAnswer, '') || strlen($rawAnswer) > 200) {
             return $rawAnswer;
         }
 

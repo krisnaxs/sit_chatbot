@@ -18,6 +18,10 @@ class ChatMemoryService
      */
     public function remember(string $type, array $data, int $ttlMinutes = 30, ?string $label = null): ChatContext
     {
+        // Paksa 'type' & '_type' ada di dalam data
+        $data['type'] = $data['type'] ?? $type;
+        $data['_type'] = $data['_type'] ?? $type;
+
         ChatContext::where('session_id', $this->sessionId)
             ->where('type', $type)
             ->delete();
@@ -32,7 +36,10 @@ class ChatMemoryService
     }
 
     /**
-     * Ambil konteks terakhir.
+     * Ambil konteks.
+     *
+     * - Kalau $type diisi → return context dengan type tersebut, atau null
+     * - Kalau $type kosong → return context TERBARU
      */
     public function recall(?string $type = null): ?array
     {
@@ -49,9 +56,26 @@ class ChatMemoryService
         if (!$ctx) {
             return null;
         }
+
         $ctx->increment('hit_count');
 
         return array_merge(['_type' => $ctx->type], $ctx->data ?? []);
+    }
+
+    /**
+     * 🆕 Cari context pertama yang cocok dari daftar type.
+     *
+     * Contoh: recallFirstOf(['asset_by_status', 'list_asset_by_status'])
+     */
+    public function recallFirstOf(array $types): ?array
+    {
+        foreach ($types as $type) {
+            $ctx = $this->recall($type);
+            if ($ctx !== null) {
+                return $ctx;
+            }
+        }
+        return null;
     }
 
     /**

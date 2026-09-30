@@ -109,9 +109,9 @@ class AiAssetController extends Controller
         // ═══════════════════════════════════════════════════════════
         if (!auth()->check() && $this->isAssetQuery($pesan)) {
             return response()->json([
-                'reply' => "🔒 Maaf, untuk mengakses **data aset** kamu harus **login** terlebih dahulu.\n\n"
-                    . "**Cara login:**\n"
-                    . "1. Klik tombol **Login** di pojok kanan atas\n"
+                'reply' => "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
+                    . "Cara login:\n"
+                    . "1. Klik tombol Login di pojok kanan atas\n"
                     . "2. Masukkan username & password SIAM kamu\n"
                     . "3. Setelah login, tanyakan lagi ke saya 😊\n\n"
                     . "_Kalau belum punya akun, hubungi IT Support._",
@@ -124,8 +124,8 @@ class AiAssetController extends Controller
         // ═══════════════════════════════════════════════════════════
         if ($this->isWriteIntent($pesan)) {
             return response()->json([
-                'reply' => '🔒 Maaf, saya hanya bisa **membaca** data. '
-                    . 'Untuk mengubah data, silakan gunakan menu **Aset Management** di SIAM.',
+                'reply' => '🔒 Maaf, saya hanya bisa membaca data. '
+                    . 'Untuk mengubah data, silakan gunakan menu Aset Management di SIAM.',
                 'source' => 'readonly_guard',
             ]);
         }

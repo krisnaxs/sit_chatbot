@@ -1,117 +1,146 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Pengajuan — SIAM</title>
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+@section('title', 'QR Code Pengajuan — SIAM')
 
+@push('styles')
     {{-- qrcode LOKAL --}}
     <script src="{{ asset('js/qrcode.min.js') }}"></script>
-</head>
 
-<body class="bg-slate-100 font-sans">
-    <x-header title="QR Code Pengajuan" />
-    <x-sidebar />
+    <style>
+        @media print {
+            body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
 
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+            x-header,
+            x-sidebar,
+            nav,
+            aside,
+            header,
+            .no-print {
+                display: none !important;
+            }
 
-        <div class="max-w-2xl mx-auto space-y-6">
+            [class*="lg:ml-"] {
+                margin-left: 0 !important;
+            }
 
-            {{-- HEADER (disembunyikan saat print) --}}
-            <div class="no-print">
-                <h1 class="text-2xl font-bold text-gray-800">QR Code Pengajuan Cepat</h1>
-                <p class="text-sm text-gray-500">Print dan tempel di kantor/ruangan. User scan → login → ajukan.</p>
-            </div>
+            .max-w-7xl,
+            .max-w-2xl {
+                max-width: 100% !important;
+                margin: 0 auto !important;
+                padding: 10mm !important;
+            }
 
-            {{-- QR CARD --}}
-            <div id="qrCard" class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 text-center">
+            #qrCard {
+                box-shadow: none !important;
+                border: 2px solid #000 !important;
+                page-break-inside: avoid !important;
+                display: block !important;
+            }
 
-                {{-- LOGO & TITLE --}}
-                <div class="mb-4">
-                    <img src="{{ asset('images/plnip.png') }}" class="h-16 mx-auto mb-3" alt="Logo">
-                    <h2 class="font-bold text-xl text-gray-800">SIAM — Pengajuan Cepat</h2>
-                    <p class="text-sm text-gray-500">Scan untuk mengajukan peminjaman atau konsumable</p>
-                </div>
+            #qrcode {
+                display: inline-block !important;
+                page-break-inside: avoid !important;
+            }
 
-                {{-- QR CODE --}}
-                <div id="qrcode"
-                    class="inline-block p-4 bg-white border-2 border-dashed border-gray-300 rounded-2xl my-6">
-                </div>
-
-                {{-- URL --}}
-                <div class="text-sm text-gray-600">
-                    <p class="font-mono text-xs bg-gray-100 inline-block px-3 py-1.5 rounded-lg">
-                        {{ url('/request/quick') }}
-                    </p>
-                </div>
-
-                {{-- LANGKAH-LANGKAH --}}
-                <div class="mt-6 pt-6 border-t border-gray-100 grid grid-cols-3 gap-4 text-xs text-left">
-                    <div>
-                        <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
-                            <span class="font-bold text-indigo-600">1</span>
-                        </div>
-                        <p class="font-semibold text-gray-800">Scan QR</p>
-                        <p class="text-gray-500 mt-0.5">Pakai kamera HP</p>
-                    </div>
-                    <div>
-                        <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
-                            <span class="font-bold text-indigo-600">2</span>
-                        </div>
-                        <p class="font-semibold text-gray-800">Login</p>
-                        <p class="text-gray-500 mt-0.5">Modal muncul otomatis</p>
-                    </div>
-                    <div>
-                        <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
-                            <span class="font-bold text-indigo-600">3</span>
-                        </div>
-                        <p class="font-semibold text-gray-800">Ajukan</p>
-                        <p class="text-gray-500 mt-0.5">Dapat bukti pengajuan</p>
-                    </div>
-                </div>
-            </div>
-
-            {{-- TOMBOL AKSI --}}
-            <div class="flex gap-3 no-print">
-                <button type="button" onclick="printQR()"
-                    class="flex-1 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold
-                           shadow-lg shadow-indigo-500/30 transition inline-flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    Print QR Code
-                </button>
-
-                <button type="button" onclick="downloadQR()"
-                    class="flex-1 px-5 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold
-                           transition inline-flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
-                    </svg>
-                    Download PNG HD
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', e => this.collapsed = e.detail.collapsed);
-                }
+            #qrcode img,
+            #qrcode canvas {
+                display: block !important;
+                max-width: 100% !important;
+                height: auto !important;
             }
         }
+    </style>
+@endpush
 
+@section('content')
+    <div class="max-w-2xl mx-auto space-y-6">
+
+        {{-- HEADER (disembunyikan saat print) --}}
+        <div class="no-print">
+            <h1 class="text-2xl font-bold text-gray-800">QR Code Pengajuan Cepat</h1>
+            <p class="text-sm text-gray-500">Print dan tempel di kantor/ruangan. User scan → login → ajukan.</p>
+        </div>
+
+        {{-- QR CARD --}}
+        <div id="qrCard" class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 text-center">
+
+            {{-- LOGO & TITLE --}}
+            <div class="mb-4">
+                <img src="{{ asset('images/plnip.png') }}" class="h-16 mx-auto mb-3" alt="Logo">
+                <h2 class="font-bold text-xl text-gray-800">SIAM — Pengajuan Cepat</h2>
+                <p class="text-sm text-gray-500">Scan untuk mengajukan peminjaman atau konsumable</p>
+            </div>
+
+            {{-- QR CODE --}}
+            <div id="qrcode" class="inline-block p-4 bg-white border-2 border-dashed border-gray-300 rounded-2xl my-6">
+            </div>
+
+            {{-- URL --}}
+            <div class="text-sm text-gray-600">
+                <p class="font-mono text-xs bg-gray-100 inline-block px-3 py-1.5 rounded-lg">
+                    {{ url('/request/quick') }}
+                </p>
+            </div>
+
+            {{-- LANGKAH-LANGKAH --}}
+            <div class="mt-6 pt-6 border-t border-gray-100 grid grid-cols-3 gap-4 text-xs text-left">
+                <div>
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
+                        <span class="font-bold text-indigo-600">1</span>
+                    </div>
+                    <p class="font-semibold text-gray-800">Scan QR</p>
+                    <p class="text-gray-500 mt-0.5">Pakai kamera HP</p>
+                </div>
+                <div>
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
+                        <span class="font-bold text-indigo-600">2</span>
+                    </div>
+                    <p class="font-semibold text-gray-800">Login</p>
+                    <p class="text-gray-500 mt-0.5">Modal muncul otomatis</p>
+                </div>
+                <div>
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
+                        <span class="font-bold text-indigo-600">3</span>
+                    </div>
+                    <p class="font-semibold text-gray-800">Ajukan</p>
+                    <p class="text-gray-500 mt-0.5">Dapat bukti pengajuan</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- TOMBOL AKSI --}}
+        <div class="flex gap-3 no-print">
+            <button type="button" onclick="printQR()"
+                class="flex-1 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold
+                   shadow-lg shadow-indigo-500/30 transition inline-flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print QR Code
+            </button>
+
+            <button type="button" onclick="downloadQR()"
+                class="flex-1 px-5 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold
+                   transition inline-flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
+                </svg>
+                Download PNG HD
+            </button>
+        </div>
+    </div>
+@endsection
+
+@push('scripts')
+    <script>
         // ═══════════════════════════════════════════════════════════
         //  GENERATE QR CODE — HD (1000x1000px untuk download)
         // ═══════════════════════════════════════════════════════════
@@ -252,149 +281,149 @@
             }
 
             printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Print QR Code — SIAM</title>
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; }
-                        html, body {
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                            background: white;
-                            padding: 30px;
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Print QR Code — SIAM</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    html, body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        background: white;
+                        padding: 30px;
+                    }
+                    .qr-card {
+                        border: 3px solid #000;
+                        border-radius: 20px;
+                        padding: 40px 30px;
+                        text-align: center;
+                        max-width: 560px;
+                        margin: 0 auto;
+                        page-break-inside: avoid;
+                    }
+                    .logo {
+                        height: 70px;
+                        margin-bottom: 16px;
+                    }
+                    .title {
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: #1f2937;
+                        margin-bottom: 6px;
+                    }
+                    .subtitle {
+                        font-size: 14px;
+                        color: #6b7280;
+                        margin-bottom: 24px;
+                    }
+                    .qr-box {
+                        display: inline-block;
+                        padding: 16px;
+                        border: 2px dashed #d1d5db;
+                        border-radius: 16px;
+                        margin: 8px 0 20px;
+                        background: white;
+                    }
+                    .qr-img {
+                        display: block;
+                        width: 320px;
+                        height: 320px;
+                        image-rendering: pixelated;
+                        image-rendering: crisp-edges;
+                    }
+                    .url {
+                        font-family: 'Courier New', monospace;
+                        font-size: 13px;
+                        background: #f3f4f6;
+                        padding: 8px 16px;
+                        border-radius: 8px;
+                        display: inline-block;
+                        color: #374151;
+                        margin-bottom: 24px;
+                    }
+                    .steps {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 16px;
+                        margin-top: 24px;
+                        padding-top: 24px;
+                        border-top: 1px solid #e5e7eb;
+                        text-align: left;
+                    }
+                    .step-num {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        background: #e0e7ff;
+                        color: #4338ca;
+                        font-weight: 700;
+                        font-size: 15px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-bottom: 10px;
+                    }
+                    .step-title {
+                        font-weight: 600;
+                        font-size: 14px;
+                        color: #1f2937;
+                    }
+                    .step-desc {
+                        font-size: 12px;
+                        color: #6b7280;
+                        margin-top: 3px;
+                    }
+                    @media print {
+                        body { padding: 15px; background: white; }
+                        .qr-card { page-break-inside: avoid; }
+                        @page {
+                            size: A4;
+                            margin: 15mm;
                         }
-                        .qr-card {
-                            border: 3px solid #000;
-                            border-radius: 20px;
-                            padding: 40px 30px;
-                            text-align: center;
-                            max-width: 560px;
-                            margin: 0 auto;
-                            page-break-inside: avoid;
-                        }
-                        .logo {
-                            height: 70px;
-                            margin-bottom: 16px;
-                        }
-                        .title {
-                            font-size: 24px;
-                            font-weight: 700;
-                            color: #1f2937;
-                            margin-bottom: 6px;
-                        }
-                        .subtitle {
-                            font-size: 14px;
-                            color: #6b7280;
-                            margin-bottom: 24px;
-                        }
-                        .qr-box {
-                            display: inline-block;
-                            padding: 16px;
-                            border: 2px dashed #d1d5db;
-                            border-radius: 16px;
-                            margin: 8px 0 20px;
-                            background: white;
-                        }
-                        .qr-img {
-                            display: block;
-                            width: 320px;
-                            height: 320px;
-                            image-rendering: pixelated;
-                            image-rendering: crisp-edges;
-                        }
-                        .url {
-                            font-family: 'Courier New', monospace;
-                            font-size: 13px;
-                            background: #f3f4f6;
-                            padding: 8px 16px;
-                            border-radius: 8px;
-                            display: inline-block;
-                            color: #374151;
-                            margin-bottom: 24px;
-                        }
-                        .steps {
-                            display: grid;
-                            grid-template-columns: repeat(3, 1fr);
-                            gap: 16px;
-                            margin-top: 24px;
-                            padding-top: 24px;
-                            border-top: 1px solid #e5e7eb;
-                            text-align: left;
-                        }
-                        .step-num {
-                            width: 36px;
-                            height: 36px;
-                            border-radius: 50%;
-                            background: #e0e7ff;
-                            color: #4338ca;
-                            font-weight: 700;
-                            font-size: 15px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin-bottom: 10px;
-                        }
-                        .step-title {
-                            font-weight: 600;
-                            font-size: 14px;
-                            color: #1f2937;
-                        }
-                        .step-desc {
-                            font-size: 12px;
-                            color: #6b7280;
-                            margin-top: 3px;
-                        }
-                        @media print {
-                            body { padding: 15px; background: white; }
-                            .qr-card { page-break-inside: avoid; }
-                            @page {
-                                size: A4;
-                                margin: 15mm;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="qr-card">
-                        <img src="${logoUrl}" class="logo" alt="Logo">
-                        <div class="title">SIAM — Pengajuan Cepat</div>
-                        <div class="subtitle">Scan untuk mengajukan peminjaman atau konsumable</div>
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="qr-card">
+                    <img src="${logoUrl}" class="logo" alt="Logo">
+                    <div class="title">SIAM — Pengajuan Cepat</div>
+                    <div class="subtitle">Scan untuk mengajukan peminjaman atau konsumable</div>
 
-                        <div class="qr-box">
-                            <img src="${qrSrc}" class="qr-img" alt="QR Code">
+                    <div class="qr-box">
+                        <img src="${qrSrc}" class="qr-img" alt="QR Code">
+                    </div>
+
+                    <div class="url">${quickUrl}</div>
+
+                    <div class="steps">
+                        <div>
+                            <div class="step-num">1</div>
+                            <div class="step-title">Scan QR</div>
+                            <div class="step-desc">Pakai kamera HP</div>
                         </div>
-
-                        <div class="url">${quickUrl}</div>
-
-                        <div class="steps">
-                            <div>
-                                <div class="step-num">1</div>
-                                <div class="step-title">Scan QR</div>
-                                <div class="step-desc">Pakai kamera HP</div>
-                            </div>
-                            <div>
-                                <div class="step-num">2</div>
-                                <div class="step-title">Login</div>
-                                <div class="step-desc">Modal muncul otomatis</div>
-                            </div>
-                            <div>
-                                <div class="step-num">3</div>
-                                <div class="step-title">Ajukan</div>
-                                <div class="step-desc">Dapat bukti pengajuan</div>
-                            </div>
+                        <div>
+                            <div class="step-num">2</div>
+                            <div class="step-title">Login</div>
+                            <div class="step-desc">Modal muncul otomatis</div>
+                        </div>
+                        <div>
+                            <div class="step-num">3</div>
+                            <div class="step-title">Ajukan</div>
+                            <div class="step-desc">Dapat bukti pengajuan</div>
                         </div>
                     </div>
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() {
-                                window.print();
-                            }, 600);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
+                </div>
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                        }, 600);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
 
             printWindow.document.close();
         }
@@ -514,55 +543,4 @@
             });
         }
     </script>
-
-    <style>
-        @media print {
-            body {
-                background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            x-header,
-            x-sidebar,
-            nav,
-            aside,
-            header,
-            .no-print {
-                display: none !important;
-            }
-
-            [class*="lg:ml-"] {
-                margin-left: 0 !important;
-            }
-
-            .max-w-7xl,
-            .max-w-2xl {
-                max-width: 100% !important;
-                margin: 0 auto !important;
-                padding: 10mm !important;
-            }
-
-            #qrCard {
-                box-shadow: none !important;
-                border: 2px solid #000 !important;
-                page-break-inside: avoid !important;
-                display: block !important;
-            }
-
-            #qrcode {
-                display: inline-block !important;
-                page-break-inside: avoid !important;
-            }
-
-            #qrcode img,
-            #qrcode canvas {
-                display: block !important;
-                max-width: 100% !important;
-                height: auto !important;
-            }
-        }
-    </style>
-</body>
-
-</html>
+@endpush

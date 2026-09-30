@@ -7,10 +7,7 @@ use Illuminate\Support\Str;
 
 class QueryRouter
 {
-    /**
-     * 🆕 Keyword yang menandakan pesan berkaitan dengan data aset.
-     * Dipakai untuk guard guest — kalau guest tanya hal ini, wajib login.
-     */
+
     private const ASSET_KEYWORDS = [
         // Aset fisik
         'aset',
@@ -97,10 +94,7 @@ class QueryRouter
         'ruangan',
     ];
 
-    /**
-     * Coba jawab dari semua service DB.
-     * Return array [jawaban, sumber] atau null.
-     */
+
     public function tryAnswer(string $pesan): ?array
     {
         $user = auth()->user();
@@ -111,9 +105,9 @@ class QueryRouter
         // ═══════════════════════════════════════════════════════════
         if (!$user && $this->isAssetRelated($pesan)) {
             return [
-                "🔒 Maaf, untuk mengakses **data aset** kamu harus **login** terlebih dahulu.\n\n"
-                . "**Cara login:**\n"
-                . "1. Klik tombol **Login** di pojok kanan atas\n"
+                "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
+                . "Cara login:\n"
+                . "1. Klik tombol Login di pojok kanan atas\n"
                 . "2. Masukkan username & password SIAM kamu\n"
                 . "3. Setelah login, tanyakan lagi ke saya 😊\n\n"
                 . "_Kalau belum punya akun, hubungi IT Support._",
@@ -163,10 +157,7 @@ class QueryRouter
     // 🆕 GUARD HELPERS
     // ============================================================
 
-    /**
-     * 🆕 Deteksi apakah pesan berkaitan dengan data aset.
-     * Dipakai untuk memblokir guest sebelum menyentuh database.
-     */
+
     protected function isAssetRelated(string $pesan): bool
     {
         $lower = Str::lower($pesan);

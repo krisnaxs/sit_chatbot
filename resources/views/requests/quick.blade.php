@@ -231,7 +231,7 @@
                     </div>
                 </div>
 
-                {{-- 🆕 LOKASI & DEPARTEMEN --}}
+                {{-- LOKASI & DEPARTEMEN --}}
                 <div>
                     <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b">
                         Lokasi Peminjam
@@ -249,7 +249,6 @@
                             </select>
                         </div>
 
-                        {{-- 🆕 Departemen: dropdown (bisa diubah, default dari user) --}}
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Departemen</label>
                             <select name="department_id" class="w-full border rounded-lg px-3 py-2.5 text-sm">

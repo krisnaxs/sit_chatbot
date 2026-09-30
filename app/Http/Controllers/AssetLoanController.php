@@ -11,14 +11,47 @@ class AssetLoanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AssetLoan::with(['asset', 'user', 'approvedBy']);
+        $query = AssetLoan::with(['asset', 'user', 'approvedBy', 'assetRequest']);
 
+        // Filter existing
         if ($request->filled('status'))
             $query->where('status', $request->status);
         if ($request->filled('asset_id'))
             $query->where('asset_id', $request->asset_id);
         if ($request->filled('user_id'))
             $query->where('user_id', $request->user_id);
+
+        // 🆕 Filter origin
+        if ($request->filled('origin')) {
+            if ($request->origin === 'request') {
+                $query->fromRequest();
+            } elseif ($request->origin === 'manual') {
+                $query->manual();
+            }
+        }
+
+        // 🆕 Filter search — cari di multiple kolom
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                // Cari di nomor pengajuan (via relasi)
+                $q->whereHas('assetRequest', function ($qa) use ($search) {
+                    $qa->where('request_number', 'like', "%{$search}%");
+                })
+                    // Cari di SN aset
+                    ->orWhereHas('asset', function ($qa) use ($search) {
+                        $qa->where('serial_number', 'like', "%{$search}%")
+                            ->orWhere('brand', 'like', "%{$search}%")
+                            ->orWhere('model', 'like', "%{$search}%");
+                    })
+                    // Cari di nama peminjam
+                    ->orWhereHas('user', function ($qu) use ($search) {
+                        $qu->where('name', 'like', "%{$search}%");
+                    })
+                    // Cari di tujuan
+                    ->orWhere('purpose', 'like', "%{$search}%");
+            });
+        }
 
         $loans = $query->orderByDesc('loan_date')
             ->paginate($request->get('per_page', 25))
@@ -65,7 +98,9 @@ class AssetLoanController extends Controller
 
     public function show(AssetLoan $loan)
     {
-        $loan->load(['asset', 'user', 'approvedBy']);
+        // 🆕 Load 'assetRequest' juga
+        $loan->load(['asset', 'user', 'approvedBy', 'assetRequest']);
+
         return view('loans.show', compact('loan'));
     }
 
@@ -81,7 +116,7 @@ class AssetLoanController extends Controller
         $loan->update($validated);
         $loan->asset->update([
             'status' => 'available',
-            'current_user_id' => null,   // ✅ KUNCI PERBAIKAN
+            'current_user_id' => null,
         ]);
 
         return redirect()

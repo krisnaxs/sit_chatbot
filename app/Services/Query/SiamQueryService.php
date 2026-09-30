@@ -11,10 +11,7 @@ use Illuminate\Support\Str;
 
 class SiamQueryService
 {
-    /**
-     * Coba jawab pertanyaan tentang SIAM.
-     * Return array [jawaban, sumber, context] atau null kalau tidak match.
-     */
+
     public function tryAnswer(string $pesan): ?array
     {
         $msg = Str::lower(trim($pesan));
@@ -98,9 +95,6 @@ class SiamQueryService
         return null;
     }
 
-    /**
-     * Cek apakah $msg mengandung salah satu kata dari $keywords.
-     */
     private function match(string $msg, array $keywords): bool
     {
         foreach ($keywords as $kw) {
@@ -117,9 +111,9 @@ class SiamQueryService
         $owned = Asset::where('ownership_type', 'owned')->count();
         $leased = Asset::where('ownership_type', 'leased')->count();
 
-        $jawaban = "📊 **Total Aset SIAM: {$total} unit**\n\n"
-            . "• 🟢 Hak Milik: **{$owned}** unit\n"
-            . "• 🟠 Sewa: **{$leased}** unit";
+        $jawaban = "📊 Total Aset SIAM: {$total} unit\n\n"
+            . "• 🟢 Hak Milik: {$owned} unit\n"
+            . "• 🟠 Sewa: {$leased} unit";
 
         return [$jawaban, 'database'];
     }
@@ -136,7 +130,7 @@ class SiamQueryService
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        $lines = ["{$emoji} **Aset {$label}: {$total} unit**\n"];
+        $lines = ["{$emoji} Aset {$label}: {$total} unit\n"];
         $statusLabels = [
             'available' => 'Tersedia',
             'in_use' => 'Dipakai',
@@ -172,7 +166,7 @@ class SiamQueryService
         $owned = Asset::where('status', $status)->where('ownership_type', 'owned')->count();
         $leased = Asset::where('status', $status)->where('ownership_type', 'leased')->count();
 
-        $jawaban = "{$info['emoji']} **Aset {$info['label']}: {$total} unit**\n\n"
+        $jawaban = "{$info['emoji']} Aset {$info['label']}: {$total} unit\n\n"
             . "• 🟢 Hak Milik: {$owned}\n"
             . "• 🟠 Sewa: {$leased}";
 
@@ -192,10 +186,10 @@ class SiamQueryService
             return ["Belum ada data aset.", 'database'];
         }
 
-        $lines = ["📦 **Aset per Kategori:**\n"];
+        $lines = ["📦 Aset per Kategori:\n"];
         foreach ($data as $row) {
             $name = $row->category?->name ?? 'Tanpa Kategori';
-            $lines[] = "• {$name}: **{$row->total}** unit";
+            $lines[] = "• {$name}: {$row->total} unit";
         }
 
         return [implode("\n", $lines), 'database'];
@@ -214,9 +208,9 @@ class SiamQueryService
             return ["Belum ada data brand.", 'database'];
         }
 
-        $lines = ["🏷️ **Aset per Brand:**\n"];
+        $lines = ["🏷️ Aset per Brand:\n"];
         foreach ($data as $row) {
-            $lines[] = "• {$row->brand}: **{$row->total}** unit";
+            $lines[] = "• {$row->brand}: {$row->total} unit";
         }
 
         return [implode("\n", $lines), 'database'];
@@ -235,9 +229,9 @@ class SiamQueryService
             return ["Belum ada data model.", 'database'];
         }
 
-        $lines = ["💻 **Aset per Model:**\n"];
+        $lines = ["💻 Aset per Model:\n"];
         foreach ($data as $row) {
-            $lines[] = "• {$row->brand} — {$row->model}: **{$row->total}** unit";
+            $lines[] = "• {$row->brand} — {$row->model}: {$row->total} unit";
         }
 
         return [implode("\n", $lines), 'database'];
@@ -248,8 +242,8 @@ class SiamQueryService
         $total = Asset::where('ownership_type', 'owned')->sum('purchase_price') ?? 0;
         $count = Asset::where('ownership_type', 'owned')->count();
 
-        $jawaban = "💰 **Total Nilai Pembelian Aset**\n\n"
-            . "• Total: **Rp " . number_format($total, 0, ',', '.') . "**\n"
+        $jawaban = "💰 Total Nilai Pembelian Aset\n\n"
+            . "• Total: Rp " . number_format($total, 0, ',', '.') . "\n"
             . "• Jumlah aset hak milik: {$count} unit";
 
         return [$jawaban, 'database'];
@@ -260,8 +254,8 @@ class SiamQueryService
         $total = AssetOwnership::where('ownership_type', 'leased')->sum('monthly_cost') ?? 0;
         $count = Asset::where('ownership_type', 'leased')->count();
 
-        $jawaban = "💸 **Biaya Sewa Bulanan**\n\n"
-            . "• Total: **Rp " . number_format($total, 0, ',', '.') . " / bulan**\n"
+        $jawaban = "💸 Biaya Sewa Bulanan\n\n"
+            . "• Total: Rp " . number_format($total, 0, ',', '.') . " / bulan\n"
             . "• Jumlah aset sewa: {$count} unit";
 
         return [$jawaban, 'database'];
@@ -284,7 +278,7 @@ class SiamQueryService
             ->whereDate('due_date', '<', today())
             ->count();
 
-        $lines = ["🔴 **{$total} Peminjaman Terlambat:**\n"];
+        $lines = ["🔴 {$total} Peminjaman Terlambat:\n"];
         foreach ($loans as $loan) {
             $sn = $loan->asset?->serial_number ?? '-';
             $user = $loan->user?->name ?? '-';
@@ -302,10 +296,10 @@ class SiamQueryService
         $overdue = AssetLoan::where('status', 'borrowed')
             ->whereDate('due_date', '<', today())->count();
 
-        $jawaban = "🔄 **Statistik Peminjaman**\n\n"
-            . "• Aktif: **{$active}**\n"
-            . "• Terlambat: **{$overdue}**\n"
-            . "• Sudah dikembalikan: **{$returned}**";
+        $jawaban = "🔄 Statistik Peminjaman\n\n"
+            . "• Aktif: {$active}\n"
+            . "• Terlambat: {$overdue}\n"
+            . "• Sudah dikembalikan: {$returned}";
 
         return [$jawaban, 'database'];
     }
@@ -322,9 +316,9 @@ class SiamQueryService
             return ["Belum ada data perbaikan.", 'database'];
         }
 
-        $lines = ["🔧 **Top 5 Aset Paling Sering Diperbaiki:**\n"];
+        $lines = ["🔧 Top 5 Aset Paling Sering Diperbaiki:\n"];
         foreach ($data as $i => $a) {
-            $lines[] = ($i + 1) . ". {$a->serial_number} ({$a->brand} {$a->model}) — **{$a->maintenances_count}x**";
+            $lines[] = ($i + 1) . ". {$a->serial_number} ({$a->brand} {$a->model}) — {$a->maintenances_count}x";
         }
 
         return [implode("\n", $lines), 'database'];
@@ -342,9 +336,9 @@ class SiamQueryService
         }
 
         $total = Consumable::whereColumn('stock_available', '<=', 'stock_minimum')->count();
-        $lines = ["📉 **{$total} Konsumable Stok Rendah:**\n"];
+        $lines = ["📉 {$total} Konsumable Stok Rendah:\n"];
         foreach ($items as $c) {
-            $lines[] = "• {$c->name}: **{$c->stock_available}/{$c->stock_minimum}** {$c->unit}";
+            $lines[] = "• {$c->name}: {$c->stock_available}/{$c->stock_minimum} {$c->unit}";
         }
 
         return [implode("\n", $lines), 'database'];
@@ -357,10 +351,10 @@ class SiamQueryService
             ->where('stock_available', '>', 0)->count();
         $outStock = Consumable::where('stock_available', 0)->count();
 
-        $jawaban = "📦 **Statistik Konsumable**\n\n"
-            . "• Total item: **{$total}**\n"
-            . "• Stok rendah: **{$lowStock}**\n"
-            . "• Stok habis: **{$outStock}**";
+        $jawaban = "📦 Statistik Konsumable\n\n"
+            . "• Total item: {$total}\n"
+            . "• Stok rendah: {$lowStock}\n"
+            . "• Stok habis: {$outStock}";
 
         return [$jawaban, 'database'];
     }
@@ -370,9 +364,9 @@ class SiamQueryService
         $total = User::count();
         $active = User::where('is_active', true)->count();
 
-        $jawaban = "👥 **Statistik User**\n\n"
-            . "• Total: **{$total}**\n"
-            . "• Aktif: **{$active}**";
+        $jawaban = "👥 Statistik User\n\n"
+            . "• Total: {$total}\n"
+            . "• Aktif: {$active}";
 
         return [$jawaban, 'database'];
     }
@@ -382,7 +376,7 @@ class SiamQueryService
         $count = User::whereHas('currentAssets')->count();
         $total = User::count();
 
-        $jawaban = "👤 **User yang Memegang Aset:** **{$count}** dari {$total} user.";
+        $jawaban = "👤 User yang Memegang Aset: {$count} dari {$total} user.";
 
         return [$jawaban, 'database'];
     }

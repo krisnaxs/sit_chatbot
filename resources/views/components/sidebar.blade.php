@@ -23,11 +23,10 @@
             : 0;
     @endphp
 
-    <div x-data="sidebarApp()" @toggle-sidebar.window="window.innerWidth >= 1024 ? toggleCollapse() : toggle()"
-        class="fixed inset-0 z-[45] pointer-events-none">
+    <div x-data class="fixed inset-0 z-[45] pointer-events-none">
 
         {{-- OVERLAY (mobile) --}}
-        <div x-show="open" @click="close()"
+        <div x-show="$store.sidebar.open" @click="$store.sidebar.close()"
             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 pointer-events-auto
                    lg:hidden transition-opacity duration-300"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
@@ -38,59 +37,30 @@
         {{-- SIDEBAR --}}
         <aside
             :class="{
-                'translate-x-0': open,
-                '-translate-x-full lg:translate-x-0': !open,
-                'lg:w-64': !collapsed,
-                'lg:w-16': collapsed
+                'translate-x-0': $store.sidebar.open,
+                '-translate-x-full lg:translate-x-0': !$store.sidebar.open,
+                'lg:w-64': !$store.sidebar.collapsed,
+                'lg:w-16': $store.sidebar.collapsed
             }"
-            class="fixed top-0 left-0 bottom-0 w-64 z-50
+            class="fixed top-16 left-0 bottom-0 w-64 z-40
                    bg-white border-r border-gray-200 shadow-xl
                    flex flex-col
                    transform transition-all duration-300 ease-out
                    pointer-events-auto">
-
-            {{-- HEADER SIDEBAR --}}
-            <div :class="collapsed ? 'lg:justify-center lg:px-0' : 'justify-between'"
+            {{-- HEADER SIDEBAR — tanpa logo (logo di header utama)
+            <div :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : 'justify-between'"
                 class="flex items-center px-4 py-3.5 border-b border-gray-100 gap-2 shrink-0">
+                --}}
 
-                <a href="/" :class="collapsed ? 'lg:hidden' : 'flex items-center gap-2'">
-                    <img src="{{ asset('images/plnip.png') }}" class="h-8 shrink-0" alt="Logo">
-                    <span class="font-bold text-gray-800 text-sm whitespace-nowrap">
-                        @switch($tab)
-                            @case('portal')
-                                SIT Portal
-                            @break
+            {{-- Hanya teks judul tab, tanpa logo
+                <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                    class="font-bold text-gray-800 text-sm whitespace-nowrap">
+                    Menu
+                </span>
+                --}}
 
-                            @case('chatbot')
-                                SIT Chatbot
-                            @break
-
-                            @case('siam')
-                                SIAM
-                            @break
-
-                            @case('master')
-                                Master Data
-                            @break
-                        @endswitch
-                    </span>
-                </a>
-
-                <a href="/" :class="collapsed ? 'lg:block hidden' : 'hidden'">
-                    <img src="{{ asset('images/plnip.png') }}" class="h-7" alt="Logo">
-                </a>
-
-                <button type="button" @click="toggleCollapse()"
-                    class="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg
-                           hover:bg-gray-100 transition shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" :class="collapsed ? 'rotate-180' : ''"
-                        class="h-4 w-4 text-gray-500 transition-transform duration-300" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                <button type="button" @click="close()"
+            {{-- Tombol close — hanya mobile
+                <button type="button" @click="$store.sidebar.close()"
                     class="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 transition shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
@@ -98,6 +68,7 @@
                     </svg>
                 </button>
             </div>
+            --}}
 
             {{-- NAVIGATION --}}
             <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -106,13 +77,13 @@
                 {{-- TAB: PORTAL --}}
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'portal')
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1 whitespace-nowrap">
                         Portal
                     </p>
 
                     {{-- Portal --}}
-                    <a href="{{ route('portal') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('portal') }}" :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('portal') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -124,11 +95,11 @@
                                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Portal</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Portal</span>
                     </a>
 
                     {{-- Aplikasi --}}
-                    <a href="{{ route('apps.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('apps.index') }}" :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('apps.*') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -140,7 +111,7 @@
                                     d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Aplikasi</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Aplikasi</span>
                     </a>
                 @endif
 
@@ -148,13 +119,13 @@
                 {{-- TAB: CHATBOT --}}
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'chatbot')
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1 whitespace-nowrap">
                         Chatbot
                     </p>
 
                     {{-- Dashboard --}}
-                    <a href="{{ route('dashboard') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('dashboard') }}" :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -166,11 +137,13 @@
                                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Dashboard</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Dashboard</span>
                     </a>
 
                     {{-- Knowledge --}}
-                    <a href="{{ route('knowledge.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('knowledge.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('knowledge.index', 'knowledge.create', 'knowledge.edit') ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -182,21 +155,23 @@
                                     d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Knowledge</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Knowledge</span>
                     </a>
 
                     {{-- Pending AI --}}
                     @if (Route::has('knowledge.pending') &&
                             auth()->user()->hasAnyRole(['admin', 'support']))
                         @php $pendingCount = \App\Models\PendingKnowledge::where('status', 'pending')->count(); @endphp
-                        <a href="{{ route('knowledge.pending') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        <a href="{{ route('knowledge.pending') }}"
+                            :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                             class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                                   {{ request()->routeIs('knowledge.pending*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <span
                                 class="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0
                                         {{ request()->routeIs('knowledge.pending*') ? 'bg-orange-100' : 'bg-gray-100' }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                 </svg>
@@ -209,7 +184,7 @@
                                     </span>
                                 @endif
                             </span>
-                            <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
+                            <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
                                 Pending AI
                                 @if ($pendingCount > 0)
                                     <span class="ml-1 text-[10px] text-rose-500 font-bold">({{ $pendingCount }})</span>
@@ -219,7 +194,8 @@
                     @endif
 
                     {{-- Chatbot --}}
-                    <a href="{{ route('chat.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('chat.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('chat.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -231,7 +207,7 @@
                                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Chatbot</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Chatbot</span>
                     </a>
                 @endif
 
@@ -244,35 +220,38 @@
                 @if (
                     $tab === 'siam' &&
                         auth()->user()->hasAnyRole(['admin', 'support']))
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-1 pb-0.5 whitespace-nowrap">
                         Aset Manajemen
                     </p>
 
                     {{-- Dashboard --}}
-                    <a href="{{ route('siam.dashboard') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.dashboard') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
     {{ request()->routeIs('siam.dashboard') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
     {{ request()->routeIs('siam.dashboard') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Dashboard</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Dashboard</span>
                     </a>
 
                     {{-- ════════════ MASTER DATA ════════════ --}}
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
                         Master Data
                     </p>
 
                     {{-- Kategori --}}
-                    <a href="{{ route('siam.categories.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.categories.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
     {{ request()->routeIs('siam.categories.*') ? 'bg-slate-100 text-slate-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -284,11 +263,13 @@
                                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Kategori</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Kategori</span>
                     </a>
 
                     {{-- Brand & Model --}}
-                    <a href="{{ route('siam.asset-types.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.asset-types.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
     {{ request()->routeIs('siam.asset-types.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -300,11 +281,13 @@
                                     d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Brand & Model</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Brand &
+                            Model</span>
                     </a>
 
                     {{-- Konsumable --}}
-                    <a href="{{ route('siam.consumables.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.consumables.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
             {{ request()->routeIs('siam.consumables.*') ? 'bg-lime-50 text-lime-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -316,17 +299,19 @@
                                     d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Konsumable</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Konsumable</span>
                     </a>
 
                     {{-- ════════════ TRANSAKSI ════════════ --}}
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
                         Transaksi
                     </p>
 
                     {{-- User & Aset --}}
-                    <a href="{{ route('siam.user-assets.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.user-assets.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
             {{ request()->routeIs('siam.user-assets.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -338,11 +323,13 @@
                                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">User & Aset</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">User &
+                            Aset</span>
                     </a>
 
                     {{-- Daftar Aset --}}
-                    <a href="{{ route('siam.assets.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.assets.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                     {{ request()->routeIs('siam.assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -354,11 +341,13 @@
                                     d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Daftar Aset</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Daftar
+                            Aset</span>
                     </a>
 
                     {{-- Serah Terima --}}
-                    <a href="{{ route('siam.assignments.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.assignments.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                     {{ request()->routeIs('siam.assignments.*') ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -370,11 +359,13 @@
                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Serah Terima</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Serah
+                            Terima</span>
                     </a>
 
                     {{-- Peminjaman --}}
-                    <a href="{{ route('siam.loans.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.loans.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                             {{ request()->routeIs('siam.loans.*') ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -386,12 +377,13 @@
                                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Peminjaman</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Peminjaman</span>
                     </a>
 
                     {{-- Transaksi Konsumable --}}
                     <a href="{{ route('siam.consumable-transactions.index') }}"
-                        :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                                          {{ request()->routeIs('siam.consumable-transactions.*') ? 'bg-pink-50 text-pink-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -403,12 +395,13 @@
                                     d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Transaksi Konsumable</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Transaksi
+                            Konsumable</span>
                     </a>
 
                     {{-- Perbaikan --}}
                     <a href="{{ route('siam.maintenances.index') }}"
-                        :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                      {{ request()->routeIs('siam.maintenances.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -422,16 +415,18 @@
                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Perbaikan</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Perbaikan</span>
                     </a>
 
                     {{-- ════════════ APPROVAL PENGAJUAN (ADMIN/SUPPORT) ════════════ --}}
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
                         Approval
                     </p>
 
-                    <a href="{{ route('admin.requests.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('admin.requests.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                             {{ request()->routeIs('admin.requests.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
 
@@ -455,7 +450,7 @@
                             @endif
                         </span>
 
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
                             Approval Pengajuan
                             @if ($pendingRequestCount > 0)
                                 <span class="ml-1 text-[10px] text-rose-500 font-bold">({{ $pendingRequestCount }})</span>
@@ -464,13 +459,14 @@
                     </a>
 
                     {{-- ════════════ PENGAJUAN SAYA (semua role bisa buat pengajuan sendiri) ════════════ --}}
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
                         Aset Saya
                     </p>
 
                     {{-- 🆕 Aset yang Saya Pegang --}}
-                    <a href="{{ route('my-assets.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('my-assets.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
     {{ request()->routeIs('my-assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -482,10 +478,12 @@
                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Aset yang Saya Pegang</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Aset yang
+                            Saya Pegang</span>
                     </a>
 
-                    <a href="{{ route('requests.my') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('requests.my') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                         {{ request()->routeIs('requests.my', 'requests.show') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -497,10 +495,12 @@
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Pengajuan Saya</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Pengajuan
+                            Saya</span>
                     </a>
 
-                    <a href="{{ route('requests.create') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('requests.create') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
                         {{ request()->routeIs('requests.create') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -511,7 +511,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Buat Pengajuan</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Buat
+                            Pengajuan</span>
                     </a>
                 @endif
 
@@ -519,13 +520,14 @@
                 {{-- TAB: MY-ASSETS — KHUSUS USER BIASA --}}
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'my-assets' && auth()->user()->role === 'user')
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-1 pb-0.5 whitespace-nowrap">
                         Aset Saya
                     </p>
 
                     {{-- Aset yang Saya Pegang --}}
-                    <a href="{{ route('my-assets.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('my-assets.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
         {{ request()->routeIs('my-assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -537,17 +539,19 @@
                                     d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Aset yang Saya Pegang</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Aset yang
+                            Saya Pegang</span>
                     </a>
 
                     {{-- ════════════ PENGAJUAN ════════════ --}}
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
                         Pengajuan
                     </p>
 
                     {{-- Pengajuan Saya --}}
-                    <a href="{{ route('requests.my') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('requests.my') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
         {{ request()->routeIs('requests.my', 'requests.show') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -559,11 +563,13 @@
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Pengajuan Saya</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Pengajuan
+                            Saya</span>
                     </a>
 
                     {{-- Buat Pengajuan --}}
-                    <a href="{{ route('requests.create') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('requests.create') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
         {{ request()->routeIs('requests.create') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -574,7 +580,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Buat Pengajuan</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Buat
+                            Pengajuan</span>
                     </a>
                 @endif
 
@@ -582,14 +589,15 @@
                 {{-- TAB: MASTER --}}
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'master')
-                    <p :class="collapsed ? 'lg:hidden' : ''"
+                    <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
                         class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1 whitespace-nowrap">
                         Master Data
                     </p>
 
                     {{-- Users (admin only) --}}
                     @if (auth()->user()->isAdmin())
-                        <a href="{{ route('users.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        <a href="{{ route('users.index') }}"
+                            :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                             class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                                   {{ request()->routeIs('users.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <span
@@ -601,12 +609,14 @@
                                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                             </span>
-                            <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Kelola User</span>
+                            <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Kelola
+                                User</span>
                         </a>
                     @endif
 
                     {{-- Departemen --}}
-                    <a href="{{ route('siam.departments.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.departments.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('siam.departments.*') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -618,11 +628,13 @@
                                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Departemen</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="whitespace-nowrap">Departemen</span>
                     </a>
 
                     {{-- Lokasi --}}
-                    <a href="{{ route('siam.locations.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.locations.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('siam.locations.*') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -636,11 +648,12 @@
                                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Lokasi</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Lokasi</span>
                     </a>
 
                     {{-- Vendor --}}
-                    <a href="{{ route('siam.vendors.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('siam.vendors.index') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                               {{ request()->routeIs('siam.vendors.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -652,12 +665,13 @@
                                     d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Vendor</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Vendor</span>
                     </a>
 
                     {{-- Activity Log (admin & support) --}}
                     @if (auth()->user()->hasAnyRole(['admin', 'support']))
-                        <a href="{{ route('activity.index') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        <a href="{{ route('activity.index') }}"
+                            :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                             class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
                                   {{ request()->routeIs('activity.*') ? 'bg-rose-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <span
@@ -669,12 +683,14 @@
                                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </span>
-                            <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Activity Log</span>
+                            <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Activity
+                                Log</span>
                         </a>
                     @endif
 
                     {{-- 🆕 QR Code Pengajuan --}}
-                    <a href="{{ route('admin.qr-code') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('admin.qr-code') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
           {{ request()->routeIs('admin.qr-code') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -686,11 +702,13 @@
                                     d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">QR Code Pengajuan</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">QR Code
+                            Pengajuan</span>
                     </a>
 
                     {{-- 🆕 QR Code Generator --}}
-                    <a href="{{ route('admin.qr-generator') }}" :class="collapsed ? 'lg:justify-center lg:px-0' : ''"
+                    <a href="{{ route('admin.qr-generator') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
           {{ request()->routeIs('admin.qr-generator') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
@@ -702,7 +720,8 @@
                                     d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                             </svg>
                         </span>
-                        <span :class="collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">QR Code Generator</span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">QR Code
+                            Generator</span>
                     </a>
                 @endif
 
@@ -711,53 +730,5 @@
         </aside>
     </div>
 
-    <script>
-        function sidebarApp() {
-            return {
-                open: false,
-                collapsed: false,
 
-                toggle() {
-                    this.open = !this.open;
-                },
-                close() {
-                    this.open = false;
-                },
-
-                toggleCollapse() {
-                    this.collapsed = !this.collapsed;
-                    localStorage.setItem('sidebar-collapsed', this.collapsed ? 'true' : 'false');
-                    window.dispatchEvent(new CustomEvent('sidebar-toggled', {
-                        detail: {
-                            collapsed: this.collapsed
-                        }
-                    }));
-                },
-
-                init() {
-                    const saved = localStorage.getItem('sidebar-collapsed');
-                    if (saved === 'true') this.collapsed = true;
-                    if (window.innerWidth >= 1024) this.open = true;
-
-                    window.addEventListener('resize', () => {
-                        this.open = window.innerWidth >= 1024;
-                    });
-
-                    this.$el.querySelectorAll('nav a').forEach(link => {
-                        link.addEventListener('click', () => {
-                            if (window.innerWidth < 1024) this.close();
-                        });
-                    });
-
-                    this.$nextTick(() => {
-                        window.dispatchEvent(new CustomEvent('sidebar-toggled', {
-                            detail: {
-                                collapsed: this.collapsed
-                            }
-                        }));
-                    });
-                }
-            }
-        }
-    </script>
 @endauth

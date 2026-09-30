@@ -1,24 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', 'Import User')
 
-    <title>Import User - Admin</title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans">
-
-    <x-header title="Import User" placeholder="Cari user..." />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+@section('content')
+    <div class="max-w-7xl mx-auto">
 
         {{-- TITLE --}}
         <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
@@ -32,8 +17,8 @@
                        text-gray-700 px-4 py-2.5 rounded-xl
                        font-semibold text-sm
                        transition-all duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Kembali
@@ -120,8 +105,8 @@
                                        bg-blue-600 hover:bg-blue-700
                                        text-white text-sm font-semibold
                                        rounded-lg transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
                                 </svg>
@@ -135,8 +120,8 @@
             {{-- Info --}}
             <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
                 <div class="flex items-start gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600 shrink-0 mt-0.5"
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600 shrink-0 mt-0.5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -158,20 +143,4 @@
 
         </div>
     </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
-    </script>
-
-</body>
-
-</html>
+@endsection

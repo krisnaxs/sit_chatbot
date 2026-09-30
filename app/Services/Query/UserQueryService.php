@@ -45,9 +45,9 @@ class UserQueryService
         $withAssets = User::whereHas('currentAssets')->count();
 
         return [
-            "Total user: **{$total}**\n" .
-            "• Aktif: **{$active}**\n" .
-            "• Sedang pegang aset: **{$withAssets}**",
+            "Total user: {$total}\n" .
+            "• Aktif: {$active}\n" .
+            "• Sedang pegang aset: {$withAssets}",
             'database'
         ];
     }
@@ -60,7 +60,7 @@ class UserQueryService
             return ["Tidak ada user aktif.", 'database'];
         }
 
-        $jawaban = "**" . $users->count() . " user aktif** (10 pertama):\n\n";
+        $jawaban = "" . $users->count() . " user aktif (10 pertama):\n\n";
         foreach ($users as $u) {
             $jawaban .= "• {$u->name}";
             if ($u->position)
@@ -78,7 +78,7 @@ class UserQueryService
         $total = Department::count();
         $active = Department::where('is_active', true)->count();
 
-        return ["Ada **{$total} departemen** (**{$active} aktif**).", 'database'];
+        return ["Ada {$total} departemen ({$active} aktif).", 'database'];
     }
 
     protected function findUserByName(string $nama): array
@@ -88,10 +88,10 @@ class UserQueryService
             ->first();
 
         if (!$user) {
-            return ["User dengan nama **{$nama}** tidak ditemukan.", 'database'];
+            return ["User dengan nama {$nama} tidak ditemukan.", 'database'];
         }
 
-        $jawaban = "**{$user->name}**\n";
+        $jawaban = "{$user->name}\n";
         $jawaban .= "• Email: {$user->email}\n";
         if ($user->nip)
             $jawaban .= "• NIP: {$user->nip}\n";
@@ -102,7 +102,7 @@ class UserQueryService
         if ($user->location)
             $jawaban .= "• Lokasi: {$user->location->full_name}\n";
         $jawaban .= "• Status: " . ($user->is_active ? 'Aktif' : 'Nonaktif') . "\n";
-        $jawaban .= "• Aset dipegang: **" . $user->currentAssets->count() . "** unit";
+        $jawaban .= "• Aset dipegang: " . $user->currentAssets->count() . " unit";
 
         return [$jawaban, 'database'];
     }

@@ -1,22 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Aset Saya — SIAM</title>
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@section('title', 'Aset Saya — SIAM')
 
-<body class="bg-slate-100 font-sans">
-
-    <x-header title="Aset Saya" />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300 space-y-6">
+@section('content')
+    <div class="space-y-6">
 
         {{-- HEADER --}}
         <div class="flex items-center justify-between">
@@ -182,9 +169,9 @@
                                     <td class="px-4 py-3">
                                         <span
                                             class="inline-flex px-2 py-1 rounded-md text-xs font-medium
-                                            @if (($a->condition_percent ?? 0) >= 80) bg-green-100 text-green-700
-                                            @elseif(($a->condition_percent ?? 0) >= 60) bg-amber-100 text-amber-700
-                                            @else bg-red-100 text-red-700 @endif">
+                                        @if (($a->condition_percent ?? 0) >= 80) bg-green-100 text-green-700
+                                        @elseif(($a->condition_percent ?? 0) >= 60) bg-amber-100 text-amber-700
+                                        @else bg-red-100 text-red-700 @endif">
                                             {{ $a->condition_percent ?? '—' }}%
                                         </span>
                                     </td>
@@ -301,17 +288,4 @@
             </div>
         @endif
     </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', e => this.collapsed = e.detail.collapsed);
-                }
-            }
-        }
-    </script>
-</body>
-
-</html>
+@endsection

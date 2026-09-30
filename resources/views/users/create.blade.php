@@ -1,30 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', 'Tambah User')
 
-    <title>Tambah User - Admin</title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans" x-data="userForm()">
-
-    <x-header title="Tambah User" placeholder="Cari user..." />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-2xl mx-auto p-6 mt-4 lg:mr-auto transition-all duration-300">
+@section('content')
+    <div class="max-w-2xl mx-auto" x-data="userForm()">
 
         {{-- BREADCRUMB --}}
         <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
             <a href="{{ route('users.index') }}" class="hover:text-blue-600 transition">Manajemen User</a>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
             <span class="text-gray-900 font-semibold">Tambah</span>
@@ -38,8 +23,8 @@
                 <div
                     class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600
                             flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
@@ -87,8 +72,7 @@
 
                         <div>
                             <label class="block font-semibold text-sm text-gray-700 mb-2">No. HP</label>
-                            <input type="text" name="phone" value="{{ old('phone') }}"
-                                placeholder="cth: 081234567890"
+                            <input type="text" name="phone" value="{{ old('phone') }}" placeholder="cth: 081234567890"
                                 class="w-full border rounded-xl px-3 py-2.5 text-sm
                                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                                        @error('phone') border-red-400 bg-red-50 @else border-gray-200 @enderror">
@@ -204,8 +188,7 @@
                             <label class="block font-semibold text-sm text-gray-700 mb-2">
                                 Konfirmasi Password <span class="text-red-500">*</span>
                             </label>
-                            <input type="password" name="password_confirmation" placeholder="Ulangi password"
-                                required
+                            <input type="password" name="password_confirmation" placeholder="Ulangi password" required
                                 class="w-full border rounded-xl px-3 py-2.5 text-sm
                                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                                        border-gray-200">
@@ -221,13 +204,13 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         @foreach ([
-        'admin' => ['Administrator', 'violet', 'Akses penuh ke semua fitur'],
-        'support' => ['Support', 'blue', 'Kelola knowledge & SIAM'],
-        'user' => ['User', 'gray', 'Akses portal aplikasi'],
-    ] as $value => $info)
+            'admin' => ['Administrator', 'violet', 'Akses penuh ke semua fitur'],
+            'support' => ['Support', 'blue', 'Kelola knowledge & SIAM'],
+            'user' => ['User', 'gray', 'Akses portal aplikasi'],
+        ] as $value => $info)
                             <label class="relative cursor-pointer group">
-                                <input type="radio" name="role" value="{{ $value }}"
-                                    class="peer sr-only" {{ old('role', 'user') === $value ? 'checked' : '' }}>
+                                <input type="radio" name="role" value="{{ $value }}" class="peer sr-only"
+                                    {{ old('role', 'user') === $value ? 'checked' : '' }}>
                                 <div
                                     class="border-2 rounded-xl p-4 transition-all duration-200
                                             peer-checked:border-{{ $info[1] }}-500
@@ -299,44 +282,47 @@
                 </div>
             </form>
         </div>
-    </div>
 
-    {{-- TOAST ERROR --}}
-    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
-        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
-        x-transition:leave-end="opacity-0 translate-x-8"
-        class="fixed top-24 right-6 z-[100] flex items-start gap-3
-               min-w-[320px] max-w-md
-               px-4 py-3 rounded-xl
-               bg-red-600 text-white
-               shadow-2xl shadow-red-500/50
-               border border-red-400/40
-               backdrop-blur-md"
-        style="display: none;">
-        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mt-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        {{-- TOAST ERROR --}}
+        <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-8"
+            class="fixed top-24 right-6 z-[100] flex items-start gap-3
+                   min-w-[320px] max-w-md
+                   px-4 py-3 rounded-xl
+                   bg-red-600 text-white
+                   shadow-2xl shadow-red-500/50
+                   border border-red-400/40
+                   backdrop-blur-md"
+            style="display: none;">
+            <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="flex-1">
+                <div class="text-sm font-bold mb-1">Validasi gagal</div>
+                <ul class="text-xs space-y-0.5 list-disc list-inside opacity-90">
+                    <template x-for="(msg, i) in toast.messages" :key="i">
+                        <li x-text="msg"></li>
+                    </template>
+                </ul>
+            </div>
+            <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
-        <div class="flex-1">
-            <div class="text-sm font-bold mb-1">Validasi gagal</div>
-            <ul class="text-xs space-y-0.5 list-disc list-inside opacity-90">
-                <template x-for="(msg, i) in toast.messages" :key="i">
-                    <li x-text="msg"></li>
-                </template>
-            </ul>
-        </div>
-        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-    </div>
 
+    </div>
+@endsection
+
+@push('scripts')
     <script>
         function userForm() {
             return {
@@ -359,19 +345,5 @@
                 }
             }
         }
-
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
     </script>
-
-</body>
-
-</html>
+@endpush

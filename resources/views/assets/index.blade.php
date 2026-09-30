@@ -1,24 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', 'Daftar Aset — SIAM')
 
-    <title>Daftar Aset — SIAM</title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans" x-data="assetIndexManager()">
-
-    <x-header title="Daftar Aset" />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+@section('content')
+    <div class="max-w-7xl mx-auto" x-data="assetIndexManager()">
 
         <div class="space-y-6">
 
@@ -125,8 +110,7 @@
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Kategori</label>
-                        <select name="category_id" data-auto-submit
-                            class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <select name="category_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="">Semua</option>
                             @foreach ($categories as $c)
                                 <option value="{{ $c->id }}" @selected(request('category_id') == $c->id)>
@@ -137,8 +121,7 @@
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Kepemilikan</label>
-                        <select name="ownership_type" data-auto-submit
-                            class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <select name="ownership_type" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="">Semua</option>
                             <option value="owned" @selected(request('ownership_type') === 'owned')>Hak Milik</option>
                             <option value="leased" @selected(request('ownership_type') === 'leased')>Sewa</option>
@@ -191,8 +174,7 @@
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Lokasi</label>
-                        <select name="location_id" data-auto-submit
-                            class="w-full border rounded-lg px-3 py-2 text-sm">
+                        <select name="location_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="">Semua</option>
                             @foreach ($locations as $l)
                                 <option value="{{ $l->id }}" @selected(request('location_id') == $l->id)>
@@ -271,8 +253,7 @@
                             <div class="text-[10px] text-gray-400">unit</div>
                         </div>
                         <div class="rounded-xl p-3 bg-emerald-50 border border-emerald-200">
-                            <div class="text-[10px] text-emerald-600 uppercase font-semibold tracking-wide">Tersedia
-                            </div>
+                            <div class="text-[10px] text-emerald-600 uppercase font-semibold tracking-wide">Tersedia</div>
                             <div class="text-2xl font-bold text-emerald-700">{{ $summary['available'] }}</div>
                             <div class="text-[10px] text-emerald-500">siap dipakai</div>
                         </div>
@@ -282,14 +263,12 @@
                             <div class="text-[10px] text-blue-500">user pegang</div>
                         </div>
                         <div class="rounded-xl p-3 bg-amber-50 border border-amber-200">
-                            <div class="text-[10px] text-amber-600 uppercase font-semibold tracking-wide">Dipinjam
-                            </div>
+                            <div class="text-[10px] text-amber-600 uppercase font-semibold tracking-wide">Dipinjam</div>
                             <div class="text-2xl font-bold text-amber-700">{{ $summary['loaned'] }}</div>
                             <div class="text-[10px] text-amber-500">sementara</div>
                         </div>
                         <div class="rounded-xl p-3 bg-orange-50 border border-orange-200">
-                            <div class="text-[10px] text-orange-600 uppercase font-semibold tracking-wide">Perbaikan
-                            </div>
+                            <div class="text-[10px] text-orange-600 uppercase font-semibold tracking-wide">Perbaikan</div>
                             <div class="text-2xl font-bold text-orange-700">{{ $summary['maintenance'] }}</div>
                             <div class="text-[10px] text-orange-500">maintenance</div>
                         </div>
@@ -304,8 +283,7 @@
                             <div class="text-[10px] text-red-500">lost</div>
                         </div>
                         <div class="rounded-xl p-3 bg-green-50 border border-green-200">
-                            <div class="text-[10px] text-green-600 uppercase font-semibold tracking-wide">Hak Milik
-                            </div>
+                            <div class="text-[10px] text-green-600 uppercase font-semibold tracking-wide">Hak Milik</div>
                             <div class="text-2xl font-bold text-green-700">{{ $summary['owned'] }}</div>
                             <div class="text-[10px] text-green-500">owned</div>
                         </div>
@@ -374,8 +352,8 @@
                                     <td class="px-3 py-2 text-xs text-gray-500 font-medium">
                                         {{ $assets->firstItem() + $index }}
                                     </td>
-                                    <td class="px-3 py-2 font-mono text-xs text-indigo-700">
-                                        {{ $asset->serial_number }}</td>
+                                    <td class="px-3 py-2 font-mono text-xs text-indigo-700">{{ $asset->serial_number }}
+                                    </td>
                                     <td class="px-3 py-2">
                                         <div class="font-semibold text-gray-800">{{ $asset->brand }}</div>
                                         <div class="text-xs text-gray-600">{{ $asset->model }}</div>
@@ -394,8 +372,7 @@
                                     <td class="px-3 py-2">
                                         @if ($asset->currentUser)
                                             <div class="text-gray-800">{{ $asset->currentUser->name }}</div>
-                                            <div class="text-xs text-gray-500">{{ $asset->currentUser->position }}
-                                            </div>
+                                            <div class="text-xs text-gray-500">{{ $asset->currentUser->position }}</div>
                                         @else
                                             <span class="text-xs text-gray-400 italic">-</span>
                                         @endif
@@ -477,304 +454,300 @@
             </div>
 
         </div>
-    </div>
 
-    {{-- MODAL POPUP AKSI --}}
-    <div x-show="showModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+        {{-- MODAL POPUP AKSI --}}
+        <div x-show="showModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
 
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal()"></div>
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal()"></div>
 
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
-            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100" @click.away="closeModal()">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100" @click.away="closeModal()">
 
-            <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
-                                x-text="selectedAsset?.category"></span>
-                            <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
-                                x-text="selectedAsset?.ownership_label"></span>
+                <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
+                                    x-text="selectedAsset?.category"></span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
+                                    x-text="selectedAsset?.ownership_label"></span>
+                            </div>
+                            <h3 class="text-xl font-bold truncate"
+                                x-text="selectedAsset ? selectedAsset.brand + ' ' + selectedAsset.model : ''"></h3>
+                            <p class="text-sm text-white/80 font-mono mt-1">
+                                SN: <span x-text="selectedAsset?.serial_number"></span>
+                            </p>
                         </div>
-                        <h3 class="text-xl font-bold truncate"
-                            x-text="selectedAsset ? selectedAsset.brand + ' ' + selectedAsset.model : ''"></h3>
-                        <p class="text-sm text-white/80 font-mono mt-1">
-                            SN: <span x-text="selectedAsset?.serial_number"></span>
-                        </p>
-                    </div>
-                    <button @click="closeModal()" class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="px-6 py-4 bg-gray-50 border-b">
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                        <div class="text-xs text-gray-500">Kode Aset</div>
-                        <div class="font-mono text-xs text-indigo-700" x-text="selectedAsset?.asset_code"></div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Hostname</div>
-                        <div class="font-mono text-xs" x-text="selectedAsset?.hostname ?? '-'"></div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Pemakai</div>
-                        <div class="text-xs" x-text="selectedAsset?.current_user ?? 'Belum dipakai'"></div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Lokasi</div>
-                        <div class="text-xs" x-text="selectedAsset?.current_location ?? '-'"></div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Tahun Pembelian</div>
-                        <div class="text-xs" x-text="selectedAsset?.purchase_year ?? '-'"></div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">Kondisi</div>
-                        <div class="text-xs font-medium"
-                            x-text="selectedAsset?.condition_percent !== null ? selectedAsset.condition_percent + '%' : '-'">
-                        </div>
+                        <button @click="closeModal()" class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <div class="p-6">
-                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pilih Aksi</h4>
-                <div class="grid grid-cols-2 gap-3">
-
-                    <a :href="selectedAsset?.routes.show"
-                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition group">
-                        <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
+                <div class="px-6 py-4 bg-gray-50 border-b">
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <div class="text-xs text-gray-500">Kode Aset</div>
+                            <div class="font-mono text-xs text-indigo-700" x-text="selectedAsset?.asset_code"></div>
                         </div>
-                        <div class="min-w-0">
-                            <div class="font-semibold text-sm text-gray-800">Detail</div>
-                            <div class="text-xs text-gray-500">Lihat info lengkap</div>
+                        <div>
+                            <div class="text-xs text-gray-500">Hostname</div>
+                            <div class="font-mono text-xs" x-text="selectedAsset?.hostname ?? '-'"></div>
                         </div>
-                    </a>
-
-                    @if (auth()->user()->hasAnyRole(['admin', 'support']))
-                        <a :href="selectedAsset?.routes.edit"
-                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-violet-300 hover:bg-violet-50 transition group">
-                            <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-600"
-                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
+                        <div>
+                            <div class="text-xs text-gray-500">Pemakai</div>
+                            <div class="text-xs" x-text="selectedAsset?.current_user ?? 'Belum dipakai'"></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">Lokasi</div>
+                            <div class="text-xs" x-text="selectedAsset?.current_location ?? '-'"></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">Tahun Pembelian</div>
+                            <div class="text-xs" x-text="selectedAsset?.purchase_year ?? '-'"></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">Kondisi</div>
+                            <div class="text-xs font-medium"
+                                x-text="selectedAsset?.condition_percent !== null ? selectedAsset.condition_percent + '%' : '-'">
                             </div>
-                            <div class="min-w-0">
-                                <div class="font-semibold text-sm text-gray-800">Edit</div>
-                                <div class="text-xs text-gray-500">Ubah data aset</div>
-                            </div>
-                        </a>
-                    @endif
+                        </div>
+                    </div>
+                </div>
 
-                    {{-- 🆕 ASSIGN — Blok kalau status loaned --}}
-                    <button type="button" @click="checkBeforeNavigate('assign')"
-                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                               hover:border-teal-300 hover:bg-teal-50 transition group w-full text-left">
-                        <div class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="font-semibold text-sm text-gray-800">Assign</div>
-                            <div class="text-xs text-gray-500">Serah terima ke user</div>
-                        </div>
-                    </button>
+                <div class="p-6">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pilih Aksi</h4>
+                    <div class="grid grid-cols-2 gap-3">
 
-                    {{-- 🆕 PINJAM — Blok kalau status in_use / maintenance --}}
-                    <button type="button" @click="checkBeforeNavigate('loan')"
-                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                               hover:border-amber-300 hover:bg-amber-50 transition group w-full text-left">
-                        <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="font-semibold text-sm text-gray-800">Pinjam</div>
-                            <div class="text-xs text-gray-500">Peminjaman sementara</div>
-                        </div>
-                    </button>
-
-                    {{-- 🆕 MAINTENANCE — Blok kalau status in_use / loaned --}}
-                    <button type="button" @click="checkBeforeNavigate('maintenance')"
-                        class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
-                               hover:border-orange-300 hover:bg-orange-50 transition group w-full text-left">
-                        <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-600" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="font-semibold text-sm text-gray-800">Perbaikan</div>
-                            <div class="text-xs text-gray-500">Catat maintenance</div>
-                        </div>
-                    </button>
-
-                    @if (auth()->user()->isAdmin())
-                        <button type="button" @click="confirmDelete()"
-                            class="flex items-center gap-3 p-3 rounded-xl border border-red-200 bg-red-50
-                                   hover:bg-red-100 hover:border-red-300 transition group w-full text-left">
-                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                        <a :href="selectedAsset?.routes.show"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition group">
+                            <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
                             </div>
                             <div class="min-w-0">
-                                <div class="font-semibold text-sm text-red-700">Hapus</div>
-                                <div class="text-xs text-red-500">Khusus admin</div>
+                                <div class="font-semibold text-sm text-gray-800">Detail</div>
+                                <div class="text-xs text-gray-500">Lihat info lengkap</div>
+                            </div>
+                        </a>
+
+                        @if (auth()->user()->hasAnyRole(['admin', 'support']))
+                            <a :href="selectedAsset?.routes.edit"
+                                class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-violet-300 hover:bg-violet-50 transition group">
+                                <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-600"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-sm text-gray-800">Edit</div>
+                                    <div class="text-xs text-gray-500">Ubah data aset</div>
+                                </div>
+                            </a>
+                        @endif
+
+                        <button type="button" @click="checkBeforeNavigate('assign')"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-teal-300 hover:bg-teal-50 transition group w-full text-left">
+                            <div class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-gray-800">Assign</div>
+                                <div class="text-xs text-gray-500">Serah terima ke user</div>
                             </div>
                         </button>
-                    @endif
 
+                        <button type="button" @click="checkBeforeNavigate('loan')"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-amber-300 hover:bg-amber-50 transition group w-full text-left">
+                            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-gray-800">Pinjam</div>
+                                <div class="text-xs text-gray-500">Peminjaman sementara</div>
+                            </div>
+                        </button>
+
+                        <button type="button" @click="checkBeforeNavigate('maintenance')"
+                            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition group w-full text-left">
+                            <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-sm text-gray-800">Perbaikan</div>
+                                <div class="text-xs text-gray-500">Catat maintenance</div>
+                            </div>
+                        </button>
+
+                        @if (auth()->user()->isAdmin())
+                            <button type="button" @click="confirmDelete()"
+                                class="flex items-center gap-3 p-3 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 transition group w-full text-left">
+                                <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-sm text-red-700">Hapus</div>
+                                    <div class="text-xs text-red-500">Khusus admin</div>
+                                </div>
+                            </button>
+                        @endif
+
+                    </div>
+                </div>
+
+                <div class="px-6 py-3 bg-gray-50 border-t flex justify-end">
+                    <button @click="closeModal()"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
+                        Batal
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        {{-- MODAL KONFIRMASI (GENERIC) --}}
+        <div x-show="showConfirmModal" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeConfirm()"></div>
+
+            <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96"
+                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100">
+
+                <div class="flex justify-center mb-4">
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center"
+                        :class="{
+                            'bg-red-100': confirmType === 'delete',
+                            'bg-amber-100': confirmType === 'block',
+                            'bg-indigo-100': confirmType === 'info',
+                        }">
+                        <svg x-show="confirmType === 'delete'" xmlns="http://www.w3.org/2000/svg"
+                            class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <svg x-show="confirmType === 'block'" xmlns="http://www.w3.org/2000/svg"
+                            class="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-900 text-center mb-1" x-text="confirmTitle"></h3>
+                <p class="text-sm text-gray-500 text-center mb-6" x-html="confirmMessage"></p>
+
+                <div class="flex gap-2">
+                    <button type="button" @click="closeConfirm()"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition"
+                        x-text="confirmType === 'block' ? 'Mengerti' : 'Batal'"></button>
+                    <button type="button" x-show="confirmType === 'delete'" @click="executeDelete()"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
+                        Ya, Hapus
+                    </button>
                 </div>
             </div>
-
-            <div class="px-6 py-3 bg-gray-50 border-t flex justify-end">
-                <button @click="closeModal()"
-                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
-                    Batal
-                </button>
-            </div>
-
-        </div>
-    </div>
-
-    {{-- 🆕 MODAL KONFIRMASI (GENERIC) --}}
-    <div x-show="showConfirmModal" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeConfirm()"></div>
-
-        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96"
-            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100">
-
-            <div class="flex justify-center mb-4">
-                <div class="w-14 h-14 rounded-full flex items-center justify-center"
-                    :class="{
-                        'bg-red-100': confirmType === 'delete',
-                        'bg-amber-100': confirmType === 'block',
-                        'bg-indigo-100': confirmType === 'info',
-                    }">
-                    <svg x-show="confirmType === 'delete'" xmlns="http://www.w3.org/2000/svg"
-                        class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <svg x-show="confirmType === 'block'" xmlns="http://www.w3.org/2000/svg"
-                        class="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-            </div>
-
-            <h3 class="text-lg font-bold text-gray-900 text-center mb-1" x-text="confirmTitle"></h3>
-            <p class="text-sm text-gray-500 text-center mb-6" x-html="confirmMessage"></p>
-
-            <div class="flex gap-2">
-                <button type="button" @click="closeConfirm()"
-                    class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition"
-                    x-text="confirmType === 'block' ? 'Mengerti' : 'Batal'"></button>
-                <button type="button" x-show="confirmType === 'delete'" @click="executeDelete()"
-                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
-                    Ya, Hapus
-                </button>
-            </div>
-        </div>
-    </div>
-
-    {{-- 🆕 TOAST NOTIFICATION --}}
-    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
-        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
-        x-transition:leave-end="opacity-0 translate-x-8"
-        :class="{
-            'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
-            'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
-            'bg-amber-600 border-amber-400/40 shadow-amber-500/50': toast.type === 'warning',
-            'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
-        }"
-        class="fixed top-24 right-6 z-[130] flex items-center gap-3
-               min-w-[280px] max-w-sm
-               px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
-        style="display: none;">
-
-        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg x-show="toast.type === 'error' || toast.type === 'warning'" xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
         </div>
 
-        <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+        {{-- TOAST --}}
+        <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-8"
+            :class="{
+                'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+                'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+                'bg-amber-600 border-amber-400/40 shadow-amber-500/50': toast.type === 'warning',
+                'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+            }"
+            class="fixed top-24 right-6 z-[130] flex items-center gap-3
+                   min-w-[280px] max-w-sm
+                   px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
+            style="display: none;">
 
-        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
+            <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'error' || toast.type === 'warning'" xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+
+            <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+
+            <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
     </div>
+@endsection
 
+@push('scripts')
     <script>
         function assetIndexManager() {
             return {
                 selectedAsset: null,
                 showModal: false,
                 showConfirmModal: false,
-                confirmType: '', // 'delete' | 'block' | 'info'
+                confirmType: '',
                 confirmTitle: '',
                 confirmMessage: '',
 
                 toast: {
                     show: false,
                     message: '',
-                    type: 'success',
+                    type: 'success'
                 },
 
                 openModal(asset) {
@@ -787,145 +760,106 @@
                     this.selectedAsset = null;
                 },
 
-                // 🆕 Cek status sebelum navigate ke assign/loan/maintenance
-                // 🆕 Cek status sebelum navigate ke assign/loan/maintenance
                 checkBeforeNavigate(action) {
                     if (!this.selectedAsset) return;
 
                     const status = this.selectedAsset.status;
-                    const statusLabel = this.selectedAsset.status_label;
                     const pemakai = this.selectedAsset.current_user;
 
-                    // ═══════════════════════════════════════════════════
-                    // 🚫 PINJAM — Hanya boleh kalau available
-                    // ═══════════════════════════════════════════════════
                     if (action === 'loan') {
                         if (status === 'loaned') {
-                            this.showBlock(
-                                'Aset Sedang Dipinjam',
+                            this.showBlock('Aset Sedang Dipinjam',
                                 `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
                                 `Kembalikan aset terlebih dahulu di menu <strong>Peminjaman</strong> sebelum dipinjamkan lagi.`
-                            );
+                                );
                             return;
                         }
                         if (status === 'in_use') {
-                            this.showBlock(
-                                'Aset Sedang Dipakai',
+                            this.showBlock('Aset Sedang Dipakai',
                                 `Aset ini sedang <strong>dipakai oleh ${pemakai || 'user'}</strong>. <br><br>` +
-                                `Kembalikan aset terlebih dahulu sebelum dipinjamkan.`
-                            );
+                                `Kembalikan aset terlebih dahulu sebelum dipinjamkan.`);
                             return;
                         }
                         if (status === 'maintenance') {
-                            this.showBlock(
-                                'Aset Sedang Diperbaiki',
+                            this.showBlock('Aset Sedang Diperbaiki',
                                 `Aset ini <strong>sedang dalam perbaikan</strong>. <br><br>` +
-                                `Selesaikan perbaikan terlebih dahulu sebelum dipinjamkan.`
-                            );
+                                `Selesaikan perbaikan terlebih dahulu sebelum dipinjamkan.`);
                             return;
                         }
                         if (status === 'retired') {
-                            this.showBlock(
-                                'Aset Sudah Pensiun',
-                                `Aset ini sudah <strong>pensiun</strong> dan tidak bisa dipinjamkan.`
-                            );
+                            this.showBlock('Aset Sudah Pensiun',
+                                `Aset ini sudah <strong>pensiun</strong> dan tidak bisa dipinjamkan.`);
                             return;
                         }
                         if (status === 'lost') {
-                            this.showBlock(
-                                'Aset Hilang',
-                                `Aset ini berstatus <strong>hilang</strong> dan tidak bisa dipinjamkan.`
-                            );
+                            this.showBlock('Aset Hilang',
+                                `Aset ini berstatus <strong>hilang</strong> dan tidak bisa dipinjamkan.`);
                             return;
                         }
                     }
 
-                    // ═══════════════════════════════════════════════════
-                    // 🚫 ASSIGN — Hanya boleh kalau available / in_use
-                    // ═══════════════════════════════════════════════════
                     if (action === 'assign') {
                         if (status === 'loaned') {
-                            this.showBlock(
-                                'Aset Sedang Dipinjam',
+                            this.showBlock('Aset Sedang Dipinjam',
                                 `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
                                 `Kembalikan aset terlebih dahulu di menu <strong>Peminjaman</strong> sebelum diserahkan ke user.`
-                            );
+                                );
                             return;
                         }
                         if (status === 'maintenance') {
-                            this.showBlock(
-                                'Aset Sedang Diperbaiki',
+                            this.showBlock('Aset Sedang Diperbaiki',
                                 `Aset ini <strong>sedang dalam perbaikan</strong>. <br><br>` +
-                                `Selesaikan perbaikan terlebih dahulu sebelum diserahkan ke user.`
-                            );
+                                `Selesaikan perbaikan terlebih dahulu sebelum diserahkan ke user.`);
                             return;
                         }
                         if (status === 'retired') {
-                            this.showBlock(
-                                'Aset Sudah Pensiun',
-                                `Aset ini sudah <strong>pensiun</strong> dan tidak bisa di-assign ke user.`
-                            );
+                            this.showBlock('Aset Sudah Pensiun',
+                                `Aset ini sudah <strong>pensiun</strong> dan tidak bisa di-assign ke user.`);
                             return;
                         }
                         if (status === 'lost') {
-                            this.showBlock(
-                                'Aset Hilang',
-                                `Aset ini berstatus <strong>hilang</strong> dan tidak bisa di-assign ke user.`
-                            );
+                            this.showBlock('Aset Hilang',
+                                `Aset ini berstatus <strong>hilang</strong> dan tidak bisa di-assign ke user.`);
                             return;
                         }
                     }
 
-                    // ═══════════════════════════════════════════════════
-                    // 🚫 MAINTENANCE — Hanya boleh kalau available
-                    // ═══════════════════════════════════════════════════
                     if (action === 'maintenance') {
                         if (status === 'in_use') {
-                            this.showBlock(
-                                'Aset Sedang Dipakai',
+                            this.showBlock('Aset Sedang Dipakai',
                                 `Aset ini sedang <strong>dipakai oleh ${pemakai || 'user'}</strong>. <br><br>` +
-                                `Kembalikan aset terlebih dahulu sebelum masuk perbaikan.`
-                            );
+                                `Kembalikan aset terlebih dahulu sebelum masuk perbaikan.`);
                             return;
                         }
                         if (status === 'loaned') {
-                            this.showBlock(
-                                'Aset Sedang Dipinjam',
+                            this.showBlock('Aset Sedang Dipinjam',
                                 `Aset ini <strong>sedang dipinjam</strong>. <br><br>` +
-                                `Kembalikan aset terlebih dahulu sebelum masuk perbaikan.`
-                            );
+                                `Kembalikan aset terlebih dahulu sebelum masuk perbaikan.`);
                             return;
                         }
                         if (status === 'maintenance') {
-                            this.showBlock(
-                                'Aset Sudah Diperbaiki',
+                            this.showBlock('Aset Sudah Diperbaiki',
                                 `Aset ini <strong>sudah dalam status perbaikan</strong>. <br><br>` +
-                                `Selesaikan perbaikan yang sedang berjalan terlebih dahulu.`
-                            );
+                                `Selesaikan perbaikan yang sedang berjalan terlebih dahulu.`);
                             return;
                         }
                         if (status === 'retired') {
-                            this.showBlock(
-                                'Aset Sudah Pensiun',
-                                `Aset ini sudah <strong>pensiun</strong> dan tidak perlu diperbaiki.`
-                            );
+                            this.showBlock('Aset Sudah Pensiun',
+                                `Aset ini sudah <strong>pensiun</strong> dan tidak perlu diperbaiki.`);
                             return;
                         }
                         if (status === 'lost') {
-                            this.showBlock(
-                                'Aset Hilang',
-                                `Aset ini berstatus <strong>hilang</strong> dan tidak perlu diperbaiki.`
-                            );
+                            this.showBlock('Aset Hilang',
+                                `Aset ini berstatus <strong>hilang</strong> dan tidak perlu diperbaiki.`);
                             return;
                         }
                     }
 
-                    // ✅ Boleh lanjut
                     const url = this.selectedAsset.routes[action];
                     if (url) window.location.href = url;
                 },
 
-                showBlock(title, message, suggestAction) {
+                showBlock(title, message) {
                     this.confirmType = 'block';
                     this.confirmTitle = title;
                     this.confirmMessage = message;
@@ -985,25 +919,5 @@
         document.querySelectorAll('[data-auto-submit]').forEach(el => {
             el.addEventListener('change', () => el.closest('form').submit());
         });
-
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
     </script>
-
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
-    </style>
-
-</body>
-
-</html>
+@endpush

@@ -68,10 +68,10 @@ class ActivityQueryService
             now()->endOfWeek(),
         ])->count();
 
-        $jawaban = "📊 **Statistik Activity Log**\n\n"
-            . "• Total: **{$total}**\n"
-            . "• Hari ini: **{$today}**\n"
-            . "• Minggu ini: **{$week}**";
+        $jawaban = "📊 Statistik Activity Log\n\n"
+            . "• Total: {$total}\n"
+            . "• Hari ini: {$today}\n"
+            . "• Minggu ini: {$week}";
 
         return [$jawaban, 'database'];
     }
@@ -104,11 +104,11 @@ class ActivityQueryService
             return ["Tidak ada log aktivitas {$label}.", 'database'];
         }
 
-        $jawaban = "📋 **{$total} Log Aktivitas ({$label})**\n\n";
+        $jawaban = "📋 {$total} Log Aktivitas ({$label})\n\n";
         foreach ($items as $a) {
             $causer = $a->causer?->name ?? 'System';
             $time = $a->created_at?->diffForHumans() ?? '-';
-            $jawaban .= "• **{$causer}** — {$a->description} ({$time})\n";
+            $jawaban .= "• {$causer} — {$a->description} ({$time})\n";
         }
 
         if ($total > 10) {
@@ -131,12 +131,12 @@ class ActivityQueryService
             return ["Belum ada data login.", 'database'];
         }
 
-        $jawaban = "🔐 **Login Terakhir**\n\n";
+        $jawaban = "🔐 Login Terakhir\n\n";
         foreach ($logs as $a) {
             $causer = $a->causer?->name ?? 'Unknown';
             $time = $a->created_at?->diffForHumans() ?? '-';
             $ip = $a->properties['ip'] ?? '-';
-            $jawaban .= "• **{$causer}** — {$time} (IP: {$ip})\n";
+            $jawaban .= "• {$causer} — {$time} (IP: {$ip})\n";
         }
 
         return [$jawaban, 'database'];
@@ -156,7 +156,7 @@ class ActivityQueryService
 
         $user = User::where('name', 'like', "%{$nama}%")->first();
         if (!$user) {
-            return ["User **{$nama}** tidak ditemukan.", 'database'];
+            return ["User {$nama} tidak ditemukan.", 'database'];
         }
 
         $q = Activity::where('causer_id', $user->id)
@@ -167,10 +167,10 @@ class ActivityQueryService
         $items = (clone $q)->limit(10)->get();
 
         if ($items->isEmpty()) {
-            return ["User **{$user->name}** belum punya log aktivitas.", 'database'];
+            return ["User {$user->name} belum punya log aktivitas.", 'database'];
         }
 
-        $jawaban = "📋 **Aktivitas {$user->name}** ({$total} log)\n\n";
+        $jawaban = "📋 Aktivitas {$user->name} ({$total} log)\n\n";
         foreach ($items as $a) {
             $time = $a->created_at?->diffForHumans() ?? '-';
             $jawaban .= "• {$a->description} ({$time})\n";
@@ -206,14 +206,14 @@ class ActivityQueryService
         $items = (clone $q)->limit(10)->get();
 
         if ($items->isEmpty()) {
-            return ["Tidak ada log dengan aksi **{$action}**.", 'database'];
+            return ["Tidak ada log dengan aksi {$action}.", 'database'];
         }
 
-        $jawaban = "📋 **Log Aksi {$action}** ({$total} log)\n\n";
+        $jawaban = "📋 Log Aksi {$action} ({$total} log)\n\n";
         foreach ($items as $a) {
             $causer = $a->causer?->name ?? 'System';
             $time = $a->created_at?->diffForHumans() ?? '-';
-            $jawaban .= "• **{$causer}** — {$a->description} ({$time})\n";
+            $jawaban .= "• {$causer} — {$a->description} ({$time})\n";
         }
 
         if ($total > 10) {

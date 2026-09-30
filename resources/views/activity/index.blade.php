@@ -1,6 +1,6 @@
 @php
     // ═══════════════════════════════════════════════════════
-    // HELPER FUNCTIONS
+    // HELPER FUNCTIONS (tetap di atas, dipakai di seluruh view)
     // ═══════════════════════════════════════════════════════
     if (!function_exists('activityFieldLabel')) {
         function activityFieldLabel(string $field): string
@@ -73,8 +73,6 @@
                 'requested_by' => 'Diminta Oleh',
                 'moved_by' => 'Dipindahkan Oleh',
                 'uploaded_by' => 'Diunggah Oleh',
-
-                // 🆕 Request / Pengajuan
                 'request_number' => 'No. Pengajuan',
                 'requested_at' => 'Tanggal Pengajuan',
                 'needed_date' => 'Tanggal Dibutuhkan',
@@ -120,8 +118,6 @@
                 'monthly_cost',
                 'purchase_price',
                 'last_price',
-
-                // 🆕 Request / Pengajuan
                 'old_status',
                 'new_status',
                 'request_number',
@@ -155,8 +151,6 @@
                 'category_id' => \App\Models\AssetCategory::class,
                 'vendor_id' => \App\Models\Vendor::class,
                 'consumable_id' => \App\Models\Consumable::class,
-
-                // 🆕 Request / Pengajuan
                 'loan_id' => \App\Models\AssetLoan::class,
                 'transaction_id' => \App\Models\ConsumableTransaction::class,
             ];
@@ -164,16 +158,13 @@
             if (!isset($idResolvers[$field])) {
                 return activityFormatValue($value);
             }
-
             if (is_null($value) || $value === '' || $value === 0 || $value === '0') {
                 return '(kosong)';
             }
-
             $record = $idResolvers[$field]::find($value);
             if (!$record) {
                 return activityFormatValue($value);
             }
-
             if (isset($record->name) && !empty($record->name)) {
                 return trim((string) $record->name);
             }
@@ -194,12 +185,10 @@
             if (isset($record->code) && !empty($record->code)) {
                 return trim((string) $record->code);
             }
-            // 🆕 AssetLoan custom
             if (isset($record->loan_date) && isset($record->asset_id)) {
                 $asset = \App\Models\Asset::find($record->asset_id);
                 return "Peminjaman {$asset?->serial_number} (" . ($record->loan_date?->format('d M Y') ?? '-') . ')';
             }
-            // 🆕 ConsumableTransaction custom
             if (isset($record->transaction_date) && isset($record->consumable_id)) {
                 $cons = \App\Models\Consumable::find($record->consumable_id);
                 return "Transaksi {$cons?->name} x{$record->quantity}";
@@ -228,24 +217,13 @@
         }
     }
 @endphp
-<!DOCTYPE html>
-<html lang="id">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activity Log - Admin</title>
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@extends('layouts.app')
 
-<body class="bg-slate-100 font-sans" x-data="activityManager()">
+@section('title', 'Activity Log')
 
-    <x-header title="Activity Log" placeholder="Cari log..." />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-6xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+@section('content')
+    <div class="max-w-6xl mx-auto" x-data="activityManager()">
 
         <!-- TITLE + ACTION -->
         <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
@@ -391,8 +369,7 @@
                             <th
                                 class="px-4 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
                                 Jenis</th>
-                            <th
-                                class="px-4 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                 Deskripsi</th>
                             <th
                                 class="px-4 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-48">
@@ -465,9 +442,8 @@
                                             <span
                                                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold
                                                          bg-amber-100 text-amber-700 border border-amber-200">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3"
-                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                    stroke-width="2">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
@@ -476,7 +452,6 @@
                                         </div>
                                     @endif
 
-                                    {{-- 🆕 Preview diff --}}
                                     @php
                                         $hasDiff =
                                             ($eventRow === 'updated' && $old && $new) ||
@@ -553,8 +528,7 @@
                                                     @foreach (collect($old)->take(5) as $key => $val)
                                                         @if (!in_array($key, ['id', 'created_at', 'updated_at']))
                                                             <div class="flex items-center gap-2 text-[10px]">
-                                                                <span
-                                                                    class="font-bold text-red-800 shrink-0 min-w-[90px]">
+                                                                <span class="font-bold text-red-800 shrink-0 min-w-[90px]">
                                                                     {{ activityFieldLabel($key) }}
                                                                 </span>
                                                                 <span
@@ -630,8 +604,7 @@
                             <tr>
                                 <td colspan="{{ auth()->user()->isAdmin() ? 6 : 5 }}" class="px-5 py-16 text-center">
                                     <div class="flex flex-col items-center gap-3">
-                                        <div
-                                            class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                 stroke-width="2">
@@ -641,8 +614,7 @@
                                         </div>
                                         <div>
                                             <p class="font-semibold text-gray-900">Belum ada aktivitas</p>
-                                            <p class="text-sm text-gray-500 mt-1">Log akan muncul setelah ada aktivitas
-                                            </p>
+                                            <p class="text-sm text-gray-500 mt-1">Log akan muncul setelah ada aktivitas</p>
                                         </div>
                                     </div>
                                 </td>
@@ -659,127 +631,129 @@
             @endif
         </div>
 
-    </div>
-
-    {{-- MODAL & FORM — hanya untuk admin --}}
-    @if (auth()->user()->isAdmin())
-        <!-- MODAL KONFIRMASI HAPUS LOG -->
-        <div x-show="showDeleteModal"
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
-            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showDeleteModal = false"
-                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
-                x-transition:enter-end="opacity-100 scale-100">
-                <div class="flex justify-center mb-4">
-                    <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+        {{-- MODAL & FORM — hanya untuk admin --}}
+        @if (auth()->user()->isAdmin())
+            <!-- MODAL KONFIRMASI HAPUS LOG -->
+            <div x-show="showDeleteModal"
+                class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
+                x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+                <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showDeleteModal = false"
+                    x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Hapus Log Ini?</h3>
+                    <p class="text-sm text-gray-500 text-center mb-6">
+                        Yakin ingin menghapus log
+                        <strong class="text-gray-800" x-text="deleteTarget.description"></strong>?
+                    </p>
+                    <div class="flex gap-2">
+                        <button type="button" @click="showDeleteModal = false"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
+                            Batal
+                        </button>
+                        <button type="button" @click="confirmDelete()"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
+                            Ya, Hapus
+                        </button>
                     </div>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Hapus Log Ini?</h3>
-                <p class="text-sm text-gray-500 text-center mb-6">
-                    Yakin ingin menghapus log
-                    <strong class="text-gray-800" x-text="deleteTarget.description"></strong>?
-                </p>
-                <div class="flex gap-2">
-                    <button type="button" @click="showDeleteModal = false"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
-                        Batal
-                    </button>
-                    <button type="button" @click="confirmDelete()"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
-                        Ya, Hapus
-                    </button>
-                </div>
             </div>
-        </div>
 
-        <!-- MODAL KONFIRMASI BERSIHKAN SEMUA -->
-        <div x-show="showClearModal"
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
-            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showClearModal = false"
-                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
-                x-transition:enter-end="opacity-100 scale-100">
-                <div class="flex justify-center mb-4">
-                    <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+            <!-- MODAL KONFIRMASI BERSIHKAN SEMUA -->
+            <div x-show="showClearModal"
+                class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
+                x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+                <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showClearModal = false"
+                    x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Bersihkan Semua Log?</h3>
+                    <p class="text-sm text-gray-500 text-center mb-6">
+                        Semua <strong class="text-gray-800">{{ number_format($totalAll) }}</strong> log akan dihapus
+                        permanen.
+                        Tindakan ini tidak bisa dibatalkan!
+                    </p>
+                    <div class="flex gap-2">
+                        <button type="button" @click="showClearModal = false"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
+                            Batal
+                        </button>
+                        <button type="button" @click="confirmClear()"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
+                            Ya, Bersihkan
+                        </button>
                     </div>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Bersihkan Semua Log?</h3>
-                <p class="text-sm text-gray-500 text-center mb-6">
-                    Semua <strong class="text-gray-800">{{ number_format($totalAll) }}</strong> log akan dihapus
-                    permanen.
-                    Tindakan ini tidak bisa dibatalkan!
-                </p>
-                <div class="flex gap-2">
-                    <button type="button" @click="showClearModal = false"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
-                        Batal
-                    </button>
-                    <button type="button" @click="confirmClear()"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition shadow-lg shadow-red-500/30">
-                        Ya, Bersihkan
-                    </button>
-                </div>
             </div>
+
+            <form id="deleteForm" method="POST" class="hidden">
+                @csrf
+                @method('DELETE')
+            </form>
+            <form id="clearForm" method="POST" action="{{ route('activity.clear') }}" class="hidden">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
+
+        <!-- TOAST -->
+        <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-8"
+            :class="{
+                'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+                'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+                'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+            }"
+            class="fixed top-24 right-6 z-[100] flex items-center gap-3 min-w-[280px] max-w-sm
+                   px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
+            style="display: none;">
+            <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+            <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
 
-        <form id="deleteForm" method="POST" class="hidden">
-            @csrf
-            @method('DELETE')
-        </form>
-        <form id="clearForm" method="POST" action="{{ route('activity.clear') }}" class="hidden">
-            @csrf
-            @method('DELETE')
-        </form>
-    @endif
-
-    <!-- TOAST -->
-    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
-        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
-        x-transition:leave-end="opacity-0 translate-x-8"
-        :class="{
-            'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
-            'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
-            'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
-        }"
-        class="fixed top-24 right-6 z-[100] flex items-center gap-3 min-w-[280px] max-w-sm
-               px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
-        style="display: none;">
-        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </div>
-        <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
-        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
     </div>
+@endsection
 
+@push('scripts')
     <script>
         function activityManager() {
             return {
@@ -833,19 +807,5 @@
                 }
             }
         }
-
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
     </script>
-
-</body>
-
-</html>
+@endpush

@@ -1,26 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', auth()->id() === $user->id ? 'Profil Saya' : 'Detail User — ' . $user->name)
 
-    <title>
-        {{ auth()->id() === $user->id ? 'Profil Saya' : 'Detail User — ' . $user->name }}
-    </title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans">
-
-    <x-header :title="auth()->id() === $user->id ? 'Profil Saya' : 'Detail User'" />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+@section('content')
+    <div class="max-w-7xl mx-auto">
 
         <div class="space-y-6">
 
@@ -188,7 +171,6 @@
                                         SN: {{ $asset->serial_number }}
                                     </div>
 
-                                    {{-- 🆕 Hostname --}}
                                     @if ($asset->hostname)
                                         <div class="text-xs text-gray-600 font-mono mt-0.5">
                                             🖥️ {{ $asset->hostname }}
@@ -253,10 +235,9 @@
                             <div
                                 class="flex items-start gap-3 p-3 rounded-xl border
                                 {{ $a->is_active ? 'border-blue-300 bg-blue-50' : 'border-gray-200' }}">
-                                <div
-                                    class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600"
-                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                     </svg>
@@ -268,8 +249,7 @@
                                             {{ $a->asset?->brand }} {{ $a->asset?->model }}
                                         </a>
                                         @if ($a->is_active)
-                                            <span
-                                                class="px-2 py-0.5 text-xs rounded bg-blue-600 text-white font-semibold">
+                                            <span class="px-2 py-0.5 text-xs rounded bg-blue-600 text-white font-semibold">
                                                 SEDANG DIPAKAI
                                             </span>
                                         @else
@@ -282,7 +262,6 @@
                                         SN: {{ $a->asset?->serial_number }}
                                     </div>
 
-                                    {{-- 🆕 Hostname snapshot (dari assignment) --}}
                                     @if ($a->hostname)
                                         <div class="text-xs text-gray-600 font-mono mt-0.5">
                                             🖥️ Hostname: <span class="font-medium">{{ $a->hostname }}</span>
@@ -338,10 +317,9 @@
                     <ul class="space-y-3">
                         @foreach ($user->activeLoans as $loan)
                             <li class="flex items-start gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50">
-                                <div
-                                    class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600"
-                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
@@ -440,20 +418,4 @@
 
         </div>
     </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
-    </script>
-
-</body>
-
-</html>
+@endsection

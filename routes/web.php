@@ -85,7 +85,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/ai/ask', [\App\Http\Controllers\AiAssetController::class, 'ask'])->name('ai.ask');
 
     // ─── Knowledge ───
-    Route::resource('knowledge', KnowledgeController::class);
     Route::middleware(['role:admin,support'])->group(function () {
         Route::get('/knowledge/pending', [PendingKnowledgeController::class, 'index'])->name('knowledge.pending');
         Route::post('/knowledge/pending/{pending}/approve', [PendingKnowledgeController::class, 'approve'])->name('knowledge.pending.approve');
@@ -93,6 +92,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/knowledge/pending/clear', [PendingKnowledgeController::class, 'clear'])->name('knowledge.pending.clear');
     });
 
+    // 2. Letakkan route resource (yang memiliki parameter/wildcard) di bawah
+    Route::resource('knowledge', KnowledgeController::class);
     // ─── Activity Log ───
 
 

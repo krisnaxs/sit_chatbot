@@ -1,13 +1,15 @@
 @props(['title' => 'Portal Aplikasi', 'placeholder' => 'Cari aplikasi...'])
 
-<div class="sticky top-0 z-50 bg-white shadow-md px-6 py-3 flex items-center relative" x-data="headerApp()">
+<div x-data="headerApp"
+    class="fixed top-0 left-0 right-0 z-40 bg-white shadow-md px-4 py-3
+            flex items-center h-16">
 
     {{-- LEFT: Hamburger + Logo --}}
     <div class="flex items-center gap-2 shrink-0">
         {{-- Hamburger — selalu tampil di mobile, desktop juga (toggle sidebar) --}}
         @auth
-            <button type="button" onclick="window.dispatchEvent(new CustomEvent('toggle-sidebar'))"
-                class="p-2 rounded-xl hover:bg-gray-100 transition shrink-0" title="Toggle Sidebar">
+            <button type="button" @click="toggleSidebar()" class="p-2 rounded-xl hover:bg-gray-100 transition shrink-0"
+                title="Toggle Sidebar">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -542,9 +544,3 @@
         }
     }
 </script>
-
-<style>
-    [x-cloak] {
-        display: none !important;
-    }
-</style>

@@ -1,21 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Aplikasi - Admin</title>
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@section('title', 'Daftar Aplikasi - Admin')
 
-<body class="bg-slate-100 font-sans" x-data="appsManager()">
-
-    <x-header title="Daftar Aplikasi" placeholder="Cari aplikasi..." />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+@section('content')
+    <div class="max-w-7xl mx-auto" x-data="appsManager()">
 
         <!-- TITLE + ACTION -->
         <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
@@ -26,7 +14,6 @@
                 </p>
             </div>
 
-            {{-- 🆕 Tombol Tambah — Admin & Support --}}
             @if (auth()->user()->hasAnyRole(['admin', 'support']))
                 <a href="{{ route('apps.create') }}"
                     class="inline-flex items-center gap-2
@@ -106,8 +93,7 @@
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
             </div>
             <input type="text" id="searchInput" placeholder="Cari aplikasi berdasarkan nama, slide, atau urutan..."
@@ -125,8 +111,7 @@
                             <th
                                 class="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-16">
                                 #</th>
-                            <th
-                                class="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                 Aplikasi</th>
                             <th
                                 class="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-48">
@@ -181,10 +166,8 @@
                                 </td>
                                 <td class="px-5 py-4">
                                     <span
-                                        class="inline-flex items-center gap-1.5
-                                                 px-2.5 py-1 rounded-lg
-                                                 bg-blue-50 text-blue-700
-                                                 border border-blue-100
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg
+                                                 bg-blue-50 text-blue-700 border border-blue-100
                                                  text-xs font-semibold">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -196,30 +179,24 @@
                                 </td>
                                 <td class="px-5 py-4 text-center">
                                     <span
-                                        class="inline-flex items-center justify-center
-                                                 w-8 h-8 rounded-lg
-                                                 bg-gray-100 text-gray-700
-                                                 text-sm font-bold">
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                                 bg-gray-100 text-gray-700 text-sm font-bold">
                                         {{ $app->urutan }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-4 text-center">
                                     @if ($app->is_active)
                                         <span
-                                            class="inline-flex items-center gap-1.5
-                                                     px-2.5 py-1 rounded-lg
-                                                     bg-emerald-50 text-emerald-700
-                                                     border border-emerald-100
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg
+                                                     bg-emerald-50 text-emerald-700 border border-emerald-100
                                                      text-xs font-semibold">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                             Aktif
                                         </span>
                                     @else
                                         <span
-                                            class="inline-flex items-center gap-1.5
-                                                     px-2.5 py-1 rounded-lg
-                                                     bg-gray-100 text-gray-500
-                                                     border border-gray-200
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg
+                                                     bg-gray-100 text-gray-500 border border-gray-200
                                                      text-xs font-semibold">
                                             <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                                             Nonaktif
@@ -243,19 +220,16 @@
                                     @endif
                                 </td>
 
-                                {{-- 🆕 AKSI — Edit & Hapus hanya admin --}}
                                 <td class="px-5 py-4 text-right">
                                     <div class="inline-flex items-center gap-2">
                                         @if (auth()->user()->isAdmin())
-                                            {{-- Tombol Edit --}}
                                             <a href="{{ route('apps.edit', $app) }}"
                                                 class="inline-flex items-center gap-1.5
                                                        px-3 py-1.5 rounded-lg
                                                        bg-amber-50 text-amber-700
                                                        border border-amber-200
                                                        hover:bg-amber-100
-                                                       text-xs font-semibold
-                                                       transition">
+                                                       text-xs font-semibold transition">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                     stroke-width="2">
@@ -265,7 +239,6 @@
                                                 Edit
                                             </a>
 
-                                            {{-- Tombol Hapus --}}
                                             <button type="button"
                                                 @click="openDeleteModal(
                                                     {{ $app->id }},
@@ -277,8 +250,7 @@
                                                        bg-red-50 text-red-700
                                                        border border-red-200
                                                        hover:bg-red-100
-                                                       text-xs font-semibold
-                                                       transition">
+                                                       text-xs font-semibold transition">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                     stroke-width="2">
@@ -297,8 +269,7 @@
                             <tr>
                                 <td colspan="7" class="px-5 py-16 text-center">
                                     <div class="flex flex-col items-center gap-3">
-                                        <div
-                                            class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                 stroke-width="2">
@@ -308,8 +279,8 @@
                                         </div>
                                         <div>
                                             <p class="font-semibold text-gray-900">Belum ada aplikasi</p>
-                                            <p class="text-sm text-gray-500 mt-1">Tambahkan aplikasi untuk ditampilkan
-                                                di portal</p>
+                                            <p class="text-sm text-gray-500 mt-1">Tambahkan aplikasi untuk ditampilkan di
+                                                portal</p>
                                         </div>
                                         @if (auth()->user()->hasAnyRole(['admin', 'support']))
                                             <a href="{{ route('apps.create') }}"
@@ -326,104 +297,105 @@
             </div>
         </div>
 
-    </div>
+        {{-- MODAL & FORM — hanya di-render untuk admin --}}
+        @if (auth()->user()->isAdmin())
+            <div x-show="showDeleteModal"
+                class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
+                x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+                <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative
+                            transform transition-all duration-300"
+                    @click.away="showDeleteModal = false" x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
 
-    {{-- 🆕 MODAL & FORM — hanya di-render untuk admin --}}
-    @if (auth()->user()->isAdmin())
-        <!-- 🗑️ MODAL KONFIRMASI HAPUS -->
-        <div x-show="showDeleteModal"
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center"
-            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative
-                        transform transition-all duration-300"
-                @click.away="showDeleteModal = false" x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                    </div>
 
-                <div class="flex justify-center mb-4">
-                    <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                    <h3 class="text-lg font-bold text-gray-900 text-center mb-1">
+                        Hapus Aplikasi?
+                    </h3>
+                    <p class="text-sm text-gray-500 text-center mb-6">
+                        Yakin ingin menghapus <strong class="text-gray-800" x-text="deleteTarget.nama"></strong>?
+                        Tindakan ini tidak bisa dibatalkan.
+                    </p>
+
+                    <div class="flex gap-2">
+                        <button type="button" @click="showDeleteModal = false"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
+                                   text-gray-700 font-semibold transition">
+                            Batal
+                        </button>
+                        <button type="button" @click="confirmDelete()"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700
+                                   text-white font-semibold transition shadow-lg shadow-red-500/30">
+                            Ya, Hapus
+                        </button>
                     </div>
                 </div>
-
-                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">
-                    Hapus Aplikasi?
-                </h3>
-                <p class="text-sm text-gray-500 text-center mb-6">
-                    Yakin ingin menghapus <strong class="text-gray-800" x-text="deleteTarget.nama"></strong>?
-                    Tindakan ini tidak bisa dibatalkan.
-                </p>
-
-                <div class="flex gap-2">
-                    <button type="button" @click="showDeleteModal = false"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
-                               text-gray-700 font-semibold transition">
-                        Batal
-                    </button>
-                    <button type="button" @click="confirmDelete()"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700
-                               text-white font-semibold transition shadow-lg shadow-red-500/30">
-                        Ya, Hapus
-                    </button>
-                </div>
             </div>
+
+            <form id="deleteForm" method="POST" class="hidden">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
+
+        <!-- 🔔 TOAST -->
+        <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-8"
+            :class="{
+                'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+                'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+                'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+            }"
+            class="fixed top-24 right-6 z-[100] flex items-center gap-3
+                   min-w-[280px] max-w-sm
+                   px-4 py-3 rounded-xl
+                   text-white shadow-2xl border backdrop-blur-md"
+            style="display: none;">
+
+            <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+
+            <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+
+            <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
 
-        <form id="deleteForm" method="POST" class="hidden">
-            @csrf
-            @method('DELETE')
-        </form>
-    @endif
-
-    <!-- 🔔 TOAST -->
-    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
-        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
-        x-transition:leave-end="opacity-0 translate-x-8"
-        :class="{
-            'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
-            'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
-            'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
-        }"
-        class="fixed top-24 right-6 z-[100] flex items-center gap-3
-               min-w-[280px] max-w-sm
-               px-4 py-3 rounded-xl
-               text-white shadow-2xl border backdrop-blur-md"
-        style="display: none;">
-
-        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </div>
-
-        <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
-
-        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
     </div>
+@endsection
 
+@push('scripts')
     <script>
         function appsManager() {
             return {
@@ -475,6 +447,8 @@
 
                     const searchInput = document.getElementById('searchInput');
                     const table = document.getElementById('appsTable');
+                    if (!searchInput || !table) return;
+
                     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
                     searchInput.addEventListener('keyup', function() {
@@ -504,19 +478,5 @@
                 }
             }
         }
-
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
     </script>
-
-</body>
-
-</html>
+@endpush

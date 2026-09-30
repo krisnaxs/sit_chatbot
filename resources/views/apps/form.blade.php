@@ -1,31 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $app->exists ? 'Edit Aplikasi' : 'Tambah Aplikasi' }} - Admin</title>
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@section('title', ($app->exists ? 'Edit Aplikasi' : 'Tambah Aplikasi') . ' - Admin')
 
-<body class="bg-slate-100 font-sans" x-data="appForm()">
-
-    <!-- HEADER -->
-    <x-header title="{{ $app->exists ? 'Edit Aplikasi' : 'Tambah Aplikasi' }}" placeholder="Cari aplikasi..." />
-
-    <!-- SIDEBAR -->
-    <x-sidebar />
-
-    <!-- CONTENT -->
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-20' : 'lg:ml-64'"
-        class="max-w-2xl mx-auto p-6 mt-4 lg:mr-auto transition-all duration-300">
+@section('content')
+    <div class="max-w-2xl mx-auto" x-data="appForm()">
 
         <!-- BREADCRUMB -->
         <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
             <a href="{{ route('apps.index') }}" class="hover:text-blue-600 transition">Daftar Aplikasi</a>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
             <span class="text-gray-900 font-semibold">{{ $app->exists ? 'Edit' : 'Tambah' }}</span>
@@ -41,14 +25,12 @@
                             {{ $app->exists ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30' : 'bg-gradient-to-br from-blue-500 to-violet-600 shadow-blue-500/30' }}
                             flex items-center justify-center shadow-lg">
                     @if ($app->exists)
-                        {{-- Ikon edit --}}
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                     @else
-                        {{-- Ikon tambah --}}
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -129,7 +111,6 @@
                     <label class="block font-semibold text-sm text-gray-700 mb-2">Upload Gambar</label>
 
                     <div class="flex items-center gap-3 flex-wrap">
-                        {{-- Tombol kustom --}}
                         <label
                             class="inline-flex items-center gap-2
                                    bg-gradient-to-br from-blue-500 to-violet-600
@@ -149,7 +130,6 @@
                                 onchange="previewImage(event)">
                         </label>
 
-                        {{-- Tombol hapus (kalau ada gambar) --}}
                         @if ($app->gambar)
                             <button type="button" onclick="removeImage()"
                                 class="inline-flex items-center gap-2
@@ -158,8 +138,8 @@
                                        px-4 py-2.5 rounded-xl
                                        font-semibold text-sm
                                        transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
@@ -170,7 +150,6 @@
 
                     <p class="text-xs text-gray-500 mt-1.5">Format: JPG, PNG, WEBP · Maks: 2 MB</p>
 
-                    <!-- Preview Gambar -->
                     <div class="mt-3">
                         <img id="imagePreview" class="max-h-48 rounded-xl border border-gray-200 shadow-sm"
                             src="{{ $app->gambar ? asset('storage/' . $app->gambar) : '#' }}"
@@ -182,7 +161,6 @@
                     @enderror
                 </div>
 
-                <!-- Slide -->
                 <!-- Slide -->
                 <div>
                     <label class="block font-semibold text-sm text-gray-700 mb-2">
@@ -198,9 +176,9 @@
                         </div>
                         <select name="slide"
                             class="w-full pl-10 pr-10 py-3 border rounded-xl appearance-none bg-white
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                   @error('slide') border-red-400 bg-red-50 @else border-gray-200 @enderror
-                   transition cursor-pointer"
+                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   @error('slide') border-red-400 bg-red-50 @else border-gray-200 @enderror
+                                   transition cursor-pointer"
                             required>
                             <option value="" disabled {{ old('slide', $app->slide) ? '' : 'selected' }}>
                                 -- Pilih Slide --
@@ -210,13 +188,11 @@
                                 $selectedSlide = old('slide', $app->slide);
                             @endphp
                             @foreach ($slideOptions as $option)
-                                <option value="{{ $option }}"
-                                    {{ $selectedSlide === $option ? 'selected' : '' }}>
+                                <option value="{{ $option }}" {{ $selectedSlide === $option ? 'selected' : '' }}>
                                     {{ $option }}
                                 </option>
                             @endforeach
                         </select>
-                        {{-- Ikon panah dropdown --}}
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -298,47 +274,50 @@
                 </div>
             </form>
         </div>
-    </div>
 
-    <!-- 🔔 TOAST ERROR VALIDASI -->
-    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
-        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
-        x-transition:leave-end="opacity-0 translate-x-8"
-        class="fixed top-24 right-6 z-[100] flex items-start gap-3
-               min-w-[320px] max-w-md
-               px-4 py-3 rounded-xl
-               bg-red-600 text-white
-               shadow-2xl shadow-red-500/50
-               border border-red-400/40
-               backdrop-blur-md"
-        style="display: none;">
+        <!-- 🔔 TOAST ERROR VALIDASI -->
+        <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-8"
+            class="fixed top-24 right-6 z-[100] flex items-start gap-3
+                   min-w-[320px] max-w-md
+                   px-4 py-3 rounded-xl
+                   bg-red-600 text-white
+                   shadow-2xl shadow-red-500/50
+                   border border-red-400/40
+                   backdrop-blur-md"
+            style="display: none;">
 
-        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mt-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+
+            <div class="flex-1">
+                <div class="text-sm font-bold mb-1">Validasi gagal</div>
+                <ul class="text-xs space-y-0.5 list-disc list-inside opacity-90">
+                    <template x-for="(msg, i) in toast.messages" :key="i">
+                        <li x-text="msg"></li>
+                    </template>
+                </ul>
+            </div>
+
+            <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
 
-        <div class="flex-1">
-            <div class="text-sm font-bold mb-1">Validasi gagal</div>
-            <ul class="text-xs space-y-0.5 list-disc list-inside opacity-90">
-                <template x-for="(msg, i) in toast.messages" :key="i">
-                    <li x-text="msg"></li>
-                </template>
-            </ul>
-        </div>
-
-        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
     </div>
+@endsection
 
+@push('scripts')
     <script>
         function previewImage(event) {
             const preview = document.getElementById('imagePreview');
@@ -378,19 +357,5 @@
                 }
             }
         }
-
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
     </script>
-
-</body>
-
-</html>
+@endpush

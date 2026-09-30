@@ -157,12 +157,7 @@ class ChatController extends Controller
     private const INTENT_TIMEOUT = 8;
     private const QA_TIMEOUT = 60;
 
-    /**
-     * 🆕 Keyword yang menandakan pesan berkaitan dengan data aset.
-     * Dipakai untuk guard guest.
-     */
     private const ASSET_KEYWORDS = [
-        // Aset fisik
         'aset',
         'asset',
         'laptop',
@@ -182,13 +177,11 @@ class ChatController extends Controller
         'harddisk',
         'ssd',
         'flashdisk',
-        // Konsumable
         'konsumable',
         'consumable',
         'stok',
         'stock',
         'atk',
-        // Field aset
         'sn',
         'serial',
         'hostname',
@@ -201,14 +194,12 @@ class ChatController extends Controller
         'tipe',
         'garansi',
         'warranty',
-        // Ownership
         'hak milik',
         'sewa',
         'lease',
         'owned',
         'leased',
         'rental',
-        // Pemegang
         'pemegang',
         'pegang',
         'dipegang',
@@ -217,7 +208,6 @@ class ChatController extends Controller
         'dipegang siapa',
         'yang pakai',
         'yang pegang',
-        // Aksi pada aset
         'pinjam',
         'peminjaman',
         'loan',
@@ -228,11 +218,9 @@ class ChatController extends Controller
         'hilang',
         'pensiun',
         'retired',
-        // Lokasi
         'lokasi aset',
         'ruangan aset',
         'gedung aset',
-        // Assignment
         'serah terima',
         'assignment',
         'di-assign',
@@ -273,13 +261,11 @@ class ChatController extends Controller
             'is_guest' => !auth()->check(),
         ]);
 
-        // ═══════════════════════════════════════════════════════════
-        // 🆕 GUARD 0: Guest yang tanya tentang aset → wajib login
-        // ═══════════════════════════════════════════════════════════
+        // GUARD 0: Guest yang tanya tentang aset → wajib login
         if (!auth()->check() && $this->isAssetQuery($pesan)) {
-            $jawaban = "🔒 Maaf, untuk mengakses **data aset** kamu harus **login** terlebih dahulu.\n\n"
-                . "**Cara login:**\n"
-                . "1. Klik tombol **Login** di pojok kanan atas\n"
+            $jawaban = "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
+                . "Cara login:\n"
+                . "1. Klik tombol Login di pojok kanan atas\n"
                 . "2. Masukkan username & password SIAM kamu\n"
                 . "3. Setelah login, tanyakan lagi ke saya 😊\n\n"
                 . "_Kalau belum punya akun, hubungi IT Support._";
@@ -291,18 +277,14 @@ class ChatController extends Controller
                 'pesan' => $pesan,
             ]);
         }
-        // ═══════════════════════════════════════════════════════════
-        // GUARD 1: Tolak intent tulis (hapus, ubah, tambah)
-        // ═══════════════════════════════════════════════════════════
+        // GUARD 1: Tolak intent tulis
         elseif ($this->isWriteIntent($pesan)) {
-            $jawaban = '🔒 Maaf, saya hanya bisa **membaca** data. '
-                . 'Untuk mengubah data, silakan gunakan menu **Aset Management** di SIAM.';
+            $jawaban = '🔒 Maaf, saya hanya bisa membaca data. '
+                . 'Untuk mengubah data, silakan gunakan menu Aset Management di SIAM.';
             $sumber = 'readonly_guard';
             $file = null;
         }
-        // ═══════════════════════════════════════════════════════════
         // FLOW NORMAL
-        // ═══════════════════════════════════════════════════════════
         else {
             $followUp = $this->handleFollowUp($pesan, $request, $memory);
 
@@ -357,24 +339,14 @@ class ChatController extends Controller
         ]);
     }
 
-    // ============================================================
-    // 🆕 GUARD HELPERS
-    // ============================================================
-
-    /**
-     * 🆕 Deteksi apakah pesan berkaitan dengan data aset.
-     * Dipakai untuk memblokir guest sebelum menyentuh database.
-     */
     private function isAssetQuery(string $pesan): bool
     {
         $lower = Str::lower($pesan);
 
-        // 1️⃣ SN/hostname pattern (contoh: NB-T14-005, AST-2026-0001)
         if (preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan)) {
             return true;
         }
 
-        // 2️⃣ Keyword aset (word-boundary)
         foreach (self::ASSET_KEYWORDS as $kw) {
             $pattern = '/\b' . preg_quote($kw, '/') . '\b/i';
             if (preg_match($pattern, $lower)) {
@@ -382,7 +354,6 @@ class ChatController extends Controller
             }
         }
 
-        // 3️⃣ Kombinasi: kata tanya + objek
         $questionWords = ['berapa', 'jumlah', 'total', 'daftar', 'list', 'siapa', 'apa saja', 'tampilkan', 'lihat', 'cari'];
         $objectWords = ['aset', 'laptop', 'pc', 'komputer', 'printer', 'monitor', 'konsumable', 'stock', 'stok'];
 
@@ -405,9 +376,6 @@ class ChatController extends Controller
         return $hasQuestion && $hasObject;
     }
 
-    /**
-     * Deteksi intent tulis (hapus, ubah, tambah).
-     */
     private function isWriteIntent(string $pesan): bool
     {
         $lower = Str::lower($pesan);
@@ -439,6 +407,16 @@ class ChatController extends Controller
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
         if ($snAnswer) {
             return $snAnswer;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 🆕 PRIORITAS 1.5: Konsumable — HARUS sebelum deteksi field aset
+        // ═══════════════════════════════════════════════════════════
+        if ($this->isConsumableQuery($lower, $memory)) {
+            $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
+            if ($consumableAnswer) {
+                return $consumableAnswer;
+            }
         }
 
         // PRIORITAS 2: Field query dari memory asset terakhir
@@ -504,7 +482,24 @@ class ChatController extends Controller
             return null;
         }
 
-        $ctx = $memory->recall();
+        // 🆕 Ambil context yang TIPENYA COCOK untuk follow-up
+        // Jangan pakai recall() tanpa argumen — bisa ambil 'last_intent'
+        $ctx = $memory->recall('asset_by_status')
+            ?? $memory->recall('list_asset_by_status')
+            ?? $memory->recall('count_asset_by_status')
+            ?? $memory->recall('asset_by_ownership')
+            ?? $memory->recall('count_asset_by_ownership')
+            ?? $memory->recall('user_assets')
+            ?? $memory->recall('list_asset_by_user')
+            ?? $memory->recall('top_asset_by_model')
+            ?? $memory->recall('low_stock_consumable')
+            ?? $memory->recall('overdue_loans')
+            ?? $memory->recall('list_overdue_loans')
+            ?? $memory->recall('active_loans')
+            ?? $memory->recall('list_active_loans')
+            ?? $memory->recall('active_assignments');
+
+
         if (!$ctx) {
             return null;
         }
@@ -515,13 +510,30 @@ class ChatController extends Controller
     private function executeFollowUp(array $ctx, Request $request, ChatMemoryService $memory): ?array
     {
         $type = $ctx['_type'] ?? $ctx['type'] ?? null;
-        $offset = $ctx['offset'] ?? 0;
+        $offset = (int) ($ctx['offset'] ?? 0);
         $limit = 10;
+
+        Log::info('executeFollowUp', [
+            'type_original' => $type,
+            'offset' => $offset,
+        ]);
+
+        // 🆕 Normalisasi SEMUA type count & list → type handler yang ada
+        $type = match ($type) {
+            'list_asset_by_status', 'count_asset_by_status' => 'asset_by_status',
+            'list_asset_by_ownership', 'count_asset_by_ownership' => 'asset_by_ownership',
+            'list_asset_by_user', 'count_asset_by_user' => 'user_assets',
+            'list_overdue_loans' => 'overdue_loans',
+            'list_active_loans' => 'active_loans',
+            default => $type,
+        };
+
+        Log::info('executeFollowUp.normalized', ['type' => $type]);
 
         return match ($type) {
             'top_asset_by_model' => $this->followUpTopAssetByModel($ctx, $offset, $limit, $memory),
             'user_assets' => $this->followUpUserAssets($ctx, $offset, $limit, $memory),
-            'asset_by_status', 'list_asset_by_status' => $this->followUpAssetByStatus($ctx, $offset, $limit, $memory),
+            'asset_by_status' => $this->followUpAssetByStatus($ctx, $offset, $limit, $memory),
             'asset_by_ownership' => $this->followUpAssetByOwnership($ctx, $offset, $limit, $memory),
             'low_stock_consumable' => $this->followUpLowStockConsumable($ctx, $offset, $limit, $memory),
             'overdue_loans' => $this->followUpOverdueLoans($ctx, $offset, $limit, $memory),
@@ -530,13 +542,14 @@ class ChatController extends Controller
             default => null,
         };
     }
-
     // ============================================================
     // CORE: CARI JAWABAN
     // ============================================================
 
     private function cariJawaban(string $pesan, ChatMemoryService $memory, string $requestId): array
     {
+        $lower = Str::lower($pesan);
+
         // 1️⃣ SN/hostname regex
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
         if ($snAnswer) {
@@ -558,6 +571,14 @@ class ChatController extends Controller
             return $userAssetsByName;
         }
 
+        // 3.5 🆕 Konsumable — cek dulu sebelum Ollama intent
+        if ($this->isConsumableQuery($lower, $memory)) {
+            $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
+            if ($consumableAnswer) {
+                return array_merge($consumableAnswer, [null]);
+            }
+        }
+
         // 4️⃣ OLLAMA INTENT PARSER
         $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
         if ($intentResult) {
@@ -573,6 +594,16 @@ class ChatController extends Controller
                     $type = $dbAnswer[2]['type'] ?? 'query';
                     $memory->remember($type, $dbAnswer[2], self::CONTEXT_TTL);
                 }
+
+                // 🆕 Simpan konteks konsumable
+                if (preg_match('/\b(konsumable|consumable|konsumebel|habis pakai|daftar konsumable)\b/i', $lower)) {
+                    $memory->remember('consumable_list', [
+                        'type' => 'consumable_list',
+                        '_type' => 'consumable_list',
+                        'time' => now()->toDateTimeString(),
+                    ], self::CONTEXT_TTL, 'Daftar konsumable');
+                }
+
                 return [$dbAnswer[0], 'database', null];
             }
         } catch (\Throwable $e) {
@@ -622,7 +653,6 @@ class ChatController extends Controller
 
         return [$jawaban, 'ai', null];
     }
-
     private function tryOllamaIntent(string $pesan, ChatMemoryService $memory, string $requestId): ?array
     {
         $cacheKey = 'intent:v2:' . md5(Str::lower(trim($pesan)));
@@ -658,17 +688,68 @@ class ChatController extends Controller
             return null;
         }
 
-        // Simpan context ke memory biar follow-up jalan
-        if (isset($result['context']) && is_array($result['context'])) {
-            $type = $result['context']['type'] ?? ($intent['intent'] ?? 'intent');
-            $memory->remember($type, $result['context'], self::CONTEXT_TTL);
+        // 🆕 Normalisasi type: 'list_asset_by_status' → 'asset_by_status'
+        // biar konsisten dengan key yang dicek di executeFollowUp
+        $rawType = $result['context']['type'] ?? ($intent['intent'] ?? 'intent');
+        $type = match ($rawType) {
+            'list_asset_by_status' => 'asset_by_status',
+            default => $rawType,
+        };
 
-            $memory->remember('last_intent', [
+
+        $rawType = $result['context']['type'] ?? ($intent['intent'] ?? 'intent');
+        $type = match ($rawType) {
+            'list_asset_by_status', 'count_asset_by_status' => 'asset_by_status',
+            'list_asset_by_ownership', 'count_asset_by_ownership' => 'asset_by_ownership',
+            'list_asset_by_user', 'count_asset_by_user' => 'user_assets',
+            default => $rawType,
+        };
+
+        if (isset($result['context']) && is_array($result['context'])) {
+            // 🆕 Ambil params dari intent
+            $params = $intent['params'] ?? [];
+
+            // 🆕 Flatten: pastikan status, category, brand, dll ada di ROOT context
+            $context = array_merge($result['context'], [
                 'type' => $type,
-                'intent_name' => $intent['intent'] ?? null,
-                'time' => now()->toDateTimeString(),
+                '_type' => $type,
+                'status' => $result['context']['status'] ?? $params['status'] ?? null,
+                'category' => $result['context']['category'] ?? $params['category'] ?? null,
+                'brand' => $result['context']['brand'] ?? $params['brand'] ?? null,
+                'model' => $result['context']['model'] ?? $params['model'] ?? null,
+                'user_id' => $result['context']['user_id'] ?? null,
+                'user_name' => $result['context']['user_name'] ?? $params['user_name'] ?? null,
+            ]);
+
+            // 🆕 Normalisasi category "all" → null (biar tidak filter aneh)
+            if (($context['category'] ?? null) === 'all') {
+                $context['category'] = null;
+            }
+
+            $memory->remember($type, $context, self::CONTEXT_TTL);
+
+            Log::info('intent.context_saved', [
+                'request_id' => $requestId,
+                'type' => $type,
+                'status' => $context['status'] ?? null,
+                'offset' => $context['offset'] ?? 0,
+            ]);
+        } else {
+            // Fallback: simpan context minimal
+            $memory->remember($type, [
+                'type' => $type,
+                '_type' => $type,
+                'intent' => $intent,
+                'offset' => 0,
             ], self::CONTEXT_TTL);
+
+            Log::info('intent.context_saved_minimal', [
+                'request_id' => $requestId,
+                'type' => $type,
+            ]);
         }
+
+        // ❌ HAPUS: $memory->remember('last_intent', ...) — bikin recall() salah
 
         Log::info('intent.executed', [
             'request_id' => $requestId,
@@ -793,7 +874,7 @@ class ChatController extends Controller
 
         if ($assets->isEmpty()) {
             return [
-                "Tidak ada aset **{$model}** yang sedang dipegang siapa pun.",
+                "Tidak ada aset {$model} yang sedang dipegang siapa pun.",
                 'database',
             ];
         }
@@ -807,7 +888,7 @@ class ChatController extends Controller
         $total = $assets->count();
         $userCount = count($grouped);
 
-        $jawaban = "👥 **Pemegang aset {$model}**\n"
+        $jawaban = "👥 Pemegang aset {$model}\n"
             . "({$total} unit dipegang oleh {$userCount} orang):\n\n";
 
         $i = 0;
@@ -817,7 +898,7 @@ class ChatController extends Controller
                 break;
             }
 
-            $jawaban .= "👤 **{$name}** — " . count($items) . " unit\n";
+            $jawaban .= "👤 {$name} — " . count($items) . " unit\n";
             foreach ($items as $a) {
                 $jawaban .= "  • {$a->hostname}";
                 if ($a->serial_number && $a->serial_number !== $a->hostname) {
@@ -851,7 +932,7 @@ class ChatController extends Controller
                 ->find($assetId);
 
             if ($asset) {
-                $jawaban = "📋 **{$asset->hostname}**";
+                $jawaban = "📋 {$asset->hostname}";
                 if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
                     $jawaban .= " (SN: `{$asset->serial_number}`)";
                 }
@@ -879,12 +960,12 @@ class ChatController extends Controller
         $assets = $user->currentAssets()->with('category')->get();
 
         if ($assets->isEmpty()) {
-            return ["User **{$user->name}** sedang tidak memegang aset.", 'database'];
+            return ["User {$user->name} sedang tidak memegang aset.", 'database'];
         }
 
-        $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+        $jawaban = "👤 {$user->name} memegang {$assets->count()} aset:\n\n";
         foreach ($assets as $a) {
-            $jawaban .= "• **{$a->hostname}**";
+            $jawaban .= "• {$a->hostname}";
             if ($a->serial_number && $a->serial_number !== $a->hostname) {
                 $jawaban .= " (SN: `{$a->serial_number}`)";
             }
@@ -974,27 +1055,27 @@ class ChatController extends Controller
             return [$this->formatFullDetail($asset), 'database'];
         }
 
-        $header = "🔍 **{$asset->serial_number}**";
+        $header = "🔍 {$asset->serial_number}";
         if ($asset->hostname) {
             $header .= " ({$asset->hostname})";
         }
         $header .= "\n\n";
 
         $jawaban = match ($field) {
-            'serial_number' => $header . "**Serial Number:** `{$asset->serial_number}`",
-            'hostname' => $header . "**Hostname:** " . ($asset->hostname ? "`{$asset->hostname}`" : '*tidak ada*'),
-            'asset_code' => $header . "**Asset Code:** " . ($asset->asset_code ? "`{$asset->asset_code}`" : '*tidak ada*'),
-            'brand' => $header . "**Brand:** {$asset->brand}",
-            'model' => $header . "**Model:** {$asset->model}",
-            'status' => $header . "**Status:** {$asset->status}",
-            'ownership' => $header . "**Hak Kepemilikan:** " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa'),
-            'location' => $header . "**Lokasi:** " . ($asset->currentLocation?->full_name ?? '-'),
-            'user' => $header . "**Pemegang:** " . ($asset->currentUser?->name ?? '-'),
-            'spec' => $header . "**Spesifikasi:**\n" . $this->formatSpec($asset->specification),
-            'os' => $header . "**OS:** " . ($asset->os ?? '-') . "\n**Lisensi:** " . ($asset->os_license ?? '-'),
-            'garansi' => $header . "**Garansi:** " . ($asset->warranty_expire?->format('d M Y') ?? '-'),
-            'tanggal_beli' => $header . "**Tanggal Pembelian:** " . ($asset->purchase_date?->format('d M Y') ?? '-'),
-            'tahun_beli' => $header . "**Tahun Pembelian:** " . ($asset->purchase_date?->format('Y') ?? '*tidak tercatat*'),
+            'serial_number' => $header . "Serial Number: `{$asset->serial_number}`",
+            'hostname' => $header . "Hostname: " . ($asset->hostname ? "`{$asset->hostname}`" : '*tidak ada*'),
+            'asset_code' => $header . "Asset Code: " . ($asset->asset_code ? "`{$asset->asset_code}`" : '*tidak ada*'),
+            'brand' => $header . "Brand: {$asset->brand}",
+            'model' => $header . "Model: {$asset->model}",
+            'status' => $header . "Status: {$asset->status}",
+            'ownership' => $header . "Hak Kepemilikan: " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa'),
+            'location' => $header . "Lokasi: " . ($asset->currentLocation?->full_name ?? '-'),
+            'user' => $header . "Pemegang: " . ($asset->currentUser?->name ?? '-'),
+            'spec' => $header . "Spesifikasi:\n" . $this->formatSpec($asset->specification),
+            'os' => $header . "OS: " . ($asset->os ?? '-') . "\nLisensi: " . ($asset->os_license ?? '-'),
+            'garansi' => $header . "Garansi: " . ($asset->warranty_expire?->format('d M Y') ?? '-'),
+            'tanggal_beli' => $header . "Tanggal Pembelian: " . ($asset->purchase_date?->format('d M Y') ?? '-'),
+            'tahun_beli' => $header . "Tahun Pembelian: " . ($asset->purchase_date?->format('Y') ?? '*tidak tercatat*'),
             'assigned_at' => $header . $this->formatAssignedInfo($asset),
             'returned_at' => $header . $this->formatReturnedInfo($asset),
             'riwayat' => $header . $this->formatFullHistory($asset),
@@ -1010,10 +1091,10 @@ class ChatController extends Controller
             'movement' => $header . $this->formatMovementHistory($asset),
             'umur' => $header . $this->formatAssetAge($asset),
             'nilai_buku' => $header . $this->formatBookValue($asset),
-            'harga' => $header . "**Harga Beli:** " . ($asset->purchase_price
+            'harga' => $header . "Harga Beli: " . ($asset->purchase_price
                 ? 'Rp ' . number_format($asset->purchase_price, 0, ',', '.')
                 : '*tidak tercatat*'),
-            default => $header . "Field **{$field}** tidak dikenali.",
+            default => $header . "Field {$field} tidak dikenali.",
         };
 
         return [$jawaban, 'database'];
@@ -1037,13 +1118,13 @@ class ChatController extends Controller
 
     private function formatFullDetail($asset): string
     {
-        $jawaban = "🔍 **Detail Lengkap: {$asset->serial_number}**";
+        $jawaban = "🔍 Detail Lengkap: {$asset->serial_number}";
         if ($asset->hostname) {
             $jawaban .= " ({$asset->hostname})";
         }
         $jawaban .= "\n\n";
 
-        $jawaban .= "**📋 Identitas**\n"
+        $jawaban .= "📋 Identitas\n"
             . "• Serial Number: `{$asset->serial_number}`\n";
         if ($asset->hostname) {
             $jawaban .= "• Hostname: `{$asset->hostname}`\n";
@@ -1052,7 +1133,7 @@ class ChatController extends Controller
             $jawaban .= "• Asset Code: `{$asset->asset_code}`\n";
         }
 
-        $jawaban .= "\n**💻 Hardware**\n"
+        $jawaban .= "\n💻 Hardware\n"
             . "• Brand: {$asset->brand}\n"
             . "• Model: {$asset->model}\n"
             . "• Kategori: " . ($asset->category?->name ?? '-') . "\n";
@@ -1066,14 +1147,14 @@ class ChatController extends Controller
             }
         }
 
-        $jawaban .= "\n**📊 Status**\n"
+        $jawaban .= "\n📊 Status\n"
             . "• Status: {$asset->status}\n"
             . "• Hak Kepemilikan: " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa') . "\n"
             . "• Pemegang: " . ($asset->currentUser?->name ?? '-') . "\n"
             . "• Lokasi: " . ($asset->currentLocation?->full_name ?? '-') . "\n";
 
         if ($asset->purchase_date) {
-            $jawaban .= "\n**📅 Pembelian**\n"
+            $jawaban .= "\n📅 Pembelian\n"
                 . "• Tanggal: {$asset->purchase_date->format('d M Y')}\n";
             if ($asset->purchase_price) {
                 $jawaban .= "• Harga: Rp " . number_format($asset->purchase_price, 0, ',', '.') . "\n";
@@ -1096,16 +1177,16 @@ class ChatController extends Controller
             ->first();
 
         if (!$assignment) {
-            return "**📅 Info Assignment**\nAset ini sedang **tidak dipegang siapa pun**.";
+            return "📅 Info Assignment\nAset ini sedang tidak dipegang siapa pun.";
         }
 
         $userName = $assignment->user?->name ?? 'tidak diketahui';
         $assignedAt = $assignment->assigned_at?->format('d M Y') ?? '-';
         $daysAgo = $assignment->assigned_at?->diffForHumans() ?? '-';
 
-        $jawaban = "**📅 Info Assignment**\n"
-            . "• Dipinjamkan ke: **{$userName}**\n"
-            . "• Sejak: **{$assignedAt}** ({$daysAgo})\n";
+        $jawaban = "📅 Info Assignment\n"
+            . "• Dipinjamkan ke: {$userName}\n"
+            . "• Sejak: {$assignedAt} ({$daysAgo})\n";
 
         if ($assignment->assignedBy) {
             $jawaban .= "• Di-assign oleh: {$assignment->assignedBy->name}\n";
@@ -1131,16 +1212,16 @@ class ChatController extends Controller
             ->first();
 
         if (!$assignment) {
-            return "**📅 Info Pengembalian**\nAset ini **belum pernah dikembalikan**.";
+            return "📅 Info Pengembalian\nAset ini belum pernah dikembalikan.";
         }
 
         $userName = $assignment->user?->name ?? 'tidak diketahui';
         $returnedAt = $assignment->returned_at?->format('d M Y') ?? '-';
         $daysAgo = $assignment->returned_at?->diffForHumans() ?? '-';
 
-        $jawaban = "**📅 Info Pengembalian**\n"
-            . "• Dikembalikan oleh: **{$userName}**\n"
-            . "• Pada: **{$returnedAt}** ({$daysAgo})\n";
+        $jawaban = "📅 Info Pengembalian\n"
+            . "• Dikembalikan oleh: {$userName}\n"
+            . "• Pada: {$returnedAt} ({$daysAgo})\n";
 
         if ($assignment->condition_on_return) {
             $jawaban .= "• Kondisi saat kembali: {$assignment->condition_on_return}%\n";
@@ -1151,14 +1232,14 @@ class ChatController extends Controller
 
     private function formatFullHistory($asset): string
     {
-        $jawaban = "**📜 Riwayat Lengkap Aset**\n\n";
+        $jawaban = "📜 Riwayat Lengkap Aset\n\n";
         $assignments = \App\Models\AssetAssignment::where('asset_id', $asset->id)
             ->with('user')
             ->orderByDesc('assigned_at')
             ->get();
 
         if ($assignments->isNotEmpty()) {
-            $jawaban .= "**👤 Serah Terima ({$assignments->count()})**\n";
+            $jawaban .= "👤 Serah Terima ({$assignments->count()})\n";
             foreach ($assignments->take(5) as $a) {
                 $status = $a->returned_at ? '✅ Kembali' : '🔵 Aktif';
                 $jawaban .= "• {$a->user?->name} — {$a->assigned_at?->format('d M Y')} ({$status})\n";
@@ -1175,7 +1256,7 @@ class ChatController extends Controller
             ->get();
 
         if ($loans->isNotEmpty()) {
-            $jawaban .= "**📤 Peminjaman ({$loans->count()})**\n";
+            $jawaban .= "📤 Peminjaman ({$loans->count()})\n";
             foreach ($loans->take(3) as $l) {
                 $jawaban .= "• {$l->user?->name} — {$l->loan_date?->format('d M Y')} ({$l->status})\n";
             }
@@ -1190,7 +1271,7 @@ class ChatController extends Controller
             ->get();
 
         if ($maintenances->isNotEmpty()) {
-            $jawaban .= "**🔧 Perbaikan ({$maintenances->count()})**\n";
+            $jawaban .= "🔧 Perbaikan ({$maintenances->count()})\n";
             foreach ($maintenances->take(3) as $m) {
                 $jawaban .= "• {$m->type} — {$m->start_date?->format('d M Y')} ({$m->status})\n";
             }
@@ -1215,15 +1296,15 @@ class ChatController extends Controller
             ->get();
 
         if ($assignments->isEmpty()) {
-            return "Aset ini **belum pernah di-assign** ke user mana pun.";
+            return "Aset ini belum pernah di-assign ke user mana pun.";
         }
 
-        $jawaban = "**👥 Semua Pemegang Aset** ({$assignments->count()}x):\n\n";
+        $jawaban = "👥 Semua Pemegang Aset ({$assignments->count()}x):\n\n";
         foreach ($assignments as $i => $a) {
             $status = $a->returned_at
                 ? "✅ Kembali: {$a->returned_at->format('d M Y')}"
-                : "🔵 **Sedang dipegang**";
-            $jawaban .= ($i + 1) . ". **{$a->user?->name}**\n"
+                : "🔵 Sedang dipegang";
+            $jawaban .= ($i + 1) . ". {$a->user?->name}\n"
                 . "   • Assign: {$a->assigned_at?->format('d M Y')}\n"
                 . "   • {$status}\n";
 
@@ -1246,17 +1327,17 @@ class ChatController extends Controller
             ->first();
 
         if (!$assignment) {
-            return "Aset ini sedang **tidak dipegang siapa pun**.";
+            return "Aset ini sedang tidak dipegang siapa pun.";
         }
 
         $days = $assignment->assigned_at?->diffInDays(now()) ?? 0;
         $userName = $assignment->user?->name ?? '-';
         $assignedAt = $assignment->assigned_at?->format('d M Y') ?? '-';
 
-        $jawaban = "**⏱️ Durasi Pemakaian**\n"
-            . "• Dipegang oleh: **{$userName}**\n"
+        $jawaban = "⏱️ Durasi Pemakaian\n"
+            . "• Dipegang oleh: {$userName}\n"
             . "• Sejak: {$assignedAt}\n"
-            . "• Sudah: **{$days} hari**";
+            . "• Sudah: {$days} hari";
 
         if ($days > 365) {
             $years = floor($days / 365);
@@ -1279,7 +1360,7 @@ class ChatController extends Controller
             ->first();
 
         if (!$loan) {
-            return "Aset ini **sedang tidak dipinjam** siapa pun.";
+            return "Aset ini sedang tidak dipinjam siapa pun.";
         }
 
         $userName = $loan->user?->name ?? '-';
@@ -1288,15 +1369,15 @@ class ChatController extends Controller
         $daysLeft = $loan->due_date?->diffInDays(now()) ?? 0;
         $isOverdue = $loan->due_date && $loan->due_date->isPast();
 
-        $jawaban = "**📤 Info Peminjaman**\n"
-            . "• Dipinjam oleh: **{$userName}**\n"
+        $jawaban = "📤 Info Peminjaman\n"
+            . "• Dipinjam oleh: {$userName}\n"
             . "• Tanggal pinjam: {$loanDate}\n"
-            . "• Jatuh tempo: **{$dueDate}**\n";
+            . "• Jatuh tempo: {$dueDate}\n";
 
         if ($isOverdue) {
-            $jawaban .= "• ⚠️ **Terlambat {$daysLeft} hari!**\n";
+            $jawaban .= "• ⚠️ Terlambat {$daysLeft} hari!\n";
         } else {
-            $jawaban .= "• Sisa waktu: **{$daysLeft} hari**\n";
+            $jawaban .= "• Sisa waktu: {$daysLeft} hari\n";
         }
 
         if ($loan->purpose) {
@@ -1314,10 +1395,10 @@ class ChatController extends Controller
             ->get();
 
         if ($loans->isEmpty()) {
-            return "Aset ini **belum pernah dipinjam**.";
+            return "Aset ini belum pernah dipinjam.";
         }
 
-        $jawaban = "**📤 Riwayat Peminjaman** ({$loans->count()}x):\n\n";
+        $jawaban = "📤 Riwayat Peminjaman ({$loans->count()}x):\n\n";
         foreach ($loans as $i => $l) {
             $status = match ($l->status) {
                 'returned' => '✅ Kembali',
@@ -1327,7 +1408,7 @@ class ChatController extends Controller
                 default => $l->status,
             };
 
-            $jawaban .= ($i + 1) . ". **{$l->user?->name}**\n"
+            $jawaban .= ($i + 1) . ". {$l->user?->name}\n"
                 . "   • Pinjam: {$l->loan_date?->format('d M Y')}\n";
 
             if ($l->returned_at) {
@@ -1349,11 +1430,11 @@ class ChatController extends Controller
             ->first();
 
         if (!$m) {
-            return "Aset ini **belum pernah diperbaiki**.";
+            return "Aset ini belum pernah diperbaiki.";
         }
 
-        $jawaban = "**🔧 Perbaikan Terakhir**\n"
-            . "• Tanggal: **{$m->start_date?->format('d M Y')}**\n"
+        $jawaban = "🔧 Perbaikan Terakhir\n"
+            . "• Tanggal: {$m->start_date?->format('d M Y')}\n"
             . "• Jenis: {$m->type}\n"
             . "• Masalah: {$m->issue}\n"
             . "• Status: {$m->status}\n";
@@ -1381,13 +1462,13 @@ class ChatController extends Controller
             ->groupBy('type')
             ->pluck('total', 'type');
 
-        $jawaban = "**🔧 Jumlah Perbaikan**\n"
-            . "• Total: **{$total}x**\n"
+        $jawaban = "🔧 Jumlah Perbaikan\n"
+            . "• Total: {$total}x\n"
             . "• Selesai: {$done}x\n"
             . "• Sedang berjalan: {$ongoing}x\n";
 
         if ($byType->isNotEmpty()) {
-            $jawaban .= "\n**Per Jenis:**\n";
+            $jawaban .= "\nPer Jenis:\n";
             foreach ($byType as $type => $count) {
                 $jawaban .= "• {$type}: {$count}x\n";
             }
@@ -1404,12 +1485,12 @@ class ChatController extends Controller
             ->get();
 
         if ($maintenances->isEmpty()) {
-            return "Aset ini **belum pernah diperbaiki**.";
+            return "Aset ini belum pernah diperbaiki.";
         }
 
-        $jawaban = "**🔧 Riwayat Perbaikan** ({$maintenances->count()}x):\n\n";
+        $jawaban = "🔧 Riwayat Perbaikan ({$maintenances->count()}x):\n\n";
         foreach ($maintenances as $i => $m) {
-            $jawaban .= ($i + 1) . ". **{$m->issue}**\n"
+            $jawaban .= ($i + 1) . ". {$m->issue}\n"
                 . "   • Tanggal: {$m->start_date?->format('d M Y')}\n"
                 . "   • Jenis: {$m->type}\n"
                 . "   • Status: {$m->status}\n";
@@ -1438,8 +1519,8 @@ class ChatController extends Controller
         $count = \App\Models\AssetMaintenance::where('asset_id', $asset->id)
             ->whereNotNull('cost')->where('cost', '>', 0)->count();
 
-        $jawaban = "**💰 Biaya Perbaikan**\n"
-            . "• Total biaya: **Rp " . number_format($total, 0, ',', '.') . "**\n"
+        $jawaban = "💰 Biaya Perbaikan\n"
+            . "• Total biaya: Rp " . number_format($total, 0, ',', '.') . "\n"
             . "• Jumlah perbaikan berbiaya: {$count}x\n";
 
         if ($count > 0) {
@@ -1463,9 +1544,9 @@ class ChatController extends Controller
             return "Belum ada data teknisi untuk aset ini.";
         }
 
-        $jawaban = "**👨‍🔧 Teknisi yang Pernah Perbaiki:**\n";
+        $jawaban = "👨‍🔧 Teknisi yang Pernah Perbaiki:\n";
         foreach ($techs as $i => $t) {
-            $jawaban .= ($i + 1) . ". **{$t->technician}** — {$t->total}x\n";
+            $jawaban .= ($i + 1) . ". {$t->technician} — {$t->total}x\n";
         }
 
         return trim($jawaban);
@@ -1479,15 +1560,15 @@ class ChatController extends Controller
             ->get();
 
         if ($movements->isEmpty()) {
-            return "Aset ini **belum pernah dipindahkan**.";
+            return "Aset ini belum pernah dipindahkan.";
         }
 
-        $jawaban = "**🚚 Riwayat Perpindahan** ({$movements->count()}x):\n\n";
+        $jawaban = "🚚 Riwayat Perpindahan ({$movements->count()}x):\n\n";
         foreach ($movements as $i => $m) {
             $from = $m->fromLocation?->full_name ?? '-';
             $to = $m->toLocation?->full_name ?? '-';
 
-            $jawaban .= ($i + 1) . ". **{$m->type}**\n"
+            $jawaban .= ($i + 1) . ". {$m->type}\n"
                 . "   • Tanggal: {$m->moved_at?->format('d M Y')}\n";
 
             if ($from !== '-' || $to !== '-') {
@@ -1507,23 +1588,23 @@ class ChatController extends Controller
     private function formatAssetAge($asset): string
     {
         if (!$asset->purchase_date) {
-            return "Tanggal pembelian aset ini **tidak tercatat**.";
+            return "Tanggal pembelian aset ini tidak tercatat.";
         }
 
         $days = $asset->purchase_date->diffInDays(now());
         $years = floor($days / 365);
         $months = floor(($days % 365) / 30);
 
-        $jawaban = "**🎂 Umur Aset**\n"
+        $jawaban = "🎂 Umur Aset\n"
             . "• Tanggal beli: {$asset->purchase_date->format('d M Y')}\n"
-            . "• Umur: **{$years} tahun {$months} bulan** ({$days} hari)\n";
+            . "• Umur: {$years} tahun {$months} bulan ({$days} hari)\n";
 
         if ($asset->warranty_expire) {
             $sisaGaransi = $asset->warranty_expire->diffInDays(now(), false);
             if ($sisaGaransi > 0) {
-                $jawaban .= "• Garansi sisa: **{$sisaGaransi} hari**\n";
+                $jawaban .= "• Garansi sisa: {$sisaGaransi} hari\n";
             } else {
-                $jawaban .= "• Garansi: **sudah habis** (" . abs($sisaGaransi) . " hari lalu)\n";
+                $jawaban .= "• Garansi: sudah habis (" . abs($sisaGaransi) . " hari lalu)\n";
             }
         }
 
@@ -1533,7 +1614,7 @@ class ChatController extends Controller
     private function formatBookValue($asset): string
     {
         if (!$asset->purchase_price || !$asset->purchase_date) {
-            return "Data harga atau tanggal pembelian aset ini **tidak lengkap**.";
+            return "Data harga atau tanggal pembelian aset ini tidak lengkap.";
         }
 
         $price = $asset->purchase_price;
@@ -1541,11 +1622,11 @@ class ChatController extends Controller
         $depresiasi = min(0.8 * $years, 0.9);
         $currentValue = $price * (1 - $depresiasi);
 
-        $jawaban = "**💵 Nilai Buku Aset**\n"
+        $jawaban = "💵 Nilai Buku Aset\n"
             . "• Harga beli: Rp " . number_format($price, 0, ',', '.') . "\n"
             . "• Umur: {$years} tahun\n"
             . "• Depresiasi: " . round($depresiasi * 100) . "%\n"
-            . "• Nilai sekarang: **Rp " . number_format($currentValue, 0, ',', '.') . "**\n\n"
+            . "• Nilai sekarang: Rp " . number_format($currentValue, 0, ',', '.') . "\n\n"
             . "_Estimasi berdasarkan depresiasi 20%/tahun._";
 
         return $jawaban;
@@ -1574,7 +1655,7 @@ class ChatController extends Controller
         $assets = $user->currentAssets()->with('category')->get();
 
         if ($assets->isEmpty()) {
-            return ["User **{$user->name}** sedang tidak memegang aset.", 'database'];
+            return ["User {$user->name} sedang tidak memegang aset.", 'database'];
         }
 
         $memory->remember('user', [
@@ -1592,9 +1673,9 @@ class ChatController extends Controller
             ], self::CONTEXT_TTL, "Aset {$a->serial_number}");
         }
 
-        $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+        $jawaban = "👤 {$user->name} memegang {$assets->count()} aset:\n\n";
         foreach ($assets as $a) {
-            $jawaban .= "• **{$a->hostname}**";
+            $jawaban .= "• {$a->hostname}";
             if ($a->serial_number && $a->serial_number !== $a->hostname) {
                 $jawaban .= " (SN: `{$a->serial_number}`)";
             }
@@ -1610,7 +1691,7 @@ class ChatController extends Controller
 
     private function answerWhoHoldsAsset($asset, ChatMemoryService $memory): array
     {
-        $header = "🔍 **{$asset->hostname}**";
+        $header = "🔍 {$asset->hostname}";
         if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
             $header .= "\nSN: `{$asset->serial_number}`";
         }
@@ -1622,17 +1703,17 @@ class ChatController extends Controller
             . "• Status: {$asset->status}\n";
 
         if ($asset->currentUser) {
-            $jawaban .= "\n👤 **Pemegang:** **{$asset->currentUser->name}**";
+            $jawaban .= "\n👤 Pemegang: {$asset->currentUser->name}";
             if ($asset->currentUser->position) {
                 $jawaban .= " ({$asset->currentUser->position})";
             }
             $jawaban .= "\n";
         } else {
-            $jawaban .= "\n👤 **Pemegang:** *tidak ada* (aset tersedia)\n";
+            $jawaban .= "\n👤 Pemegang: *tidak ada* (aset tersedia)\n";
         }
 
         if ($asset->currentLocation) {
-            $jawaban .= "📍 **Lokasi:** {$asset->currentLocation->full_name}";
+            $jawaban .= "📍 Lokasi: {$asset->currentLocation->full_name}";
         }
 
         return [$jawaban, 'database'];
@@ -1640,7 +1721,7 @@ class ChatController extends Controller
 
     private function answerAssetShort($asset, ChatMemoryService $memory): array
     {
-        $header = "🔍 **{$asset->hostname}**";
+        $header = "🔍 {$asset->hostname}";
         if ($asset->serial_number && $asset->serial_number !== $asset->hostname) {
             $header .= "\nSN: `{$asset->serial_number}`";
         }
@@ -1653,16 +1734,16 @@ class ChatController extends Controller
             . "• Hak Kepemilikan: " . ($asset->ownership_type === 'owned' ? '🟢 Hak Milik' : '🟠 Sewa') . "\n";
 
         if ($asset->currentUser) {
-            $jawaban .= "\n👤 **Pemegang saat ini:** {$asset->currentUser->name}";
+            $jawaban .= "\n👤 Pemegang saat ini: {$asset->currentUser->name}";
             if ($asset->currentUser->position) {
                 $jawaban .= " ({$asset->currentUser->position})";
             }
         } else {
-            $jawaban .= "\n👤 **Pemegang saat ini:** *tidak ada* (aset tersedia)";
+            $jawaban .= "\n👤 Pemegang saat ini: *tidak ada* (aset tersedia)";
         }
 
         if ($asset->currentLocation) {
-            $jawaban .= "\n📍 **Lokasi:** {$asset->currentLocation->full_name}";
+            $jawaban .= "\n📍 Lokasi: {$asset->currentLocation->full_name}";
         }
 
         return [$jawaban, 'database'];
@@ -1747,7 +1828,7 @@ class ChatController extends Controller
 
         if ($assets->isEmpty()) {
             return [
-                "User **{$user->name}** sedang tidak memegang aset.",
+                "User {$user->name} sedang tidak memegang aset.",
                 'database',
                 null,
             ];
@@ -1772,22 +1853,22 @@ class ChatController extends Controller
 
         if ($statusFilter || $field) {
             $statusLabel = $statusFilter ? ucfirst($statusFilter) : null;
-            $jawaban = "👤 **{$user->name}**";
+            $jawaban = "👤 {$user->name}";
             if ($statusFilter) {
-                $jawaban .= " — aset **{$statusLabel}**";
+                $jawaban .= " — aset {$statusLabel}";
             }
             $jawaban .= ":\n\n";
 
             if ($assets->isEmpty()) {
                 return [
-                    "User **{$user->name}** tidak memiliki aset dengan filter tersebut.",
+                    "User {$user->name} tidak memiliki aset dengan filter tersebut.",
                     'database',
                     null,
                 ];
             }
 
             foreach ($assets as $a) {
-                $jawaban .= "• **{$a->hostname}**";
+                $jawaban .= "• {$a->hostname}";
                 if ($a->serial_number && $a->serial_number !== $a->hostname) {
                     $jawaban .= " (SN: `{$a->serial_number}`)";
                 }
@@ -1824,9 +1905,9 @@ class ChatController extends Controller
             ], self::CONTEXT_TTL, "Aset {$a->hostname}");
         }
 
-        $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+        $jawaban = "👤 {$user->name} memegang {$assets->count()} aset:\n\n";
         foreach ($assets as $a) {
-            $jawaban .= "• **{$a->hostname}**";
+            $jawaban .= "• {$a->hostname}";
             if ($a->serial_number && $a->serial_number !== $a->hostname) {
                 $jawaban .= " (SN: `{$a->serial_number}`)";
             }
@@ -1873,8 +1954,336 @@ class ChatController extends Controller
             'umur' => $asset->purchase_date
                 ? floor($asset->purchase_date->diffInDays(now()) / 365) . ' tahun'
                 : '-',
+            // 🆕 Field assignment & riwayat
+            'assigned_at' => $this->resolveAssignedAt($asset),
+            'returned_at' => $this->resolveReturnedAt($asset),
+            'durasi' => $this->resolveDuration($asset),
+            'loan_info' => $this->resolveLoanInfo($asset),
+            'riwayat' => $this->resolveRiwayat($asset),
             default => '-',
         };
+    }
+
+    /**
+     * 🆕 Cek apakah pesan tentang konsumable.
+     * Return true kalau pesan mengarah ke konsumable, bukan aset.
+     */
+    private function isConsumableQuery(string $lower, ChatMemoryService $memory): bool
+    {
+        // 1. Kata kunci konsumable eksplisit
+        $consumableKeywords = [
+            'konsumable',
+            'consumable',
+            'konsumebel',
+            'consumebel',
+            'kosumable',
+            'barang habis pakai',
+            'habis pakai',
+            'atk',
+            'alat tulis',
+            // Nama item konsumable (harus cocok word boundary)
+            'keyboard',
+            'mouse',
+            'tinta',
+            'toner',
+            'kertas',
+            'headset',
+            'charger',
+            'kabel',
+            'usb',
+            'flashdisk',
+            'flash disk',
+            'hdd',
+            'harddisk',
+            'hard disk',
+            'hardisk',
+            'hardisk eksternal',
+        ];
+
+        $hasConsumableKeyword = false;
+        foreach ($consumableKeywords as $kw) {
+            if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $lower)) {
+                $hasConsumableKeyword = true;
+                break;
+            }
+        }
+
+        if (!$hasConsumableKeyword) {
+            return false;
+        }
+
+        // 2. Kalau ADA konteks konsumable sebelumnya → konsumable
+        if ($memory->recall('consumable') || $memory->recall('consumable_list')) {
+            return true;
+        }
+
+        // 3. Kalau TIDAK ada konteks aset → konsumable
+        //    (karena user biasanya langsung tanya konsumable)
+        if (!$memory->recall('asset')) {
+            return true;
+        }
+
+        // 4. Kalau ada konteks ASET, cek kata kunci yang KHUSUS aset
+        $assetOnlyKeywords = [
+            'cpu',
+            'ram',
+            'vga',
+            'prosesor',
+            'processor',
+            'gpu',
+            'screen',
+            'layar',
+            'os',
+            'windows',
+            'linux',
+            'macos',
+            'spek',
+            'spesifikasi',
+            'spec',
+            'jeroan',
+            'dapur pacu',
+            'garansi',
+            'warranty',
+            'pemegang',
+            'dipegang',
+            'siapa',
+        ];
+        foreach ($assetOnlyKeywords as $kw) {
+            if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $lower)) {
+                return false; // ini tentang aset
+            }
+        }
+
+        // 5. Kalau ada kata khas konsumable → konsumable
+        if (preg_match('/\b(stok|sisa|terpakai|dipakai|habis|jumlah|rendah|minimum|restock|masuk|keluar)\b/i', $lower)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 🆕 Jawab pertanyaan konsumable berdasarkan keyword (HDD, keyboard, dll).
+     */
+    private function tryAnswerConsumableByKeyword(string $lower, ChatMemoryService $memory): ?array
+    {
+        // Kumpulkan keyword konsumable yang match
+        $keywords = [
+            'hdd' => ['hdd', 'harddisk', 'hard disk', 'hardisk'],
+            'flashdisk' => ['flashdisk', 'flash disk', 'usb drive'],
+            'keyboard' => ['keyboard', 'papan ketik'],
+            'mouse' => ['mouse'],
+            'headset' => ['headset', 'earphone', 'headphone'],
+            'charger' => ['charger', 'adaptor', 'adapter'],
+            'tinta' => ['tinta', 'ink'],
+            'toner' => ['toner'],
+            'kertas' => ['kertas', 'paper'],
+            'kabel' => ['kabel', 'cable'],
+        ];
+
+        $matchedCategory = null;
+        foreach ($keywords as $category => $aliases) {
+            foreach ($aliases as $alias) {
+                if (preg_match('/\b' . preg_quote($alias, '/') . '\b/i', $lower)) {
+                    $matchedCategory = $category;
+                    break 2;
+                }
+            }
+        }
+
+        if (!$matchedCategory) {
+            return null;
+        }
+
+        // Cari konsumable di DB yang match kategori
+        try {
+            $consumables = \App\Models\Consumable::where(function ($q) use ($keywords, $matchedCategory) {
+                foreach ($keywords[$matchedCategory] as $alias) {
+                    $q->orWhere('name', 'like', "%{$alias}%")
+                        ->orWhere('model', 'like', "%{$alias}%")
+                        ->orWhere('brand', 'like', "%{$alias}%");
+                }
+            })->get();
+        } catch (\Throwable $e) {
+            Log::warning('tryAnswerConsumableByKeyword error', ['error' => $e->getMessage()]);
+            return null;
+        }
+
+        if ($consumables->isEmpty()) {
+            return null;
+        }
+
+        // Simpan konteks konsumable
+        $first = $consumables->first();
+        $memory->remember('consumable', [
+            'type' => 'consumable',
+            '_type' => 'consumable',
+            'consumable_id' => $first->id,
+            'name' => $first->name,
+            'time' => now()->toDateTimeString(),
+        ], self::CONTEXT_TTL, "Consumable {$first->name}");
+
+        // Kalau cuma 1 konsumable → tampilkan detail
+        if ($consumables->count() === 1) {
+            return $this->formatConsumableAnswer($consumables->first(), $lower);
+        }
+
+        // Kalau >1 → tampilkan list
+        $jawaban = "📦 Ditemukan " . $consumables->count() . " konsumable:\n\n";
+        foreach ($consumables as $c) {
+            $stok = (int) ($c->stock_available ?? 0);
+            $unit = $c->unit ?? 'pcs';
+            $jawaban .= "• **{$c->name}**";
+            if ($c->brand)
+                $jawaban .= " ({$c->brand})";
+            $jawaban .= " — Stok: {$stok} {$unit}\n";
+        }
+
+        return [$jawaban, 'database'];
+    }
+
+    /**
+     * 🆕 Format jawaban konsumable tunggal.
+     */
+    private function formatConsumableAnswer($c, string $lower): array
+    {
+        $available = (int) ($c->stock_available ?? 0);
+        $total = (int) ($c->stock_total ?? 0);
+        $minimum = (int) ($c->stock_minimum ?? 0);
+        $unit = $c->unit ?? 'pcs';
+        $terpakai = max(0, $total - $available);
+
+        // Deteksi field
+        $isTerpakai = (bool) preg_match('/\b(terpakai|dipakai|pakai|keluar|habis|used)\b/i', $lower);
+        $isStok = (bool) preg_match('/\b(stok|stoknya|sisa|available|tersedia|ready|ada)\b/i', $lower);
+
+        if ($isTerpakai) {
+            $jawaban = "📦 **{$c->name}**\n\n"
+                . "• Sudah terpakai: **{$terpakai} {$unit}**\n"
+                . "• Stok tersedia: {$available} {$unit}\n"
+                . "• Stok total: {$total} {$unit}";
+            return [$jawaban, 'database'];
+        }
+
+        if ($isStok) {
+            $jawaban = "📦 **{$c->name}**\n\n"
+                . "• Stok tersedia: **{$available} {$unit}**\n"
+                . "• Stok total: {$total} {$unit}\n"
+                . "• Sudah terpakai: {$terpakai} {$unit}";
+            if ($minimum > 0)
+                $jawaban .= "\n• Minimum: {$minimum} {$unit}";
+            if ($available <= $minimum && $minimum > 0) {
+                $jawaban .= "\n\n⚠️ Stok rendah! Perlu segera restock.";
+            }
+            return [$jawaban, 'database'];
+        }
+
+        // Default
+        $jawaban = "📦 **{$c->name}**";
+        if ($c->brand)
+            $jawaban .= " ({$c->brand})";
+        $jawaban .= "\n\n"
+            . "• Stok tersedia: **{$available} {$unit}**\n"
+            . "• Stok total: {$total} {$unit}\n"
+            . "• Sudah terpakai: {$terpakai} {$unit}";
+        if ($minimum > 0)
+            $jawaban .= "\n• Minimum: {$minimum} {$unit}";
+
+        return [$jawaban, 'database'];
+    }
+
+    /**
+     * 🆕 Ambil tanggal assignment aktif.
+     */
+    private function resolveAssignedAt($asset): string
+    {
+        $assignment = \App\Models\AssetAssignment::where('asset_id', $asset->id)
+            ->whereNull('returned_at')
+            ->latest('assigned_at')
+            ->first();
+
+        if (!$assignment || !$assignment->assigned_at) {
+            return '-';
+        }
+
+        $days = $assignment->assigned_at->diffInDays(now());
+        return $assignment->assigned_at->format('d M Y')
+            . " (sekarang, {$days} hari)";
+    }
+
+    /**
+     * 🆕 Ambil tanggal pengembalian terakhir.
+     */
+    private function resolveReturnedAt($asset): string
+    {
+        $assignment = \App\Models\AssetAssignment::where('asset_id', $asset->id)
+            ->whereNotNull('returned_at')
+            ->latest('returned_at')
+            ->first();
+
+        if (!$assignment || !$assignment->returned_at) {
+            return 'belum pernah dikembalikan';
+        }
+
+        return $assignment->returned_at->format('d M Y');
+    }
+
+    /**
+     * 🆕 Ambil durasi pemakaian aktif.
+     */
+    private function resolveDuration($asset): string
+    {
+        $assignment = \App\Models\AssetAssignment::where('asset_id', $asset->id)
+            ->whereNull('returned_at')
+            ->latest('assigned_at')
+            ->first();
+
+        if (!$assignment || !$assignment->assigned_at) {
+            return '-';
+        }
+
+        $days = $assignment->assigned_at->diffInDays(now());
+
+        if ($days > 365) {
+            $years = floor($days / 365);
+            $months = floor(($days % 365) / 30);
+            return "{$years} tahun {$months} bulan ({$days} hari)";
+        } elseif ($days > 30) {
+            $months = floor($days / 30);
+            return "{$months} bulan ({$days} hari)";
+        }
+
+        return "{$days} hari";
+    }
+
+    /**
+     * 🆕 Info peminjaman (loan).
+     */
+    private function resolveLoanInfo($asset): string
+    {
+        $loan = \App\Models\AssetLoan::where('asset_id', $asset->id)
+            ->whereIn('status', ['borrowed', 'approved', 'overdue'])
+            ->latest('loan_date')
+            ->first();
+
+        if (!$loan) {
+            return 'tidak sedang dipinjam';
+        }
+
+        $user = $loan->user?->name ?? '-';
+        $due = $loan->due_date?->format('d M Y') ?? '-';
+        return "Dipinjam {$user}, jatuh tempo {$due}";
+    }
+
+    /**
+     * 🆕 Riwayat singkat.
+     */
+    private function resolveRiwayat($asset): string
+    {
+        $total = \App\Models\AssetAssignment::where('asset_id', $asset->id)->count();
+        $aktif = \App\Models\AssetAssignment::where('asset_id', $asset->id)
+            ->whereNull('returned_at')->count();
+        return "{$total}x assign ({$aktif} aktif)";
     }
 
     private function getFieldLabel(string $field): string
@@ -1894,6 +2303,11 @@ class ChatController extends Controller
             'tahun_beli' => 'Tahun Beli',
             'harga' => 'Harga',
             'umur' => 'Umur',
+            'assigned_at' => 'Sejak',
+            'returned_at' => 'Dikembalikan',
+            'durasi' => 'Durasi Pemakaian',
+            'loan_info' => 'Info Peminjaman',
+            'riwayat' => 'Riwayat',
             default => ucfirst($field),
         };
     }
@@ -1930,35 +2344,66 @@ class ChatController extends Controller
 
     private function followUpAssetByStatus(array $ctx, int $offset, int $limit, ChatMemoryService $memory): array
     {
-        $status = $ctx['status'] ?? null;
-        $category = $ctx['category'] ?? null;
-        $brand = $ctx['brand'] ?? null;
+        // 🆕 Ambil dari berbagai kemungkinan struktur
+        $status = $ctx['status']
+            ?? $ctx['params']['status']
+            ?? $ctx['intent']['params']['status']
+            ?? null;
+
+        $category = $ctx['category']
+            ?? $ctx['params']['category']
+            ?? $ctx['intent']['params']['category']
+            ?? null;
+
+        $brand = $ctx['brand']
+            ?? $ctx['params']['brand']
+            ?? $ctx['intent']['params']['brand']
+            ?? null;
+
+        // Normalisasi "all" → null
+        if ($category === 'all')
+            $category = null;
+        if ($brand === 'all')
+            $brand = null;
+
+        Log::info('followUpAssetByStatus.resolved', [
+            'status' => $status,
+            'category' => $category,
+            'brand' => $brand,
+        ]);
+
+        // Guard
+        if (!$status) {
+            Log::warning('followUpAssetByStatus.no_status', ['ctx' => $ctx]);
+            return ["_Maaf, saya kehilangan konteks pencarian sebelumnya. Coba ulangi pertanyaan awal._", 'database'];
+        }
 
         $q = \App\Models\Asset::with('category');
+        $q->where('status', $status);
 
-        if ($status)
-            $q->where('status', $status);
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
                     ->orWhere('model', 'like', "%{$category}%");
             });
         }
-        if ($brand)
+
+        if ($brand) {
             $q->where('brand', 'like', "%{$brand}%");
+        }
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
 
         if ($items->isEmpty()) {
             $memory->forget('asset_by_status');
-            return ["Tidak ada data lagi. Total: **{$total} aset**.", 'database'];
+            return ["Tidak ada data lagi. Total: {$total} aset.", 'database'];
         }
 
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** aset:\n\n";
+        $jawaban = "Menampilkan {$start}-{$end} dari {$total} aset:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
             if ($a->hostname)
@@ -1972,7 +2417,7 @@ class ChatController extends Controller
 
         $sisa = $total - $end;
         if ($sisa > 0) {
-            $jawaban .= "\nSisa: **{$sisa}** aset. Ketik \"lanjut\" untuk lihat berikutnya.";
+            $jawaban .= "\nSisa: {$sisa} aset. Ketik \"lanjut\" untuk lihat berikutnya.";
         } else {
             $jawaban .= "\n✅ Semua data sudah ditampilkan.";
             $memory->forget('asset_by_status');
@@ -1987,31 +2432,37 @@ class ChatController extends Controller
         $category = $ctx['category'] ?? null;
         $brand = $ctx['brand'] ?? null;
 
+        // 🆕 Guard
+        if (!$ownership) {
+            Log::warning('followUpAssetByOwnership.no_ownership', ['ctx' => $ctx]);
+            return ["_Maaf, konteks kepemilikan hilang. Coba tanya ulang._", 'database'];
+        }
+
         $q = \App\Models\Asset::with('category');
 
-        if ($ownership)
-            $q->where('ownership_type', $ownership);
+        $q->where('ownership_type', $ownership);
         if ($category) {
             $q->where(function ($x) use ($category) {
                 $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$category}%"))
                     ->orWhere('model', 'like', "%{$category}%");
             });
         }
-        if ($brand)
+        if ($brand) {
             $q->where('brand', 'like', "%{$brand}%");
+        }
 
         $total = $q->count();
         $items = (clone $q)->skip($offset)->take($limit)->get();
 
         if ($items->isEmpty()) {
             $memory->forget('asset_by_ownership');
-            return ["Tidak ada data lagi. Total: **{$total} aset**.", 'database'];
+            return ["Tidak ada data lagi. Total: {$total} aset.", 'database'];
         }
 
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** aset:\n\n";
+        $jawaban = "Menampilkan {$start}-{$end} dari {$total} aset:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->serial_number}";
             if ($a->hostname)
@@ -2025,7 +2476,7 @@ class ChatController extends Controller
 
         $sisa = $total - $end;
         if ($sisa > 0) {
-            $jawaban .= "\nSisa: **{$sisa}** aset. Ketik \"lanjut\" untuk lihat berikutnya.";
+            $jawaban .= "\nSisa: {$sisa} aset. Ketik \"lanjut\" untuk lihat berikutnya.";
         } else {
             $jawaban .= "\n✅ Semua data sudah ditampilkan.";
             $memory->forget('asset_by_ownership');
@@ -2044,13 +2495,13 @@ class ChatController extends Controller
 
         if ($items->isEmpty()) {
             $memory->forget('low_stock_consumable');
-            return ["Tidak ada data lagi. Total: **{$total} konsumable**.", 'database'];
+            return ["Tidak ada data lagi. Total: {$total} konsumable.", 'database'];
         }
 
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total} konsumable** stok rendah:\n\n";
+        $jawaban = "Menampilkan {$start}-{$end} dari {$total} konsumable stok rendah:\n\n";
         foreach ($items as $c) {
             $jawaban .= "• {$c->name}: {$c->stock_available}/{$c->stock_minimum} {$c->unit}\n";
         }
@@ -2061,7 +2512,7 @@ class ChatController extends Controller
 
         $sisa = $total - $end;
         if ($sisa > 0) {
-            $jawaban .= "\nSisa: **{$sisa}**. Ketik \"lanjut\" untuk lihat berikutnya.";
+            $jawaban .= "\nSisa: {$sisa}. Ketik \"lanjut\" untuk lihat berikutnya.";
         } else {
             $jawaban .= "\n✅ Semua data sudah ditampilkan.";
             $memory->forget('low_stock_consumable');
@@ -2082,13 +2533,13 @@ class ChatController extends Controller
 
         if ($items->isEmpty()) {
             $memory->forget('overdue_loans');
-            return ["Tidak ada data lagi. Total: **{$total} peminjaman terlambat**.", 'database'];
+            return ["Tidak ada data lagi. Total: {$total} peminjaman terlambat.", 'database'];
         }
 
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** peminjaman terlambat:\n\n";
+        $jawaban = "Menampilkan {$start}-{$end} dari {$total} peminjaman terlambat:\n\n";
         foreach ($items as $l) {
             $jawaban .= "• {$l->asset?->serial_number} — {$l->user?->name}";
             $jawaban .= " (jatuh tempo {$l->due_date?->diffForHumans()})\n";
@@ -2100,7 +2551,7 @@ class ChatController extends Controller
 
         $sisa = $total - $end;
         if ($sisa > 0) {
-            $jawaban .= "\nSisa: **{$sisa}**. Ketik \"lanjut\" untuk lihat berikutnya.";
+            $jawaban .= "\nSisa: {$sisa}. Ketik \"lanjut\" untuk lihat berikutnya.";
         } else {
             $jawaban .= "\n✅ Semua data sudah ditampilkan.";
             $memory->forget('overdue_loans');
@@ -2120,13 +2571,13 @@ class ChatController extends Controller
 
         if ($items->isEmpty()) {
             $memory->forget('active_loans');
-            return ["Tidak ada data lagi. Total: **{$total} peminjaman aktif**.", 'database'];
+            return ["Tidak ada data lagi. Total: {$total} peminjaman aktif.", 'database'];
         }
 
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** peminjaman aktif:\n\n";
+        $jawaban = "Menampilkan {$start}-{$end} dari {$total} peminjaman aktif:\n\n";
         foreach ($items as $l) {
             $jawaban .= "• {$l->asset?->serial_number} — {$l->user?->name}";
             if ($l->due_date)
@@ -2140,7 +2591,7 @@ class ChatController extends Controller
 
         $sisa = $total - $end;
         if ($sisa > 0) {
-            $jawaban .= "\nSisa: **{$sisa}**. Ketik \"lanjut\" untuk lihat berikutnya.";
+            $jawaban .= "\nSisa: {$sisa}. Ketik \"lanjut\" untuk lihat berikutnya.";
         } else {
             $jawaban .= "\n✅ Semua data sudah ditampilkan.";
             $memory->forget('active_loans');
@@ -2160,13 +2611,13 @@ class ChatController extends Controller
 
         if ($items->isEmpty()) {
             $memory->forget('active_assignments');
-            return ["Tidak ada data lagi. Total: **{$total} serah terima aktif**.", 'database'];
+            return ["Tidak ada data lagi. Total: {$total} serah terima aktif.", 'database'];
         }
 
         $start = $offset + 1;
         $end = $offset + $items->count();
 
-        $jawaban = "Menampilkan **{$start}-{$end}** dari **{$total}** serah terima aktif:\n\n";
+        $jawaban = "Menampilkan {$start}-{$end} dari {$total} serah terima aktif:\n\n";
         foreach ($items as $a) {
             $jawaban .= "• {$a->asset?->serial_number}";
             if ($a->asset?->hostname)
@@ -2180,7 +2631,7 @@ class ChatController extends Controller
 
         $sisa = $total - $end;
         if ($sisa > 0) {
-            $jawaban .= "\nSisa: **{$sisa}**. Ketik \"lanjut\" untuk lihat berikutnya.";
+            $jawaban .= "\nSisa: {$sisa}. Ketik \"lanjut\" untuk lihat berikutnya.";
         } else {
             $jawaban .= "\n✅ Semua data sudah ditampilkan.";
             $memory->forget('active_assignments');
@@ -2288,7 +2739,7 @@ class ChatController extends Controller
 
         if ($assets->isEmpty()) {
             return [
-                "User **{$user->name}** sedang tidak memegang aset.",
+                "User {$user->name} sedang tidak memegang aset.",
                 'database',
                 null,
             ];
@@ -2315,12 +2766,12 @@ class ChatController extends Controller
             'asset_code' => 'Asset Code',
         ];
 
-        $jawaban = "👤 **{$user->name}** memegang **{$assets->count()}** aset:\n\n";
+        $jawaban = "👤 {$user->name} memegang {$assets->count()} aset:\n\n";
         foreach ($assets as $a) {
             $value = $a->{$field} ?? null;
             $label = $fieldLabels[$field] ?? $field;
 
-            $jawaban .= "• **{$a->hostname}**";
+            $jawaban .= "• {$a->hostname}";
             if ($a->serial_number && $field !== 'serial_number' && $a->serial_number !== $a->hostname) {
                 $jawaban .= " (SN: `{$a->serial_number}`)";
             }
@@ -2454,25 +2905,25 @@ class ChatController extends Controller
 
     private function systemPrompt(): string
     {
-        return "Kamu adalah **SIS Assistant** — asisten virtual untuk karyawan **PLN UBP Suralaya**.\n\n"
-            . "**KONTEKS SISTEM:**\n"
-            . "• **SIS (Suralaya Information System)** adalah portal informasi aplikasi & layanan IT perusahaan.\n"
-            . "• **SIAM (Sistem Informasi Aset Manajemen)** adalah salah satu **modul di dalam SIS** untuk mengelola aset IT (laptop, PC, printer, monitor, konsumable).\n"
-            . "• SIS dan SIAM adalah **aplikasi web**, bukan aplikasi desktop. Tidak ada 'keyboard virtual' atau 'keyboard khusus' di dalamnya — user pakai keyboard perangkat sendiri.\n\n"
-            . "**KEAHLIAN KAMU:**\n"
-            . "1. **SIS & SIAM** — portal aplikasi, manajemen aset IT.\n"
-            . "2. **IT Umum** — hardware, software, jaringan, keamanan, database, Microsoft Office, email, printer, cloud, troubleshooting dasar.\n"
-            . "3. **Aplikasi internal** — helpdesk, ERP, Maximo, IAM, dll.\n\n"
-            . "**ATURAN JAWAB:**\n"
+        return "Kamu adalah SIS Assistant — asisten virtual untuk karyawan PLN UBP Suralaya.\n\n"
+            . "KONTEKS SISTEM:\n"
+            . "• SIS (Suralaya Information System) adalah portal informasi aplikasi & layanan IT perusahaan.\n"
+            . "• SIAM (Sistem Informasi Aset Manajemen) adalah salah satu modul di dalam SIS untuk mengelola aset IT (laptop, PC, printer, monitor, konsumable).\n"
+            . "• SIS dan SIAM adalah aplikasi web, bukan aplikasi desktop. Tidak ada 'keyboard virtual' atau 'keyboard khusus' di dalamnya — user pakai keyboard perangkat sendiri.\n\n"
+            . "KEAHLIAN KAMU:\n"
+            . "1. SIS & SIAM — portal aplikasi, manajemen aset IT.\n"
+            . "2. IT Umum — hardware, software, jaringan, keamanan, database, Microsoft Office, email, printer, cloud, troubleshooting dasar.\n"
+            . "3. Aplikasi internal — helpdesk, ERP, Maximo, IAM, dll.\n\n"
+            . "ATURAN JAWAB:\n"
             . "• SELALU jawab dalam Bahasa Indonesia.\n"
             . "• Jawab SINGKAT — maksimal 3-4 kalimat, LANGSUNG ke inti.\n"
             . "• JANGAN mulai dengan sapaan 'Halo' kecuali user menyapa duluan.\n"
             . "• Kalau tidak tahu, katakan: *\"Maaf, saya belum punya info tentang itu. Coba tanya dengan cara lain atau hubungi IT Support.\"*\n"
-            . "• **JANGAN MENGARANG** fakta yang tidak kamu ketahui.\n\n"
-            . "**KHUSUS — KODE ASET:**\n"
-            . "Kode seperti `NB-T14-005`, `AST-2026-0001`, `T14-SN-0005`, `PC-DESK-003` adalah **HOSTNAME / SN / ASSET CODE** dari aset IT perusahaan.\n"
+            . "• JANGAN MENGARANG fakta yang tidak kamu ketahui.\n\n"
+            . "KHUSUS — KODE ASET:\n"
+            . "Kode seperti `NB-T14-005`, `AST-2026-0001`, `T14-SN-0005`, `PC-DESK-003` adalah HOSTNAME / SN / ASSET CODE dari aset IT perusahaan.\n"
             . "JANGAN menganggapnya sebagai nomor meteran listrik, nomor rekening, atau nomor seri barang lain.\n\n"
-            . "**GAYA:**\n"
+            . "GAYA:\n"
             . "Ramah, profesional, solutif. Gunakan emoji secukupnya. Jangan sebut dirimu AI atau language model.";
     }
 }

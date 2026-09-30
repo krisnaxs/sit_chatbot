@@ -32,6 +32,10 @@ class AssetLoan extends Model
         ];
     }
 
+    // ═══════════════════════════════════════════
+    //  RELASI
+    // ═══════════════════════════════════════════
+
     public function asset()
     {
         return $this->belongsTo(Asset::class);
@@ -46,6 +50,60 @@ class AssetLoan extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    /**
+     * 🆕 Relasi ke AssetRequest — inverse dari `$req->loan_id`.
+     *
+     * Catatan:
+     * - Pakai `hasOne` karena foreign key (`loan_id`) ada di tabel `asset_requests`.
+     * - Satu loan hanya boleh terkait dengan satu request.
+     * - Loan yang dibuat manual (via form) tidak punya request → null.
+     */
+    public function assetRequest()
+    {
+        return $this->hasOne(AssetRequest::class, 'loan_id', 'id');
+    }
+
+    // ═══════════════════════════════════════════
+    //  ACCESSOR — Info Pengajuan
+    // ═══════════════════════════════════════════
+
+    /**
+     * 🆕 Nomor pengajuan (null kalau loan dibuat manual, bukan dari approval).
+     */
+    public function getRequestNumberAttribute(): ?string
+    {
+        return $this->assetRequest?->request_number;
+    }
+
+    /**
+     * 🆕 Apakah loan ini berasal dari pengajuan (bukan dibuat manual).
+     */
+    public function getIsFromRequestAttribute(): bool
+    {
+        return $this->assetRequest !== null;
+    }
+
+    /**
+     * 🆕 URL ke detail pengajuan (null kalau dibuat manual).
+     */
+    public function getRequestUrlAttribute(): ?string
+    {
+        if (!$this->assetRequest) {
+            return null;
+        }
+
+        // Cek apakah route `requests.show` ada (fallback aman)
+        if (!\Route::has('requests.show')) {
+            return null;
+        }
+
+        return route('requests.show', $this->assetRequest);
+    }
+
+    // ═══════════════════════════════════════════
+    //  SCOPE — Existing
+    // ═══════════════════════════════════════════
 
     public function scopeActive($query)
     {
@@ -63,6 +121,30 @@ class AssetLoan extends Model
     {
         return $query->where('status', 'pending');
     }
+
+    // ═══════════════════════════════════════════
+    //  SCOPE — 🆕 Filter by Origin
+    // ═══════════════════════════════════════════
+
+    /**
+     * 🆕 Hanya loan yang berasal dari pengajuan (approval).
+     */
+    public function scopeFromRequest($query)
+    {
+        return $query->whereHas('assetRequest');
+    }
+
+    /**
+     * 🆕 Hanya loan yang dibuat manual (bukan dari pengajuan).
+     */
+    public function scopeManual($query)
+    {
+        return $query->whereDoesntHave('assetRequest');
+    }
+
+    // ═══════════════════════════════════════════
+    //  ACCESSOR — Status
+    // ═══════════════════════════════════════════
 
     public function getIsOverdueAttribute(): bool
     {

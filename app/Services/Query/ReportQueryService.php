@@ -63,7 +63,7 @@ class ReportQueryService
         ])->count();
 
         return [
-            "Chat hari ini: **{$today}**\nChat minggu ini: **{$week}**",
+            "Chat hari ini: {$today}\nChat minggu ini: {$week}",
             'database'
         ];
     }
@@ -74,7 +74,7 @@ class ReportQueryService
         $withFile = Knowledge::whereNotNull('file_path')->count();
 
         return [
-            "Total knowledge: **{$total}**\nDengan file: **{$withFile}**",
+            "Total knowledge: {$total}\nDengan file: {$withFile}",
             'database'
         ];
     }
@@ -86,10 +86,10 @@ class ReportQueryService
         $rejected = PendingKnowledge::where('status', 'rejected')->count();
 
         return [
-            "**Pending AI**\n" .
-            "• Menunggu review: **{$pending}**\n" .
-            "• Sudah disetujui: **{$approved}**\n" .
-            "• Ditolak: **{$rejected}**",
+            "Pending AI\n" .
+            "• Menunggu review: {$pending}\n" .
+            "• Sudah disetujui: {$approved}\n" .
+            "• Ditolak: {$rejected}",
             'database'
         ];
     }
@@ -100,7 +100,7 @@ class ReportQueryService
             ->whereYear('transaction_date', now()->year)
             ->count();
 
-        return ["Transaksi konsumable bulan ini: **{$count}**", 'database'];
+        return ["Transaksi konsumable bulan ini: {$count}", 'database'];
     }
 
     protected function sumConsumableIn(): array
@@ -110,7 +110,7 @@ class ReportQueryService
             ->whereYear('transaction_date', now()->year)
             ->sum('quantity');
 
-        return ["Total barang masuk bulan ini: **{$total} unit**", 'database'];
+        return ["Total barang masuk bulan ini: {$total} unit", 'database'];
     }
 
     protected function sumConsumableOut(): array
@@ -120,7 +120,7 @@ class ReportQueryService
             ->whereYear('transaction_date', now()->year)
             ->sum('quantity');
 
-        return ["Total barang keluar bulan ini: **{$total} unit**", 'database'];
+        return ["Total barang keluar bulan ini: {$total} unit", 'database'];
     }
 
     protected function matchAny(string $haystack, array $needles): bool

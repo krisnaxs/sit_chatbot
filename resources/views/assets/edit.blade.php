@@ -1,24 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', 'Edit Aset — SIAM')
 
-    <title>Edit Aset — SIAM</title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans" x-data="editAssetManager()">
-
-    <x-header title="Edit Aset" />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+@section('content')
+    <div class="max-w-7xl mx-auto" x-data="editAssetManager()">
 
         <div class="max-w-4xl mx-auto space-y-6">
 
@@ -43,12 +28,11 @@
             @endif
 
             <form id="assetEditForm" method="POST" action="{{ route('siam.assets.update', $asset) }}"
-                enctype="multipart/form-data"
-                class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+                enctype="multipart/form-data" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
                 @csrf
                 @method('PUT')
 
-                {{-- ============ IDENTITAS ============ --}}
+                {{-- IDENTITAS --}}
                 <div>
                     <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b">
                         Identitas Aset
@@ -90,8 +74,7 @@
                     </div>
 
                     {{-- BRAND & MODEL --}}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4" x-data="assetTypeSelector()"
-                        x-init="init()">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4" x-data="assetTypeSelector()" x-init="init()">
 
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">
@@ -126,7 +109,7 @@
                     </div>
                 </div>
 
-                {{-- ============ SPESIFIKASI ============ --}}
+                {{-- SPESIFIKASI --}}
                 <div>
                     <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b">
                         Spesifikasi Teknis
@@ -172,7 +155,7 @@
                     </div>
                 </div>
 
-                {{-- ============ KEPEMILIKAN ============ --}}
+                {{-- KEPEMILIKAN --}}
                 <div>
                     <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b">
                         Kepemilikan
@@ -258,7 +241,7 @@
                     </div>
                 </div>
 
-                {{-- ============ STATUS ============ --}}
+                {{-- STATUS --}}
                 <div>
                     <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b">
                         Status & Kondisi
@@ -278,6 +261,7 @@
                                     }
                                     if ($event.target.value === 'loaned' && oldStatus !== 'loaned') {
                                         showLoanModal = true;
+                                        showLoanWarning = true;
                                     }
                                     if ($event.target.value === 'in_use' && oldStatus !== 'in_use') {
                                         showAssignModal = true;
@@ -293,7 +277,6 @@
                                 <option value="lost" @selected(old('status', $asset->status) === 'lost')>Hilang</option>
                             </select>
 
-                            {{-- Warning Maintenance --}}
                             <div x-show="showMaintWarning" x-cloak x-transition
                                 class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
                                 <p class="font-semibold text-amber-800 flex items-center gap-1.5">
@@ -314,7 +297,6 @@
                                 </button>
                             </div>
 
-                            {{-- Warning Loan --}}
                             <div x-show="showLoanWarning" x-cloak x-transition
                                 class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
                                 <p class="font-semibold text-amber-800 flex items-center gap-1.5">
@@ -334,7 +316,6 @@
                                 </button>
                             </div>
 
-                            {{-- 🆕 Warning Assign --}}
                             <div x-show="showAssignWarning" x-cloak x-transition
                                 class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
                                 <p class="font-semibold text-amber-800 flex items-center gap-1.5">
@@ -377,15 +358,15 @@
                     </div>
                 </div>
 
-                {{-- ============ FOTO ============ --}}
+                {{-- FOTO --}}
                 <div>
                     <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 pb-2 border-b">
                         Foto Aset
                     </h2>
                     @if ($asset->photo_path)
                         <div class="mb-3">
-                            <img src="{{ asset('storage/' . $asset->photo_path) }}"
-                                alt="{{ $asset->serial_number }}" class="w-40 h-40 object-cover rounded-lg border">
+                            <img src="{{ asset('storage/' . $asset->photo_path) }}" alt="{{ $asset->serial_number }}"
+                                class="w-40 h-40 object-cover rounded-lg border">
                         </div>
                     @endif
                     <input type="file" name="photo" accept="image/*"
@@ -393,8 +374,7 @@
                     <p class="text-xs text-gray-400 mt-1">Biarkan kosong kalau tidak mau ganti.</p>
                 </div>
 
-                {{-- ============ HIDDEN INPUTS ============ --}}
-                {{-- Loan --}}
+                {{-- HIDDEN INPUTS --}}
                 <input type="hidden" name="loan[user_id]" :value="loanForm.user_id">
                 <input type="hidden" name="loan[loan_date]" :value="loanForm.loan_date">
                 <input type="hidden" name="loan[due_date]" :value="loanForm.due_date">
@@ -402,7 +382,6 @@
                 <input type="hidden" name="loan[condition_on_loan]" :value="loanForm.condition_on_loan">
                 <input type="hidden" name="loan[notes]" :value="loanForm.notes">
 
-                {{-- 🆕 Assign --}}
                 <input type="hidden" name="assign[user_id]" :value="assignForm.user_id">
                 <input type="hidden" name="assign[location_id]" :value="assignForm.location_id">
                 <input type="hidden" name="assign[department_id]" :value="assignForm.department_id">
@@ -411,7 +390,7 @@
                 <input type="hidden" name="assign[condition_on_assign]" :value="assignForm.condition_on_assign">
                 <input type="hidden" name="assign[notes]" :value="assignForm.notes">
 
-                {{-- ============ TOMBOL ============ --}}
+                {{-- TOMBOL --}}
                 <div class="flex gap-2 pt-4 border-t">
                     <a href="{{ route('siam.assets.show', $asset) }}"
                         class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
@@ -424,7 +403,7 @@
                     </button>
                 </div>
 
-                {{-- ============ MODAL CATAT PERBAIKAN ============ --}}
+                {{-- MODAL PERBAIKAN --}}
                 <div x-show="showMaintenanceModal" x-cloak
                     class="fixed inset-0 z-[100] flex items-center justify-center p-4"
                     x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
@@ -434,20 +413,15 @@
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showMaintenanceModal = false">
                     </div>
 
-                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-                        @click.away="showMaintenanceModal = false"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
-
-                        {{-- HEADER --}}
+                    <div
+                        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                         <div class="bg-gradient-to-br from-orange-500 to-amber-600 px-6 py-5 text-white shrink-0">
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                            stroke-width="2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -456,29 +430,23 @@
                                     </div>
                                     <div>
                                         <h3 class="text-lg font-bold">Catat Detail Perbaikan</h3>
-                                        <p class="text-sm text-white/80">Isi detail untuk mencatat perbaikan aset
-                                            ini</p>
+                                        <p class="text-sm text-white/80">Isi detail untuk mencatat perbaikan aset ini</p>
                                     </div>
                                 </div>
                                 <button type="button" @click="showMaintenanceModal = false"
                                     class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M6 18L18 6M6 6l12 12" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
 
-                        {{-- BODY --}}
                         <div class="flex-1 overflow-y-auto p-6 space-y-4">
-
                             <div class="p-3 rounded-xl bg-gray-50 border border-gray-100">
                                 <div class="text-xs text-gray-500">Aset</div>
-                                <div class="font-semibold text-gray-800">
-                                    {{ $asset->brand }} {{ $asset->model }}
-                                </div>
+                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}</div>
                                 <div class="text-xs text-gray-500 font-mono">SN: {{ $asset->serial_number }}</div>
                             </div>
 
@@ -486,8 +454,7 @@
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">
                                     Masalah / Kerusakan <span class="text-red-500">*</span>
                                 </label>
-                                <input type="text" name="maintenance[issue]"
-                                    x-bind:required="showMaintenanceModal"
+                                <input type="text" name="maintenance[issue]" x-bind:required="showMaintenanceModal"
                                     placeholder="Contoh: Keyboard tidak berfungsi"
                                     class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500">
                             </div>
@@ -500,8 +467,7 @@
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Vendor
-                                        Service</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Vendor Service</label>
                                     <select name="maintenance[vendor_id]"
                                         class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500">
                                         <option value="">-- Internal (IT) --</option>
@@ -527,8 +493,7 @@
                                         class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal
-                                        Selesai</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Selesai</label>
                                     <input type="date" name="maintenance[end_date]"
                                         class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500">
                                 </div>
@@ -563,19 +528,15 @@
                             </div>
                         </div>
 
-                        {{-- FOOTER --}}
                         <div class="px-6 py-3 bg-gray-50 border-t flex justify-between items-center shrink-0">
-                            <p class="text-xs text-gray-500">
-                                <span class="text-red-500">*</span> Wajib diisi
-                            </p>
+                            <p class="text-xs text-gray-500"><span class="text-red-500">*</span> Wajib diisi</p>
                             <div class="flex gap-2">
                                 <button type="button" @click="showMaintenanceModal = false"
                                     class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
                                     Batal
                                 </button>
                                 <button type="button" @click="confirmMaintenance()"
-                                    class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition
-                                           shadow-lg shadow-orange-500/30">
+                                    class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-orange-500/30">
                                     Simpan Perbaikan
                                 </button>
                             </div>
@@ -583,7 +544,7 @@
                     </div>
                 </div>
 
-                {{-- ============ MODAL PINJAM ASET ============ --}}
+                {{-- MODAL PINJAM --}}
                 <div x-show="showLoanModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
                     x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
                     x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -591,19 +552,15 @@
 
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelLoan()"></div>
 
-                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
-
-                        {{-- HEADER --}}
+                    <div
+                        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                         <div class="bg-gradient-to-br from-amber-500 to-orange-600 px-6 py-5 text-white shrink-0">
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                            stroke-width="2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
@@ -617,20 +574,16 @@
                                     class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M6 18L18 6M6 6l12 12" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
 
-                        {{-- BODY --}}
                         <div class="flex-1 overflow-y-auto p-6 space-y-4">
-
                             <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
                                 <div class="text-xs text-amber-600">Aset yang akan dipinjam</div>
-                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}
-                                </div>
+                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}</div>
                                 <div class="text-xs text-gray-500 font-mono">SN: {{ $asset->serial_number }}</div>
                             </div>
 
@@ -667,16 +620,14 @@
 
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Tujuan Peminjaman</label>
-                                <input type="text" x-model="loanForm.purpose"
-                                    placeholder="Contoh: Presentasi klien"
+                                <input type="text" x-model="loanForm.purpose" placeholder="Contoh: Presentasi klien"
                                     class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
                             </div>
 
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Kondisi Saat Pinjam
                                     (%)</label>
-                                <input type="number" x-model="loanForm.condition_on_loan" min="0"
-                                    max="100"
+                                <input type="number" x-model="loanForm.condition_on_loan" min="0" max="100"
                                     class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500">
                             </div>
 
@@ -687,7 +638,6 @@
                             </div>
                         </div>
 
-                        {{-- FOOTER --}}
                         <div class="px-6 py-3 bg-gray-50 border-t flex justify-between items-center shrink-0">
                             <p class="text-xs text-gray-500"><span class="text-red-500">*</span> Wajib diisi</p>
                             <div class="flex gap-2">
@@ -696,8 +646,7 @@
                                     Batal
                                 </button>
                                 <button type="button" @click="confirmLoan()"
-                                    class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition
-                                           shadow-lg shadow-amber-500/30">
+                                    class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-amber-500/30">
                                     Simpan Peminjaman
                                 </button>
                             </div>
@@ -705,28 +654,23 @@
                     </div>
                 </div>
 
-                {{-- 🆕 ============ MODAL ASSIGN ASET ============ --}}
-                <div x-show="showAssignModal" x-cloak
-                    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                {{-- MODAL ASSIGN --}}
+                <div x-show="showAssignModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
                     x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
                     x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
                     x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
 
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelAssign()"></div>
 
-                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
-
-                        {{-- HEADER --}}
+                    <div
+                        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                         <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white shrink-0">
                             <div class="flex items-start justify-between">
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                            stroke-width="2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                         </svg>
@@ -740,20 +684,16 @@
                                     class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M6 18L18 6M6 6l12 12" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
 
-                        {{-- BODY --}}
                         <div class="flex-1 overflow-y-auto p-6 space-y-4">
-
                             <div class="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
                                 <div class="text-xs text-indigo-600">Aset yang akan di-assign</div>
-                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}
-                                </div>
+                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}</div>
                                 <div class="text-xs text-gray-500 font-mono">SN: {{ $asset->serial_number }}</div>
                             </div>
 
@@ -809,8 +749,8 @@
                                         class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Kondisi Saat
-                                        Diserahkan (%)</label>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Kondisi Saat Diserahkan
+                                        (%)</label>
                                     <input type="number" x-model="assignForm.condition_on_assign" min="0"
                                         max="100"
                                         class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
@@ -824,7 +764,6 @@
                             </div>
                         </div>
 
-                        {{-- FOOTER --}}
                         <div class="px-6 py-3 bg-gray-50 border-t flex justify-between items-center shrink-0">
                             <p class="text-xs text-gray-500"><span class="text-red-500">*</span> Wajib diisi</p>
                             <div class="flex gap-2">
@@ -833,8 +772,7 @@
                                     Batal
                                 </button>
                                 <button type="button" @click="confirmAssign()"
-                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition
-                                           shadow-lg shadow-indigo-500/30">
+                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-500/30">
                                     Simpan Assign
                                 </button>
                             </div>
@@ -845,128 +783,127 @@
             </form>
 
         </div>
-    </div>
 
-    {{-- ============ MODAL KONFIRMASI UPDATE ============ --}}
-    <div x-show="showConfirmUpdate" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+        {{-- MODAL KONFIRMASI UPDATE --}}
+        <div x-show="showConfirmUpdate" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
 
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showConfirmUpdate = false"></div>
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showConfirmUpdate = false"></div>
 
-        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96" @click.away="showConfirmUpdate = false">
-            <div class="flex justify-center mb-4">
-                <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-indigo-600" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
+            <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96">
+                <div class="flex justify-center mb-4">
+                    <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-indigo-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Update Aset?</h3>
+                <p class="text-sm text-gray-500 text-center mb-6">
+                    Yakin ingin menyimpan perubahan pada aset
+                    <strong class="text-gray-800">{{ $asset->serial_number }}</strong>?
+                </p>
+                <div class="flex gap-2">
+                    <button type="button" @click="showConfirmUpdate = false"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="button" @click="submitUpdate()"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition shadow-lg shadow-indigo-500/30">
+                        Ya, Update
+                    </button>
                 </div>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Update Aset?</h3>
-            <p class="text-sm text-gray-500 text-center mb-6">
-                Yakin ingin menyimpan perubahan pada aset
-                <strong class="text-gray-800">{{ $asset->serial_number }}</strong>?
-            </p>
-            <div class="flex gap-2">
-                <button type="button" @click="showConfirmUpdate = false"
-                    class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
-                           text-gray-700 font-semibold transition">
-                    Batal
-                </button>
-                <button type="button" @click="submitUpdate()"
-                    class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700
-                           text-white font-semibold transition shadow-lg shadow-indigo-500/30">
-                    Ya, Update
-                </button>
-            </div>
         </div>
-    </div>
 
-    {{-- ============ MODAL KONFIRMASI PERBAIKAN ============ --}}
-    <div x-show="showConfirmMaintenance" x-cloak class="fixed inset-0 z-[120] flex items-center justify-center p-4"
-        x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+        {{-- MODAL KONFIRMASI PERBAIKAN --}}
+        <div x-show="showConfirmMaintenance" x-cloak class="fixed inset-0 z-[120] flex items-center justify-center p-4"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
 
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showConfirmMaintenance = false"></div>
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showConfirmMaintenance = false"></div>
 
-        <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96" @click.away="showConfirmMaintenance = false">
-            <div class="flex justify-center mb-4">
-                <div class="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-orange-600" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+            <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96">
+                <div class="flex justify-center mb-4">
+                    <div class="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-orange-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Simpan Perbaikan?</h3>
+                <p class="text-sm text-gray-500 text-center mb-6">
+                    Aset akan diupdate & perbaikan dicatat. Status berubah jadi
+                    <strong class="text-orange-600">Perbaikan</strong>.
+                </p>
+                <div class="flex gap-2">
+                    <button type="button" @click="showConfirmMaintenance = false"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="button" @click="submitMaintenance()"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold transition shadow-lg shadow-orange-500/30">
+                        Ya, Simpan
+                    </button>
                 </div>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Simpan Perbaikan?</h3>
-            <p class="text-sm text-gray-500 text-center mb-6">
-                Aset akan diupdate & perbaikan dicatat. Status berubah jadi
-                <strong class="text-orange-600">Perbaikan</strong>.
-            </p>
-            <div class="flex gap-2">
-                <button type="button" @click="showConfirmMaintenance = false"
-                    class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
-                           text-gray-700 font-semibold transition">
-                    Batal
-                </button>
-                <button type="button" @click="submitMaintenance()"
-                    class="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700
-                           text-white font-semibold transition shadow-lg shadow-orange-500/30">
-                    Ya, Simpan
-                </button>
+        </div>
+
+        {{-- TOAST --}}
+        <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-8"
+            :class="{
+                'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+                'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+                'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+            }"
+            class="fixed top-24 right-6 z-[130] flex items-center gap-3
+                   min-w-[280px] max-w-sm
+                   px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
+            style="display: none;">
+
+            <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
             </div>
-        </div>
-    </div>
 
-    {{-- ============ TOAST NOTIFICATION ============ --}}
-    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
-        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
-        x-transition:leave-end="opacity-0 translate-x-8"
-        :class="{
-            'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
-            'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
-            'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
-        }"
-        class="fixed top-24 right-6 z-[130] flex items-center gap-3
-               min-w-[280px] max-w-sm
-               px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
-        style="display: none;">
+            <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
 
-        <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
 
-        <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
-
-        <button @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
     </div>
+@endsection
 
+@push('scripts')
     <script>
         function assetTypeSelector() {
             return {
-                selectedBrand: '{{ old('brand', $asset->brand) }}',
-                selectedModel: '{{ old('model', $asset->model) }}',
+                selectedBrand: @json(old('brand', $asset->brand)),
+                selectedModel: @json(old('model', $asset->model)),
                 allTypes: @json($assetTypes->map(fn($t) => ['id' => $t->id, 'brand' => $t->brand, 'model' => $t->model])),
 
                 get filteredModels() {
@@ -1006,11 +943,10 @@
                 showConfirmMaintenance: false,
                 showLoanModal: false,
                 showLoanWarning: false,
-                showAssignModal: false, // 🆕
-                showAssignWarning: false, // 🆕
-                oldStatus: '{{ $asset->status }}',
+                showAssignModal: false,
+                showAssignWarning: false,
+                oldStatus: @json($asset->status),
 
-                // Form pinjam
                 loanForm: {
                     user_id: '',
                     loan_date: '{{ now()->format('Y-m-d\TH:i') }}',
@@ -1020,12 +956,11 @@
                     notes: '',
                 },
 
-                // 🆕 Form assign
                 assignForm: {
                     user_id: '',
                     location_id: '',
                     department_id: '',
-                    hostname: '{{ $asset->hostname ?? '' }}',
+                    hostname: @json($asset->hostname ?? ''),
                     assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
                     condition_on_assign: {{ $asset->condition_percent ?? 100 }},
                     notes: '',
@@ -1041,14 +976,12 @@
                     const statusSelect = document.querySelector('select[name="status"]');
                     const newStatus = statusSelect.value;
 
-                    // 🆕 Cek loaned
                     if (newStatus === 'loaned' && this.oldStatus !== 'loaned' && !this.loanForm.user_id) {
                         this.showLoanWarning = true;
                         this.showLoanModal = true;
                         return;
                     }
 
-                    // 🆕 Cek in_use
                     if (newStatus === 'in_use' && this.oldStatus !== 'in_use' && !this.assignForm.user_id) {
                         this.showAssignWarning = true;
                         this.showAssignModal = true;
@@ -1058,7 +991,6 @@
                     this.showConfirmUpdate = true;
                 },
 
-                // 🆕 Konfirmasi assign
                 confirmAssign() {
                     if (!this.assignForm.user_id) {
                         this.showToast('Pegawai penerima wajib dipilih', 'error');
@@ -1073,7 +1005,6 @@
                     this.showConfirmUpdate = true;
                 },
 
-                // 🆕 Batal assign
                 cancelAssign() {
                     this.showAssignModal = false;
                     this.showAssignWarning = false;
@@ -1083,7 +1014,7 @@
                         user_id: '',
                         location_id: '',
                         department_id: '',
-                        hostname: '{{ $asset->hostname ?? '' }}',
+                        hostname: @json($asset->hostname ?? ''),
                         assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
                         condition_on_assign: {{ $asset->condition_percent ?? 100 }},
                         notes: '',
@@ -1178,25 +1109,5 @@
                 }
             }
         }
-
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
     </script>
-
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
-    </style>
-
-</body>
-
-</html>
+@endpush

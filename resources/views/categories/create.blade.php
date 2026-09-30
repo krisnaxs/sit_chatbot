@@ -1,29 +1,14 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', 'Tambah Kategori - SIAM')
 
-    <title>Tambah Kategori - SIAM</title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans">
-
-    <x-header title="Tambah Kategori" />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-2xl mx-auto p-6 mt-4 lg:mr-auto transition-all duration-300">
+@section('content')
+    <div class="max-w-2xl mx-auto">
 
         <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
             <a href="{{ route('siam.categories.index') }}" class="hover:text-indigo-600 transition">Kategori</a>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
             <span class="text-gray-900 font-semibold">Tambah</span>
@@ -35,8 +20,8 @@
                 <div
                     class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500
                             flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                 </div>
@@ -144,20 +129,4 @@
             </form>
         </div>
     </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
-    </script>
-
-</body>
-
-</html>
+@endsection

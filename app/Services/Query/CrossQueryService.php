@@ -10,10 +10,7 @@ use Illuminate\Support\Str;
 
 class CrossQueryService
 {
-    /**
-     * 🆕 Keyword yang menandakan pesan berkaitan dengan data aset.
-     * Dipakai untuk guard guest — kalau guest tanya hal ini, wajib login.
-     */
+
     private const ASSET_KEYWORDS = [
         'aset',
         'asset',
@@ -95,9 +92,9 @@ class CrossQueryService
         // ═══════════════════════════════════════════════════════════
         if (!auth()->check() && $this->isAssetRelated($pesan)) {
             return [
-                "🔒 Maaf, untuk mengakses **data aset** kamu harus **login** terlebih dahulu.\n\n"
-                . "**Cara login:**\n"
-                . "1. Klik tombol **Login** di pojok kanan atas\n"
+                "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
+                . "Cara login:\n"
+                . "1. Klik tombol Login di pojok kanan atas\n"
                 . "2. Masukkan username & password SIAM kamu\n"
                 . "3. Setelah login, tanyakan lagi ke saya 😊\n\n"
                 . "_Kalau belum punya akun, hubungi IT Support._",
@@ -122,13 +119,7 @@ class CrossQueryService
         return null;
     }
 
-    // ============================================================
-    // 🆕 GUARD HELPERS
-    // ============================================================
 
-    /**
-     * 🆕 Deteksi apakah pesan berkaitan dengan data aset.
-     */
     protected function isAssetRelated(string $pesan): bool
     {
         $lower = Str::lower($pesan);
@@ -209,10 +200,10 @@ class CrossQueryService
             ->first();
 
         if (!$asset) {
-            return ["Aset dengan kata kunci **{$keyword}** tidak ditemukan.", 'database'];
+            return ["Aset dengan kata kunci {$keyword} tidak ditemukan.", 'database'];
         }
 
-        $jawaban = "🔍 **Info Aset {$asset->serial_number}**";
+        $jawaban = "🔍 Info Aset {$asset->serial_number}";
         if ($asset->hostname) {
             $jawaban .= " ({$asset->hostname})";
         }
@@ -222,13 +213,13 @@ class CrossQueryService
             . "• Status: {$asset->status}\n";
 
         if ($asset->currentUser) {
-            $jawaban .= "• **Pemegang saat ini:** {$asset->currentUser->name}";
+            $jawaban .= "• Pemegang saat ini: {$asset->currentUser->name}";
             if ($asset->currentUser->position) {
                 $jawaban .= " ({$asset->currentUser->position})";
             }
             $jawaban .= "\n";
         } else {
-            $jawaban .= "• **Pemegang saat ini:** tidak ada (aset tersedia)\n";
+            $jawaban .= "• Pemegang saat ini: tidak ada (aset tersedia)\n";
         }
 
         if ($asset->currentLocation) {
@@ -249,17 +240,17 @@ class CrossQueryService
         $user = User::where('name', 'like', "%{$nama}%")->first();
 
         if (!$user) {
-            return ["User **{$nama}** tidak ditemukan.", 'database'];
+            return ["User {$nama} tidak ditemukan.", 'database'];
         }
 
         $assets = $user->currentAssets()->with('category')->limit(15)->get();
 
         if ($assets->isEmpty()) {
-            return ["User **{$user->name}** sedang tidak memegang aset apa pun.", 'database'];
+            return ["User {$user->name} sedang tidak memegang aset apa pun.", 'database'];
         }
 
         $total = $user->currentAssets()->count();
-        $lines = ["👤 **Aset yang dipegang oleh {$user->name}** ({$total} unit):\n"];
+        $lines = ["👤 Aset yang dipegang oleh {$user->name} ({$total} unit):\n"];
         foreach ($assets as $a) {
             $lines[] = "• {$a->serial_number}";
             if ($a->hostname) {

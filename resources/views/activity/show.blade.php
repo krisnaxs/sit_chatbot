@@ -77,8 +77,6 @@
                 'updated_at' => 'Terakhir Diubah',
                 'created_at' => 'Dibuat',
                 'deleted_at' => 'Dihapus',
-
-                // 🆕 Request / Pengajuan
                 'request_number' => 'No. Pengajuan',
                 'requested_at' => 'Tanggal Pengajuan',
                 'needed_date' => 'Tanggal Dibutuhkan',
@@ -102,7 +100,6 @@
     if (!function_exists('activityResolveValue')) {
         function activityResolveValue(string $field, $value): string
         {
-            // Skip fields yang bukan relasi ID
             $skipFields = [
                 'status',
                 'type',
@@ -125,8 +122,6 @@
                 'monthly_cost',
                 'purchase_price',
                 'last_price',
-
-                // 🆕 Request / Pengajuan
                 'old_status',
                 'new_status',
                 'request_number',
@@ -142,18 +137,12 @@
                 return activityFormatValue($value);
             }
 
-            // Mapping relasi ID → model
             $idResolvers = [
-                // Departments
                 'department_id' => \App\Models\Department::class,
-
-                // Locations
                 'location_id' => \App\Models\Location::class,
                 'current_location_id' => \App\Models\Location::class,
                 'from_location_id' => \App\Models\Location::class,
                 'to_location_id' => \App\Models\Location::class,
-
-                // Users (berbagai role)
                 'user_id' => \App\Models\User::class,
                 'current_user_id' => \App\Models\User::class,
                 'assigned_by' => \App\Models\User::class,
@@ -162,18 +151,10 @@
                 'requested_by' => \App\Models\User::class,
                 'moved_by' => \App\Models\User::class,
                 'uploaded_by' => \App\Models\User::class,
-
-                // Assets & categories
                 'asset_id' => \App\Models\Asset::class,
                 'category_id' => \App\Models\AssetCategory::class,
-
-                // Vendors
                 'vendor_id' => \App\Models\Vendor::class,
-
-                // Consumables
                 'consumable_id' => \App\Models\Consumable::class,
-
-                // 🆕 Request / Pengajuan
                 'loan_id' => \App\Models\AssetLoan::class,
                 'transaction_id' => \App\Models\ConsumableTransaction::class,
             ];
@@ -181,61 +162,39 @@
             if (!isset($idResolvers[$field])) {
                 return activityFormatValue($value);
             }
-
             if (is_null($value) || $value === '' || $value === 0 || $value === '0') {
                 return '(kosong)';
             }
-
-            $modelClass = $idResolvers[$field];
-            $record = $modelClass::find($value);
-
+            $record = $idResolvers[$field]::find($value);
             if (!$record) {
                 return activityFormatValue($value);
             }
 
-            // Resolve nama dengan prioritas
             $name = null;
-
-            // 1. Cek field name
             if (isset($record->name) && !empty($record->name)) {
                 $name = $record->name;
-            }
-            // 2. Cek full_name (locations)
-            elseif (isset($record->full_name) && !empty($record->full_name)) {
+            } elseif (isset($record->full_name) && !empty($record->full_name)) {
                 $name = $record->full_name;
-            }
-            // 3. Asset: brand + model + serial
-            elseif (isset($record->brand) && isset($record->serial_number)) {
+            } elseif (isset($record->brand) && isset($record->serial_number)) {
                 $parts = array_filter([
                     $record->brand,
                     $record->model ?? null,
                     $record->serial_number ? "({$record->serial_number})" : null,
                 ]);
                 $name = implode(' ', $parts);
-            }
-            // 4. Cek asset_code
-            elseif (isset($record->asset_code) && !empty($record->asset_code)) {
+            } elseif (isset($record->asset_code) && !empty($record->asset_code)) {
                 $name = $record->asset_code;
-            }
-            // 5. Cek code (categories, departments)
-            elseif (isset($record->code) && !empty($record->code)) {
+            } elseif (isset($record->code) && !empty($record->code)) {
                 $name = $record->code;
-            }
-            // 🆕 6. AssetLoan custom
-            elseif (isset($record->loan_date) && isset($record->asset_id)) {
+            } elseif (isset($record->loan_date) && isset($record->asset_id)) {
                 $asset = \App\Models\Asset::find($record->asset_id);
                 $name = "Peminjaman {$asset?->serial_number} (" . ($record->loan_date?->format('d M Y') ?? '-') . ')';
-            }
-            // 🆕 7. ConsumableTransaction custom
-            elseif (isset($record->transaction_date) && isset($record->consumable_id)) {
+            } elseif (isset($record->transaction_date) && isset($record->consumable_id)) {
                 $cons = \App\Models\Consumable::find($record->consumable_id);
                 $name = "Transaksi {$cons?->name} x{$record->quantity}";
-            }
-            // 8. Fallback: ID
-            else {
+            } else {
                 $name = "ID: {$value}";
             }
-
             return trim((string) $name);
         }
     }
@@ -260,30 +219,19 @@
         }
     }
 @endphp
-<!DOCTYPE html>
-<html lang="id">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Activity Log - Admin</title>
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@extends('layouts.app')
 
-<body class="bg-slate-100 font-sans">
+@section('title', 'Detail Activity Log')
 
-    <x-header title="Detail Activity Log" placeholder="Cari log..." />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-3xl mx-auto p-6 mt-4 lg:mr-auto transition-all duration-300">
+@section('content')
+    <div class="max-w-3xl mx-auto">
 
         <!-- BREADCRUMB -->
         <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
             <a href="{{ route('activity.index') }}" class="hover:text-blue-600 transition">Activity Log</a>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
             <span class="text-gray-900 font-semibold">Log #{{ $activity->id }}</span>
@@ -291,7 +239,6 @@
 
         <!-- HEADER CARD -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
-
             <div class="flex items-start justify-between gap-4 mb-6">
                 <div class="flex items-center gap-4">
                     <div
@@ -311,7 +258,6 @@
                     </div>
                 </div>
 
-                {{-- Badge Jenis Log --}}
                 <span
                     class="inline-flex items-center px-3 py-1.5 rounded-lg
                              text-xs font-bold uppercase tracking-wider
@@ -344,8 +290,6 @@
 
             <!-- INFO GRID -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                {{-- Waktu --}}
                 <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                     <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none"
@@ -365,7 +309,6 @@
                     </div>
                 </div>
 
-                {{-- User --}}
                 <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                     <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-violet-600" fill="none"
@@ -388,14 +331,10 @@
                         @endif
                     </div>
                 </div>
-
             </div>
-
         </div>
 
-        {{-- ============================================================ --}}
         {{-- PERUBAHAN DATA — HIGHLIGHT OLD → NEW --}}
-        {{-- ============================================================ --}}
         @php
             $allProps = $activity->properties ?? collect();
             $old = $allProps['old'] ?? null;
@@ -436,21 +375,16 @@
                     </div>
                 </div>
 
-                {{-- CREATED: tampilkan semua field baru --}}
                 @if ($event === 'created')
                     <div class="space-y-2">
                         @foreach ($new as $key => $value)
                             @if (!in_array($key, ['id', 'created_at', 'updated_at']))
-                                @php
-                                    $fieldLabel = activityFieldLabel($key);
-                                    $display = activityResolveValue($key, $value);
-                                @endphp
                                 <div class="flex gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
                                     <span class="text-xs font-bold text-emerald-700 shrink-0 min-w-[140px] pt-0.5">
-                                        {{ $fieldLabel }}
+                                        {{ activityFieldLabel($key) }}
                                     </span>
                                     <span class="text-xs text-emerald-800 flex-1 break-all">
-                                        {{ $display }}
+                                        {{ activityResolveValue($key, $value) }}
                                     </span>
                                 </div>
                             @endif
@@ -458,14 +392,11 @@
                     </div>
                 @endif
 
-                {{-- UPDATED: diff old → new dengan highlight --}}
                 @if ($event === 'updated')
                     <div class="space-y-2">
                         @foreach ($new as $key => $newVal)
                             @php
                                 $oldVal = $old[$key] ?? null;
-
-                                // Handle array/object aman
                                 $oldStr =
                                     is_array($oldVal) || is_object($oldVal)
                                         ? json_encode($oldVal, JSON_UNESCAPED_SLASHES)
@@ -475,33 +406,23 @@
                                         ? json_encode($newVal, JSON_UNESCAPED_SLASHES)
                                         : (string) ($newVal ?? '');
                                 $isChanged = $oldStr !== $newStr;
-
-                                // Resolve tampilan
-                                $fieldLabel = activityFieldLabel($key);
-                                $oldDisplay = activityResolveValue($key, $oldVal);
-                                $newDisplay = activityResolveValue($key, $newVal);
                             @endphp
                             @if ($isChanged && !in_array($key, ['updated_at']))
                                 <div class="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
                                     <span class="text-xs font-bold text-amber-800 shrink-0 min-w-[140px] pt-0.5">
-                                        {{ $fieldLabel }}
+                                        {{ activityFieldLabel($key) }}
                                     </span>
                                     <div class="flex-1 flex flex-wrap items-center gap-2 text-xs">
-                                        {{-- Nilai lama (merah) --}}
                                         <span class="px-2 py-1 rounded bg-red-100 text-red-700 line-through">
-                                            {{ $oldDisplay }}
+                                            {{ activityResolveValue($key, $oldVal) }}
                                         </span>
-
-                                        {{-- Arrow --}}
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                         </svg>
-
-                                        {{-- Nilai baru (hijau) --}}
                                         <span class="px-2 py-1 rounded bg-green-100 text-green-700 font-bold">
-                                            {{ $newDisplay }}
+                                            {{ activityResolveValue($key, $newVal) }}
                                         </span>
                                     </div>
                                 </div>
@@ -510,21 +431,16 @@
                     </div>
                 @endif
 
-                {{-- DELETED: tampilkan semua field yang dihapus --}}
                 @if ($event === 'deleted')
                     <div class="space-y-2">
                         @foreach ($old as $key => $value)
                             @if (!in_array($key, ['id', 'created_at', 'updated_at']))
-                                @php
-                                    $fieldLabel = activityFieldLabel($key);
-                                    $display = activityResolveValue($key, $value);
-                                @endphp
                                 <div class="flex gap-3 p-3 rounded-lg bg-red-50 border border-red-100">
                                     <span class="text-xs font-bold text-red-700 shrink-0 min-w-[140px] pt-0.5">
-                                        {{ $fieldLabel }}
+                                        {{ activityFieldLabel($key) }}
                                     </span>
                                     <span class="text-xs text-red-800 flex-1 break-all line-through">
-                                        {{ $display }}
+                                        {{ activityResolveValue($key, $value) }}
                                     </span>
                                 </div>
                             @endif
@@ -534,7 +450,7 @@
             </div>
         @endif
 
-        <!-- PROPERTIES (skip old & new karena sudah ditampilkan di diff) -->
+        <!-- PROPERTIES -->
         @php
             $props = $allProps->except(['old', 'new']);
         @endphp
@@ -578,16 +494,12 @@
                 </div>
             </div>
         @endif
-        {{-- ============================================================ --}}
-        {{-- 🆕 INFO PENGAJUAN — khusus untuk log AssetRequest --}}
-        {{-- ============================================================ --}}
+
+        {{-- INFO PENGAJUAN — khusus untuk log AssetRequest --}}
         @if ($activity->subject_type === 'App\Models\AssetRequest' && $activity->subject)
-            @php
-                $req = $activity->subject;
-            @endphp
+            @php $req = $activity->subject; @endphp
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
-                <!-- HEADER -->
                 <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
                     <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none"
@@ -602,10 +514,7 @@
                     </div>
                 </div>
 
-                <!-- GRID INFO -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                    {{-- No. Pengajuan --}}
                     <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div class="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-600" fill="none"
@@ -620,10 +529,8 @@
                         </div>
                     </div>
 
-                    {{-- Tipe --}}
                     <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
-                        <div
-                            class="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 text-lg">
+                        <div class="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 text-lg">
                             {{ $req->type_icon }}
                         </div>
                         <div class="min-w-0">
@@ -632,26 +539,25 @@
                         </div>
                     </div>
 
-                    {{-- Status --}}
                     <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div
                             class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0
-                    @switch($req->status_color)
-                        @case('yellow') bg-yellow-100 @break
-                        @case('green') bg-green-100 @break
-                        @case('red') bg-red-100 @break
-                        @case('gray') bg-gray-100 @break
-                        @default bg-gray-100
-                    @endswitch">
+                            @switch($req->status_color)
+                                @case('yellow') bg-yellow-100 @break
+                                @case('green') bg-green-100 @break
+                                @case('red') bg-red-100 @break
+                                @case('gray') bg-gray-100 @break
+                                @default bg-gray-100
+                            @endswitch">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                 class="h-4 w-4
-                        @switch($req->status_color)
-                            @case('yellow') text-yellow-600 @break
-                            @case('green') text-green-600 @break
-                            @case('red') text-red-600 @break
-                            @case('gray') text-gray-600 @break
-                            @default text-gray-600
-                        @endswitch"
+                                @switch($req->status_color)
+                                    @case('yellow') text-yellow-600 @break
+                                    @case('green') text-green-600 @break
+                                    @case('red') text-red-600 @break
+                                    @case('gray') text-gray-600 @break
+                                    @default text-gray-600
+                                @endswitch"
                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -663,7 +569,6 @@
                         </div>
                     </div>
 
-                    {{-- Item --}}
                     <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div class="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600" fill="none"
@@ -682,7 +587,6 @@
                         </div>
                     </div>
 
-                    {{-- Pemohon --}}
                     <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none"
@@ -698,7 +602,6 @@
                         </div>
                     </div>
 
-                    {{-- Keperluan --}}
                     @if ($req->purpose)
                         <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                             <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
@@ -714,10 +617,8 @@
                             </div>
                         </div>
                     @endif
-
                 </div>
 
-                {{-- INFO APPROVAL / REJECTION --}}
                 @if ($req->isApproved() && $req->approved_at)
                     <div class="mt-4 p-4 rounded-xl bg-green-50 border border-green-200">
                         <div class="flex items-center gap-2 mb-2">
@@ -762,26 +663,24 @@
                     </div>
                 @endif
 
-                {{-- LINK KE DETAIL PENGAJUAN --}}
                 <div class="mt-4 pt-4 border-t border-gray-100 flex justify-end">
                     <a href="{{ route('requests.show', $req) }}"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
-                       bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm
-                       shadow-lg shadow-purple-500/30 transition
-                       hover:scale-105 active:scale-95">
+                               bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm
+                               shadow-lg shadow-purple-500/30 transition
+                               hover:scale-105 active:scale-95">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         Lihat Detail Pengajuan
                     </a>
                 </div>
-
             </div>
         @endif
+
         <!-- SUBJECT -->
         @if ($activity->subject)
             @php
@@ -815,7 +714,6 @@
                         </span>
                     </div>
 
-                    {{-- Info subject human-readable --}}
                     @if (isset($subject->name))
                         <p class="text-sm font-bold text-gray-900 mb-1">{{ $subject->name }}</p>
                     @endif
@@ -835,9 +733,8 @@
                         <details class="group mt-2">
                             <summary
                                 class="text-xs text-gray-500 cursor-pointer hover:text-gray-700 select-none inline-flex items-center gap-1 font-semibold">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                    class="h-3 w-3 transition group-open:rotate-90" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 transition group-open:rotate-90"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                                 </svg>
                                 Lihat detail model
@@ -867,8 +764,7 @@
             @if ($prev)
                 <a href="{{ route('activity.show', $prev) }}"
                     class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
-                           bg-white border border-gray-200 hover:bg-gray-50
-                           hover:border-gray-300
+                           bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300
                            text-gray-700 font-semibold text-sm transition shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2.5">
@@ -884,8 +780,7 @@
             @if ($next)
                 <a href="{{ route('activity.show', $next) }}"
                     class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl
-                           bg-white border border-gray-200 hover:bg-gray-50
-                           hover:border-gray-300
+                           bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300
                            text-gray-700 font-semibold text-sm transition shadow-sm">
                     <span class="text-[10px] text-gray-400 font-mono">#{{ $next->id }}</span>
                     Selanjutnya
@@ -899,7 +794,6 @@
 
         <!-- ACTION BUTTONS -->
         <div class="flex flex-wrap gap-3 pt-6 border-t border-gray-200">
-
             <a href="{{ route('activity.index') }}"
                 class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
                        border border-gray-300 text-gray-700 font-semibold text-sm
@@ -932,24 +826,7 @@
                     @method('DELETE')
                 </form>
             @endif
-
         </div>
 
     </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
-    </script>
-
-</body>
-
-</html>
+@endsection

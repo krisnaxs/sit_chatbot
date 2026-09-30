@@ -37,7 +37,7 @@ class LocationQueryService
         $total = Location::count();
         $active = Location::where('is_active', true)->count();
 
-        return ["Ada **{$total} lokasi** terdaftar (**{$active} aktif**).", 'database'];
+        return ["Ada {$total} lokasi terdaftar ({$active} aktif).", 'database'];
     }
 
     protected function listLocations(): array
@@ -50,7 +50,7 @@ class LocationQueryService
             return ["Belum ada lokasi terdaftar.", 'database'];
         }
 
-        $jawaban = "**" . $locations->count() . " lokasi aktif**:\n\n";
+        $jawaban = "" . $locations->count() . " lokasi aktif:\n\n";
         foreach ($locations as $l) {
             $jawaban .= "• {$l->full_name}";
             if ($l->division)
@@ -74,10 +74,10 @@ class LocationQueryService
         $assets = $location->currentAssets()->limit(10)->get();
 
         if ($assets->isEmpty()) {
-            return ["Tidak ada aset di **{$location->full_name}**.", 'database'];
+            return ["Tidak ada aset di {$location->full_name}.", 'database'];
         }
 
-        $jawaban = "**" . $assets->count() . " aset** di **{$location->full_name}**:\n\n";
+        $jawaban = "" . $assets->count() . " aset di {$location->full_name}:\n\n";
         foreach ($assets as $a) {
             $jawaban .= "• {$a->serial_number}";
             if ($a->hostname)

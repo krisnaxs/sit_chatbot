@@ -1,29 +1,14 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@section('title', 'Catat Transaksi — SIAM')
 
-    <title>Catat Transaksi — SIAM</title>
-
-    <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-
-<body class="bg-slate-100 font-sans">
-
-    <x-header title="Catat Transaksi" />
-    <x-sidebar />
-
-    <div x-data="pageLayout()" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'"
-        class="max-w-7xl mx-auto p-6 mt-4 lg:max-w-none transition-all duration-300">
+@section('content')
+    <div class="max-w-7xl mx-auto">
 
         <div class="max-w-3xl mx-auto space-y-6">
             <div>
-                <a href="{{ route('siam.consumable-transactions.index') }}"
-                    class="text-sm text-indigo-600 hover:underline">← Kembali</a>
+                <a href="{{ route('siam.consumable-transactions.index') }}" class="text-sm text-indigo-600 hover:underline">←
+                    Kembali</a>
                 <h1 class="text-2xl font-bold text-gray-800 mt-1">Catat Transaksi Konsumable</h1>
             </div>
 
@@ -62,7 +47,6 @@
                         @endforeach
                     </select>
 
-                    {{-- 🆕 INFO STOK (muncul kalau item pre-selected dari URL) --}}
                     @if ($consumable)
                         <div class="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs space-y-1">
                             <div class="flex justify-between">
@@ -92,7 +76,6 @@
                         Tipe Transaksi <span class="text-red-500">*</span>
                     </label>
                     <div class="grid grid-cols-3 gap-2">
-                        {{-- MASUK --}}
                         <label class="cursor-pointer">
                             <input type="radio" name="type" value="in" class="peer sr-only"
                                 @checked(old('type', $defaultType ?? 'out') === 'in')>
@@ -103,7 +86,6 @@
                             </div>
                         </label>
 
-                        {{-- KELUAR --}}
                         <label class="cursor-pointer">
                             <input type="radio" name="type" value="out" class="peer sr-only"
                                 @checked(old('type', $defaultType ?? 'out') === 'out')>
@@ -114,7 +96,6 @@
                             </div>
                         </label>
 
-                        {{-- KEMBALI --}}
                         <label class="cursor-pointer">
                             <input type="radio" name="type" value="return" class="peer sr-only"
                                 @checked(old('type', $defaultType ?? 'out') === 'return')>
@@ -187,8 +168,7 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Keperluan</label>
                     <input type="text" name="purpose" value="{{ old('purpose') }}"
-                        placeholder="Contoh: Mouse untuk laptop baru"
-                        class="w-full border rounded-lg px-3 py-2 text-sm">
+                        placeholder="Contoh: Mouse untuk laptop baru" class="w-full border rounded-lg px-3 py-2 text-sm">
                 </div>
 
                 {{-- ============ CATATAN ============ --}}
@@ -211,20 +191,4 @@
             </form>
         </div>
     </div>
-
-    <script>
-        function pageLayout() {
-            return {
-                collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
-                init() {
-                    window.addEventListener('sidebar-toggled', (e) => {
-                        this.collapsed = e.detail.collapsed;
-                    });
-                }
-            }
-        }
-    </script>
-
-</body>
-
-</html>
+@endsection

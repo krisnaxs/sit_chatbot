@@ -12,23 +12,27 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @stack('styles')
+
+    {{-- 🆕 WAJIB: sembunyikan elemen x-cloak sebelum Alpine init --}}
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-50 text-gray-800 antialiased" x-data="{ sidebarCollapsed: false }"
-    @sidebar-toggled.window="sidebarCollapsed = $event.detail.collapsed">
+<body class="bg-gray-50 text-gray-800 antialiased">
 
-    {{-- SIDEBAR SIT (dengan menu kondisional per tab) --}}
+    {{-- SIDEBAR --}}
     <x-sidebar />
 
-    {{-- MAIN CONTENT --}}
-    <div class="transition-all duration-300" :class="sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'">
+    {{-- HEADER — DI LUAR WRAPPER --}}
+    <x-header title="@yield('title', 'SIT')" />
 
-        {{-- HEADER SIT (dengan tab navigasi + login + chat widget) --}}
-        <x-header title="@yield('title', 'SIT')" />
-
-        {{-- PAGE CONTENT --}}
-        <main class="p-4 lg:p-6">
-            {{-- Flash Messages --}}
+    {{-- MAIN WRAPPER --}}
+    <div x-data :class="$store.sidebar.collapsed ? 'lg:ml-16' : 'lg:ml-64'"
+        class="transition-[margin] duration-300 ease-out">
+        <main class="pt-[72px] px-4 pb-4 lg:px-6 lg:pb-6">
             @if (session('success'))
                 <div class="mb-4 p-3 rounded-lg bg-green-100 text-green-800 border border-green-200">
                     {{ session('success') }}
@@ -43,6 +47,9 @@
             @yield('content')
         </main>
     </div>
+
+    {{-- 🆕 WAJIB: render section modals (untuk requests/my & approval) --}}
+    @yield('modals')
 
     <script>
         document.querySelectorAll('[data-auto-submit]').forEach(el => {

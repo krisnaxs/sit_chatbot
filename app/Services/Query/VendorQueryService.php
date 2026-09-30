@@ -43,7 +43,7 @@ class VendorQueryService
         $total = Vendor::count();
         $active = Vendor::where('is_active', true)->count();
 
-        return ["Ada **{$total} vendor** (**{$active} aktif**).", 'database'];
+        return ["Ada {$total} vendor ({$active} aktif).", 'database'];
     }
 
     protected function listVendors(): array
@@ -54,7 +54,7 @@ class VendorQueryService
             return ["Belum ada vendor terdaftar.", 'database'];
         }
 
-        $jawaban = "**" . $vendors->count() . " vendor aktif**:\n\n";
+        $jawaban = "" . $vendors->count() . " vendor aktif:\n\n";
         foreach ($vendors as $v) {
             $jawaban .= "• {$v->name}";
             if ($v->type)
@@ -80,7 +80,7 @@ class VendorQueryService
             return ["Tidak ada kontrak sewa yang berakhir dalam 30 hari ke depan. ✅", 'database'];
         }
 
-        $jawaban = "**" . $contracts->count() . " kontrak** berakhir < 30 hari:\n\n";
+        $jawaban = "" . $contracts->count() . " kontrak berakhir < 30 hari:\n\n";
         foreach ($contracts as $c) {
             $jawaban .= "• {$c->asset?->serial_number}";
             if ($c->asset?->hostname)
@@ -97,7 +97,7 @@ class VendorQueryService
         $total = AssetOwnership::where('ownership_type', 'leased')->sum('monthly_cost');
         $formatted = 'Rp ' . number_format($total, 0, ',', '.');
 
-        return ["Total biaya sewa bulanan: **{$formatted}**", 'database'];
+        return ["Total biaya sewa bulanan: {$formatted}", 'database'];
     }
 
     protected function matchAny(string $haystack, array $needles): bool
