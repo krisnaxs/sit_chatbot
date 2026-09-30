@@ -459,19 +459,36 @@ class ChatController extends Controller
             }
         }
 
-        // PRIORITAS 2: Field query dari memory asset terakhir
         $field = $this->detectFieldQuery($lower);
-        if ($field) {
+
+        // 🆕 Field ownership TIDAK boleh dianggap follow-up aset
+        //    karena user biasanya tanya COUNT aset by ownership
+        $isCountQuery = (bool) preg_match(
+            '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
+            $lower
+        );
+
+        // 🆕 List field yang hanya untuk query agregat, bukan follow-up aset
+        $aggregateOnlyFields = ['ownership', 'status', 'brand', 'model', 'category'];
+
+        // 🆕 Kalau field aggregate DAN ada kata "berapa/jumlah/total" → bukan follow-up aset
+        $skipAsFollowUp = $isCountQuery && in_array($field, $aggregateOnlyFields, true);
+
+        if ($field && !$skipAsFollowUp) {
             $hasUserNameInMessage = $this->detectUserNameInMessage($pesan);
 
             if (!$hasUserNameInMessage) {
                 $lastAsset = $memory->recall('asset');
                 if ($lastAsset && isset($lastAsset['asset_id'])) {
-                    return $this->answerAssetField((int) $lastAsset['asset_id'], $field, $memory);
+                    // 🆕 Cek: user minta field spesifik aset, atau cuma tanya "yang sewa"?
+                    //    Kalau ada kata tanya count → jangan pakai konteks aset
+                    if (!$isCountQuery) {
+                        return $this->answerAssetField((int) $lastAsset['asset_id'], $field, $memory);
+                    }
                 }
 
                 $userCtx = $memory->recall('user_assets');
-                if ($userCtx && isset($userCtx['asset_id'])) {
+                if ($userCtx && isset($userCtx['asset_id']) && !$isCountQuery) {
                     return $this->answerAssetField((int) $userCtx['asset_id'], $field, $memory);
                 }
             }
@@ -498,6 +515,15 @@ class ChatController extends Controller
         $implicitUser = $this->tryAnswerImplicitUser($pesan, $memory);
         if ($implicitUser) {
             return $implicitUser;
+        }
+
+
+        if ($this->isNewQuery($lower)) {
+            Log::info('followup.detected_new_query', [
+                'pesan' => $pesan,
+                'field' => $field,
+            ]);
+            return null;  // biarkan jatuh ke cariJawaban
         }
 
         // PRIORITAS 4: Question words → bukan follow-up (kecuali ada field)
@@ -543,7 +569,68 @@ class ChatController extends Controller
 
         return $this->executeFollowUp($ctx, $request, $memory);
     }
+    /**
+     * 🆕 Cek apakah pesan sebenarnya adalah QUERY BARU (bukan follow-up).
+     */
+    private function isNewQuery(string $lower): bool
+    {
+        // 1. Cek kata tanya COUNT
+        $hasCountWord = (bool) preg_match(
+            '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
+            $lower
+        );
 
+        // 2. Cek kata LIST
+        $hasListWord = (bool) preg_match(
+            '/\b(daftar|list|sebutkan|tampilkan|apa saja|lihat)\b/i',
+            $lower
+        );
+
+        // 3. Cek KRITERIA BARU yang berbeda dari follow-up biasa
+        $hasNewCriteria = (bool) preg_match(
+            '/\b(sewa|leased|hak milik|owned|milik|available|tersedia|ready|rusak|maintenance|dipinjam|loaned|dipakai|in_use|hilang|lost|pensiun|retired)\b/i',
+            $lower
+        );
+
+        // 4. Cek brand/category baru
+        $hasCategoryOrBrand = (bool) preg_match(
+            '/\b(laptop|pc|komputer|monitor|printer|scanner|dell|hp|lenovo|asus|acer|apple)\b/i',
+            $lower
+        );
+
+        // 🆕 5. Cek "yg/yang [kriteria]" — pattern ownership/status baru tanpa count
+        //    Contoh: "yg milik", "yang sewa", "yang hak milik", "yang ready"
+        $hasYangCriteria = (bool) preg_match(
+            '/\b(yg|yang)\s+(milik|sewa|hak milik|owned|leased|available|tersedia|ready|rusak|dipinjam|dipakai)\b/i',
+            $lower
+        );
+
+        // 🆕 6. Cek SINGLE WORD ownership/status — mis. user cuma ketik "milik"
+        //    atau "sewa" tanpa kata lain
+        $trimmed = trim($lower);
+        $isSingleOwnership = (bool) preg_match(
+            '/^(milik|sewa|owned|leased|hak milik|yg milik|yang milik)$/i',
+            $trimmed
+        );
+
+        // 7. Kalau ada kata count/list + kriteria baru → QUERY BARU
+        if (($hasCountWord || $hasListWord) && ($hasNewCriteria || $hasCategoryOrBrand)) {
+            return true;
+        }
+
+        // 🆕 8. Kalau ada "yg/yang [kriteria]" pattern → QUERY BARU
+        //    (bahkan tanpa kata count/list)
+        if ($hasYangCriteria) {
+            return true;
+        }
+
+        // 🆕 9. Kalau cuma single word ownership/status → QUERY BARU
+        if ($isSingleOwnership) {
+            return true;
+        }
+
+        return false;
+    }
     private function executeFollowUp(array $ctx, Request $request, ChatMemoryService $memory): ?array
     {
         $type = $ctx['_type'] ?? $ctx['type'] ?? null;
