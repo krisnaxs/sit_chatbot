@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class ChatController extends Controller
+class ChatControllercopy extends Controller
 {
     private const STOPWORDS = [
         'yang',
@@ -669,21 +669,24 @@ class ChatController extends Controller
     // ============================================================
     // CORE: CARI JAWABAN
     // ============================================================
+
     private function cariJawaban(string $pesan, ChatMemoryService $memory, string $requestId): array
     {
         $lower = Str::lower($pesan);
 
-        // 1️⃣ SN/hostname regex (instan)
+        // 1️⃣ SN/hostname regex
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
-        if ($snAnswer)
+        if ($snAnswer) {
             return $snAnswer;
+        }
 
-        // 2️⃣ User + field spesifik (instan)
+        // 2️⃣ User + field spesifik
         $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
-        if ($userAssetAnswer)
+        if ($userAssetAnswer) {
             return $userAssetAnswer;
+        }
 
-        // 3️⃣ User + "pegang apa" (instan)
+        // 3️⃣ User + "pegang apa"
         $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
         if ($userAssetsByName) {
             if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
@@ -692,7 +695,7 @@ class ChatController extends Controller
             return $userAssetsByName;
         }
 
-        // 4️⃣ Konsumable (instan)
+        // 3.5 Konsumable
         if ($this->isConsumableQuery($lower, $memory)) {
             $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
             if ($consumableAnswer) {
@@ -700,7 +703,13 @@ class ChatController extends Controller
             }
         }
 
-        // 5️⃣ 🔑 QueryRouter regex — PINDAH KE SINI (dari step 5 lama)
+        // 4️⃣ OLLAMA INTENT PARSER
+        $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
+        if ($intentResult) {
+            return $intentResult;
+        }
+
+        // 5️⃣ QueryRouter regex fallback
         try {
             $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
             if ($dbAnswer) {
@@ -718,7 +727,6 @@ class ChatController extends Controller
                     ], self::CONTEXT_TTL, 'Daftar konsumable');
                 }
 
-                Log::info('answer.via_queryrouter', ['request_id' => $requestId]);
                 return [$dbAnswer[0], 'database', null];
             }
         } catch (\Throwable $e) {
@@ -728,14 +736,7 @@ class ChatController extends Controller
             ]);
         }
 
-        // 6️⃣ 🔑 Knowledge — PINDAH KE SINI (dari step 7 lama)
-        $knowledgeAnswer = $this->tryKnowledge($pesan);
-        if ($knowledgeAnswer) {
-            Log::info('answer.via_knowledge', ['request_id' => $requestId]);
-            return $knowledgeAnswer;
-        }
-
-        // 7️⃣ 🔑 AutoLearning — PINDAH KE SINI (dari step 6 lama)
+        // 6️⃣ AutoLearning
         $learning = null;
         try {
             $learning = app(AutoLearningService::class);
@@ -743,7 +744,6 @@ class ChatController extends Controller
 
             if ($learned) {
                 $learned->increment('frequency');
-                Log::info('answer.via_autolearning', ['request_id' => $requestId]);
                 return [$learned->answer, 'learned', null];
             }
         } catch (\Throwable $e) {
@@ -754,16 +754,13 @@ class ChatController extends Controller
             $learning = app(AutoLearningService::class);
         }
 
-        // 8️⃣ 🐌 Ollama INTENT — Fallback untuk regex yang gagal (turun dari step 4 lama)
-        //    LLM hanya dipakai untuk PARSE INTENT, DB yang eksekusi jawaban
-        $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
-        if ($intentResult) {
-            Log::info('answer.via_ollama_intent', ['request_id' => $requestId]);
-            return $intentResult;
+        // 7️⃣ Knowledge
+        $knowledgeAnswer = $this->tryKnowledge($pesan);
+        if ($knowledgeAnswer) {
+            return $knowledgeAnswer;
         }
 
-        // 9️⃣ 🐌 Ollama Q&A — Fallback TERAKHIR (pertanyaan non-DB)
-        Log::info('answer.via_ollama_qa', ['request_id' => $requestId]);
+        // 8️⃣ Ollama Q&A fallback
         $jawaban = $this->tanyaOllama($pesan);
 
         if (strlen($jawaban) >= 50 && !str_contains($jawaban, 'Maaf,') && $learning) {
@@ -779,6 +776,7 @@ class ChatController extends Controller
 
         return [$jawaban, 'ai', null];
     }
+
     private function tryOllamaIntent(string $pesan, ChatMemoryService $memory, string $requestId): ?array
     {
         $cacheKey = 'intent:v2:' . md5(Str::lower(trim($pesan)));
