@@ -157,15 +157,16 @@
 
 @section('content')
     {{-- Wrapper dengan background gelap --}}
-    <div class="bg-chat h-screen relative overflow-hidden">
+    <div class="bg-chat min-h-screen -mt-2 relative overflow-hidden">
 
+        {{-- Floating Orbs --}}
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
 
-        <div class="relative z-10 h-full">
+        <div class="relative z-10">
 
-            <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col h-full">
+            <div class="max-w-4xl mx-auto px-4 py-6 flex flex-col" style="min-height: calc(100vh - 80px);">
 
                 {{-- CHAT CARD --}}
                 <div class="glass rounded-3xl shadow-2xl overflow-hidden flex flex-col flex-1" x-data="chatApp()">
