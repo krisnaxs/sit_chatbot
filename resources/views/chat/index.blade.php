@@ -156,20 +156,23 @@
 @endpush
 
 @section('content')
-    {{-- Wrapper dengan background gelap --}}
-    <div class="bg-chat min-h-screen -mt-2 relative overflow-hidden">
-
+    {{-- Chat wrapper — full screen, mulai di bawah header, margin kiri mengikuti sidebar --}}
+    <div :class="$store.sidebar.collapsed ? 'lg:ml-16' : 'lg:ml-64'"
+        class="bg-chat fixed inset-0 top-[72px] z-30 overflow-hidden flex flex-col transition-[margin] duration-300">
         {{-- Floating Orbs --}}
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
 
-        <div class="relative z-10">
+        {{-- Inner Wrapper dengan flex-col dan min-h-0 --}}
+        <div class="relative z-10 flex flex-col flex-1 min-h-0 py-4">
 
-            <div class="max-w-4xl mx-auto px-4 py-6 flex flex-col" style="min-height: calc(100vh - 80px);">
+            {{-- Menambahkan w-full dan min-h-0 pada container --}}
+            <div class="max-w-4xl w-full mx-auto px-4 flex flex-col flex-1 min-h-0">
 
-                {{-- CHAT CARD --}}
-                <div class="glass rounded-3xl shadow-2xl overflow-hidden flex flex-col flex-1" x-data="chatApp()">
+                {{-- CHAT CARD (Ditambahkan min-h-0) --}}
+                <div class="glass rounded-3xl shadow-2xl overflow-hidden flex flex-col flex-1 min-h-0"
+                    x-data="chatApp()">
 
                     {{-- Chat Header --}}
                     <div class="px-6 py-4 border-b border-white/15 flex items-center gap-4 bg-white/5 shrink-0">
@@ -197,8 +200,8 @@
                         </div>
                     </div>
 
-                    {{-- Chat Messages --}}
-                    <div id="chatBox" class="chat-scroll flex-1 overflow-y-auto p-6 space-y-4">
+                    {{-- Chat Messages (Ditambahkan min-h-0) --}}
+                    <div id="chatBox" class="chat-scroll flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
 
                         <template x-if="messages.length === 0">
                             <div class="bubble-in flex items-start gap-3">
@@ -452,7 +455,8 @@
                     </div>
                 </div>
 
-                <p class="text-center text-white/40 text-xs mt-4">
+                {{-- Diberikan shrink-0 agar tidak tertimpa/terdorong Chatbox --}}
+                <p class="text-center text-white/40 text-xs mt-4 shrink-0">
                     SIS Assistant · Powered by Knowledge Base &amp; AI
                 </p>
             </div>
