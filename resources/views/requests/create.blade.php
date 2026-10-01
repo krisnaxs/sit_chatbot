@@ -42,7 +42,6 @@
                     Jenis Pengajuan
                 </h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {{-- Peminjaman --}}
                     <label class="cursor-pointer">
                         <input type="radio" name="type" value="loan" class="peer sr-only"
                             @checked(old('type', $type) === 'loan' || !old('type'))>
@@ -55,7 +54,6 @@
                         </div>
                     </label>
 
-                    {{-- Konsumable --}}
                     <label class="cursor-pointer">
                         <input type="radio" name="type" value="consumable" class="peer sr-only"
                             @checked(old('type', $type) === 'consumable')>
@@ -76,37 +74,167 @@
                     Detail Item
                 </h2>
 
-                {{-- Pilih Aset (loan) --}}
+                {{-- ============ PILIH ASET (SEARCHABLE, hanya loan) ============ --}}
+                @php
+                    $assetItems = $assets
+                        ->map(
+                            fn($a) => [
+                                'id' => $a->id,
+                                'label' => '[' . $a->serial_number . '] ' . $a->brand . ' ' . $a->model,
+                                'sub' =>
+                                    ($a->category?->name ?? '-') .
+                                    ' • ' .
+                                    ($a->status === 'available' ? 'Tersedia' : 'Dipakai'),
+                            ],
+                        )
+                        ->values();
+                @endphp
+
                 <div data-type-show="loan" class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">
-                        Pilih Aset <span class="text-red-500">*</span>
-                    </label>
-                    <select name="asset_id"
-                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                        <option value="">-- Pilih Aset --</option>
-                        @foreach ($assets as $a)
-                            <option value="{{ $a->id }}" @selected(old('asset_id') == $a->id)>
-                                [{{ $a->serial_number }}] {{ $a->brand }} {{ $a->model }}
-                                — {{ $a->status === 'available' ? 'Tersedia' : 'Dipakai' }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div x-data="searchableSelect({
+                        items: {{ Js::from($assetItems) }},
+                        selectedId: '{{ old('asset_id') }}'
+                    })" class="relative">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">
+                            Pilih Aset <span class="text-red-500">*</span>
+                        </label>
+
+                        <input type="hidden" name="asset_id" :value="selectedId">
+
+                        <button type="button" @click="open = !open"
+                            class="w-full border rounded-lg px-3 py-2 text-sm text-left
+                                   focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                                   flex items-center justify-between gap-2">
+                            <span x-show="!selectedItem" class="text-gray-400">-- Pilih Aset --</span>
+                            <span x-show="selectedItem" class="text-gray-800 truncate" x-text="selectedItem?.label"></span>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 text-gray-400 shrink-0 transition-transform"
+                                :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <div x-show="open" x-cloak @click.away="open = false"
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl
+                                   max-h-72 flex flex-col">
+
+                            <div class="p-2 border-b border-gray-100">
+                                <input type="text" x-model="search" x-ref="searchInput" @keydown.escape="open = false"
+                                    placeholder="Cari aset..."
+                                    class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm
+                                           focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+
+                            <div class="overflow-y-auto flex-1">
+                                <template x-if="filteredItems.length === 0">
+                                    <p class="p-3 text-xs text-gray-400 italic text-center">Tidak ada aset ditemukan</p>
+                                </template>
+
+                                <template x-for="item in filteredItems" :key="item.id">
+                                    <button type="button" @click="selectItem(item)"
+                                        class="w-full text-left px-3 py-2 hover:bg-indigo-50 transition
+                                               flex items-start gap-2">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-medium text-gray-800 truncate" x-text="item.label">
+                                            </div>
+                                            <div class="text-[10px] text-gray-500 truncate" x-text="item.sub || ''"></div>
+                                        </div>
+                                        <svg x-show="selectedId == item.id" xmlns="http://www.w3.org/2000/svg"
+                                            class="h-4 w-4 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {{-- Konsumable --}}
+                {{-- ============ KONSUMABLE (SEARCHABLE + QTY) ============ --}}
                 <div data-type-show="consumable" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    @php
+                        $consumableItems = $consumables
+                            ->map(
+                                fn($c) => [
+                                    'id' => $c->id,
+                                    'label' => $c->name,
+                                    'sub' => 'Stok: ' . $c->stock_available . ' ' . $c->unit,
+                                ],
+                            )
+                            ->values();
+                    @endphp
+
                     <div class="sm:col-span-2">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">
-                            Pilih Konsumable <span class="text-red-500">*</span>
-                        </label>
-                        <select name="consumable_id" class="w-full border rounded-lg px-3 py-2 text-sm">
-                            <option value="">-- Pilih --</option>
-                            @foreach ($consumables as $c)
-                                <option value="{{ $c->id }}" @selected(old('consumable_id') == $c->id)>
-                                    {{ $c->name }} (Stok: {{ $c->stock_available }} {{ $c->unit }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <div x-data="searchableSelect({
+                            items: {{ Js::from($consumableItems) }},
+                            selectedId: '{{ old('consumable_id') }}'
+                        })" class="relative">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                Pilih Konsumable <span class="text-red-500">*</span>
+                            </label>
+
+                            <input type="hidden" name="consumable_id" :value="selectedId">
+
+                            <button type="button" @click="open = !open"
+                                class="w-full border rounded-lg px-3 py-2 text-sm text-left
+                                       focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                                       flex items-center justify-between gap-2">
+                                <span x-show="!selectedItem" class="text-gray-400">-- Pilih --</span>
+                                <span x-show="selectedItem" class="text-gray-800 truncate"
+                                    x-text="selectedItem?.label"></span>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 text-gray-400 shrink-0 transition-transform"
+                                    :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <div x-show="open" x-cloak @click.away="open = false"
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0 -translate-y-1"
+                                x-transition:enter-end="opacity-100 translate-y-0"
+                                class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl
+                                       max-h-72 flex flex-col">
+
+                                <div class="p-2 border-b border-gray-100">
+                                    <input type="text" x-model="search" x-ref="searchInput"
+                                        @keydown.escape="open = false" placeholder="Cari konsumable..."
+                                        class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm
+                                               focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                </div>
+
+                                <div class="overflow-y-auto flex-1">
+                                    <template x-if="filteredItems.length === 0">
+                                        <p class="p-3 text-xs text-gray-400 italic text-center">Tidak ada konsumable
+                                            ditemukan</p>
+                                    </template>
+
+                                    <template x-for="item in filteredItems" :key="item.id">
+                                        <button type="button" @click="selectItem(item)"
+                                            class="w-full text-left px-3 py-2 hover:bg-indigo-50 transition
+                                                   flex items-start gap-2">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-medium text-gray-800 truncate"
+                                                    x-text="item.label"></div>
+                                                <div class="text-[10px] text-gray-500 truncate" x-text="item.sub || ''">
+                                                </div>
+                                            </div>
+                                            <svg x-show="selectedId == item.id" xmlns="http://www.w3.org/2000/svg"
+                                                class="h-4 w-4 text-indigo-600 shrink-0" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Jumlah</label>
@@ -117,7 +245,6 @@
 
                 {{-- TANGGAL --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-dashed">
-                    {{-- Tanggal Dibutuhkan (semua tipe) --}}
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">
                             Tanggal Dibutuhkan
@@ -129,7 +256,6 @@
                         </p>
                     </div>
 
-                    {{-- Tanggal Kembali (hanya loan) --}}
                     <div data-type-show="loan">
                         <label class="block text-sm font-semibold text-gray-700 mb-1">
                             Tanggal Kembali <span class="text-red-500">*</span>
@@ -210,7 +336,48 @@
 
 @push('scripts')
     <script>
-        // Toggle field sesuai tipe pengajuan
+        // Searchable dropdown (dipakai untuk Aset & Konsumable)
+        function searchableSelect(options) {
+            return {
+                open: false,
+                search: '',
+                items: options.items || [],
+                selectedId: options.selectedId || '',
+
+                get selectedItem() {
+                    if (!this.selectedId) return null;
+                    return this.items.find(i => i.id == this.selectedId);
+                },
+
+                get filteredItems() {
+                    if (!this.search.trim()) return this.items;
+
+                    const q = this.search.toLowerCase();
+                    return this.items.filter(i =>
+                        i.label.toLowerCase().includes(q) ||
+                        (i.sub && i.sub.toLowerCase().includes(q))
+                    );
+                },
+
+                selectItem(item) {
+                    this.selectedId = item.id;
+                    this.open = false;
+                    this.search = '';
+                },
+
+                init() {
+                    this.$watch('open', (val) => {
+                        if (val) {
+                            this.$nextTick(() => {
+                                this.$refs.searchInput?.focus();
+                            });
+                        }
+                    });
+                }
+            }
+        }
+
+        // Toggle field sesuai tipe pengajuan (loan/consumable)
         document.addEventListener('DOMContentLoaded', () => {
             const radios = document.querySelectorAll('input[name="type"]');
 

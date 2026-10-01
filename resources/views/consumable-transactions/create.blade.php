@@ -32,43 +32,108 @@
                 class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
                 @csrf
 
-                {{-- ============ ITEM ============ --}}
-                <div>
+                {{-- ============ ITEM (SEARCHABLE) ============ --}}
+                @php
+                    $consumableItems = $consumables
+                        ->map(
+                            fn($c) => [
+                                'id' => $c->id,
+                                'label' => $c->name,
+                                'sub' =>
+                                    'Tersedia: ' .
+                                    $c->stock_available .
+                                    ' ' .
+                                    $c->unit .
+                                    ' • Total: ' .
+                                    $c->stock_total .
+                                    ' ' .
+                                    $c->unit,
+                            ],
+                        )
+                        ->values();
+                @endphp
+
+                <div x-data="searchableSelect({
+                    items: {{ Js::from($consumableItems) }},
+                    selectedId: '{{ old('consumable_id', $consumable?->id) }}'
+                })" class="relative">
                     <label class="block text-sm font-semibold text-gray-700 mb-1">
                         Item <span class="text-red-500">*</span>
                     </label>
-                    <select name="consumable_id" required
-                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                        <option value="">-- Pilih Item --</option>
-                        @foreach ($consumables as $c)
-                            <option value="{{ $c->id }}" @selected(old('consumable_id', $consumable?->id) == $c->id)>
-                                {{ $c->name }} — Tersedia: {{ $c->stock_available }} {{ $c->unit }}
-                            </option>
-                        @endforeach
-                    </select>
 
-                    @if ($consumable)
-                        <div class="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs space-y-1">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Stok Total:</span>
-                                <span class="font-semibold">{{ $consumable->stock_total }}
-                                    {{ $consumable->unit }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Stok Tersedia:</span>
-                                <span class="font-semibold text-green-700">{{ $consumable->stock_available }}
-                                    {{ $consumable->unit }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Sedang Dipakai User:</span>
-                                <span class="font-semibold text-amber-700">
-                                    {{ ($consumable->total_out ?? 0) - ($consumable->total_return ?? 0) }}
-                                    {{ $consumable->unit }}
-                                </span>
-                            </div>
+                    <input type="hidden" name="consumable_id" :value="selectedId" required>
+
+                    <button type="button" @click="open = !open"
+                        class="w-full border rounded-lg px-3 py-2 text-sm text-left
+                               focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                               flex items-center justify-between gap-2">
+                        <span x-show="!selectedItem" class="text-gray-400">-- Pilih Item --</span>
+                        <span x-show="selectedItem" class="text-gray-800 truncate" x-text="selectedItem?.label"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 shrink-0 transition-transform"
+                            :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="open" x-cloak @click.away="open = false"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 -translate-y-1"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl
+                               max-h-72 flex flex-col">
+
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" x-model="search" x-ref="searchInput" @keydown.escape="open = false"
+                                placeholder="Cari item..."
+                                class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm
+                                       focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                         </div>
-                    @endif
+
+                        <div class="overflow-y-auto flex-1">
+                            <template x-if="filteredItems.length === 0">
+                                <p class="p-3 text-xs text-gray-400 italic text-center">Tidak ada item ditemukan</p>
+                            </template>
+
+                            <template x-for="item in filteredItems" :key="item.id">
+                                <button type="button" @click="selectItem(item)"
+                                    class="w-full text-left px-3 py-2 hover:bg-indigo-50 transition
+                                           flex items-start gap-2">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium text-gray-800 truncate" x-text="item.label"></div>
+                                        <div class="text-[10px] text-gray-500 truncate" x-text="item.sub || ''"></div>
+                                    </div>
+                                    <svg x-show="selectedId == item.id" xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
                 </div>
+
+                @if ($consumable)
+                    <div class="p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs space-y-1 -mt-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Stok Total:</span>
+                            <span class="font-semibold">{{ $consumable->stock_total }} {{ $consumable->unit }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Stok Tersedia:</span>
+                            <span class="font-semibold text-green-700">{{ $consumable->stock_available }}
+                                {{ $consumable->unit }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Sedang Dipakai User:</span>
+                            <span class="font-semibold text-amber-700">
+                                {{ ($consumable->total_out ?? 0) - ($consumable->total_return ?? 0) }}
+                                {{ $consumable->unit }}
+                            </span>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- ============ TIPE ============ --}}
                 <div>
@@ -127,16 +192,76 @@
                     </div>
                 </div>
 
-                {{-- ============ USER ============ --}}
-                <div>
+                {{-- ============ USER (SEARCHABLE) ============ --}}
+                @php
+                    $userItems = $users
+                        ->map(
+                            fn($u) => [
+                                'id' => $u->id,
+                                'label' => $u->name,
+                                'sub' => ($u->position ?? '-') . ' - ' . ($u->department?->name ?? '-'),
+                            ],
+                        )
+                        ->values();
+                @endphp
+
+                <div x-data="searchableSelect({
+                    items: {{ Js::from($userItems) }},
+                    selectedId: '{{ old('user_id') }}'
+                })" class="relative">
                     <label class="block text-sm font-semibold text-gray-700 mb-1">User Penerima</label>
-                    <select name="user_id" class="w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="">-- Pilih User --</option>
-                        @foreach ($users as $u)
-                            <option value="{{ $u->id }}" @selected(old('user_id') == $u->id)>{{ $u->name }}
-                            </option>
-                        @endforeach
-                    </select>
+
+                    <input type="hidden" name="user_id" :value="selectedId">
+
+                    <button type="button" @click="open = !open"
+                        class="w-full border rounded-lg px-3 py-2 text-sm text-left
+                               focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                               flex items-center justify-between gap-2">
+                        <span x-show="!selectedItem" class="text-gray-400">-- Pilih User --</span>
+                        <span x-show="selectedItem" class="text-gray-800 truncate" x-text="selectedItem?.label"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 text-gray-400 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="open" x-cloak @click.away="open = false"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 -translate-y-1"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl
+                               max-h-72 flex flex-col">
+
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" x-model="search" x-ref="searchInput" @keydown.escape="open = false"
+                                placeholder="Cari user..."
+                                class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm
+                                       focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        </div>
+
+                        <div class="overflow-y-auto flex-1">
+                            <template x-if="filteredItems.length === 0">
+                                <p class="p-3 text-xs text-gray-400 italic text-center">Tidak ada user ditemukan</p>
+                            </template>
+
+                            <template x-for="item in filteredItems" :key="item.id">
+                                <button type="button" @click="selectItem(item)"
+                                    class="w-full text-left px-3 py-2 hover:bg-indigo-50 transition
+                                           flex items-start gap-2">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium text-gray-800 truncate" x-text="item.label"></div>
+                                        <div class="text-[10px] text-gray-500 truncate" x-text="item.sub || ''"></div>
+                                    </div>
+                                    <svg x-show="selectedId == item.id" xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- ============ LOKASI + ASET ============ --}}
@@ -192,3 +317,47 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        function searchableSelect(options) {
+            return {
+                open: false,
+                search: '',
+                items: options.items || [],
+                selectedId: options.selectedId || '',
+
+                get selectedItem() {
+                    if (!this.selectedId) return null;
+                    return this.items.find(i => i.id == this.selectedId);
+                },
+
+                get filteredItems() {
+                    if (!this.search.trim()) return this.items;
+
+                    const q = this.search.toLowerCase();
+                    return this.items.filter(i =>
+                        i.label.toLowerCase().includes(q) ||
+                        (i.sub && i.sub.toLowerCase().includes(q))
+                    );
+                },
+
+                selectItem(item) {
+                    this.selectedId = item.id;
+                    this.open = false;
+                    this.search = '';
+                },
+
+                init() {
+                    this.$watch('open', (val) => {
+                        if (val) {
+                            this.$nextTick(() => {
+                                this.$refs.searchInput?.focus();
+                            });
+                        }
+                    });
+                }
+            }
+        }
+    </script>
+@endpush
