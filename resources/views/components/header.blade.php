@@ -75,7 +75,7 @@
                 ],
                 'master' => [
                     'label' => 'Master',
-                    'route' => route('users.index'),
+                    'route' => auth()->user()->isAdmin() ? route('users.index') : route('siam.departments.index'),
                     'icon' =>
                         '<path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>',
                     'active' => 'bg-violet-50 text-violet-700 shadow-sm shadow-violet-500/10',
