@@ -21,7 +21,6 @@
                 </p>
             </div>
 
-            {{-- Tombol Tambah — admin & support --}}
             @if (auth()->user()->hasAnyRole(['admin', 'support']))
                 <a href="{{ route('knowledge.create') }}"
                     class="inline-flex items-center gap-2
@@ -57,7 +56,7 @@
             </div>
         </div>
 
-        <!-- 🆕 SEARCH — SERVER-SIDE -->
+        <!-- SEARCH — SERVER-SIDE -->
         <form method="GET" action="{{ route('knowledge.index') }}" id="searchForm" class="mb-4">
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -74,7 +73,6 @@
                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                        bg-white shadow-sm transition">
 
-                {{-- Tombol Clear + Submit --}}
                 <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
                     @if (request('search'))
                         <a href="{{ route('knowledge.index') }}"
@@ -94,7 +92,6 @@
                 </div>
             </div>
 
-            {{-- Info hasil search --}}
             @if (request('search'))
                 <div class="mt-2 flex items-center gap-2 text-xs text-gray-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
@@ -123,7 +120,7 @@
                             <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                 Jawaban</th>
                             <th
-                                class="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-48">
+                                class="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-56">
                                 Lampiran</th>
                             <th
                                 class="px-5 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider w-44">
@@ -155,56 +152,77 @@
                                     {{ \Illuminate\Support\Str::limit($item->jawaban, 120) }}
                                 </td>
 
-                                {{-- LAMPIRAN --}}
-                                <td class="px-5 py-4 text-center">
-                                    @if ($item->file_path)
-                                        @php
-                                            $fileCategory = match (true) {
-                                                str_starts_with($item->file_type ?? '', 'image/') => 'image',
-                                                $item->file_type === 'application/pdf' => 'pdf',
-                                                str_contains($item->file_type ?? '', 'word') => 'word',
-                                                str_contains($item->file_type ?? '', 'excel') ||
-                                                    str_contains($item->file_type ?? '', 'spreadsheet')
-                                                    => 'excel',
-                                                str_contains($item->file_type ?? '', 'powerpoint') ||
-                                                    str_contains($item->file_type ?? '', 'presentation')
-                                                    => 'powerpoint',
-                                                str_contains($item->file_type ?? '', 'zip') ||
-                                                    str_contains($item->file_type ?? '', 'rar')
-                                                    => 'archive',
-                                                default => 'other',
-                                            };
-                                            $fileIcon = match ($fileCategory) {
-                                                'image' => '🖼️',
-                                                'pdf' => '📄',
-                                                'word' => '📝',
-                                                'excel' => '📊',
-                                                'powerpoint' => '📽️',
-                                                'archive' => '📦',
-                                                default => '📎',
-                                            };
-                                        @endphp
-                                        <a href="{{ asset('storage/' . $item->file_path) }}" target="_blank"
-                                            class="inline-flex items-center gap-2
-                                               px-2.5 py-1.5 rounded-lg
-                                               bg-gray-50 hover:bg-gray-100
-                                               border border-gray-200
-                                               text-xs font-semibold text-gray-700
-                                               transition max-w-full"
-                                            title="{{ $item->file_name }}">
-                                            <span class="shrink-0">{{ $fileIcon }}</span>
-                                            <span class="truncate max-w-[120px]">{{ $item->file_name }}</span>
-                                        </a>
+                                {{-- ============================================================ --}}
+                                {{-- LAMPIRAN — pakai relasi attachments --}}
+                                {{-- ============================================================ --}}
+                                <td class="px-5 py-4">
+                                    @php
+                                        $attachmentCount = $item->attachments_count ?? $item->attachments->count();
+                                    @endphp
+
+                                    @if ($attachmentCount > 0)
+                                        <div class="flex items-center justify-center gap-2 flex-wrap">
+
+                                            {{-- Tampilkan 2 lampiran pertama --}}
+                                            @foreach ($item->attachments->take(2) as $att)
+                                                <a href="{{ $att->url }}" target="_blank"
+                                                    class="inline-flex items-center gap-1.5
+                                                          px-2 py-1 rounded-lg
+                                                          bg-gray-50 hover:bg-gray-100
+                                                          border border-gray-200
+                                                          text-xs font-semibold text-gray-700
+                                                          transition max-w-[140px]"
+                                                    title="{{ $att->file_name }}">
+                                                    <span class="shrink-0">{{ $att->icon }}</span>
+                                                    <span class="truncate max-w-[90px]">{{ $att->file_name }}</span>
+                                                </a>
+                                            @endforeach
+
+                                            {{-- Badge +N → buka modal --}}
+                                            @if ($attachmentCount > 2)
+                                                <button type="button"
+                                                    @click="openAttachmentsModal(
+                                                        {{ $item->id }},
+                                                        '{{ addslashes($item->kata_kunci) }}',
+                                                        {{ Js::from(
+                                                            $item->attachments->map(
+                                                                fn($a) => [
+                                                                    'id' => $a->id,
+                                                                    'file_name' => $a->file_name,
+                                                                    'file_size_human' => $a->file_size_human,
+                                                                    'icon' => $a->icon,
+                                                                    'url' => $a->url,
+                                                                    'is_image' => $a->is_image,
+                                                                ],
+                                                            ),
+                                                        ) }}
+                                                    )"
+                                                    class="inline-flex items-center justify-center
+                                                          px-2.5 py-1 rounded-lg
+                                                          bg-blue-100 hover:bg-blue-200
+                                                          border border-blue-200
+                                                          text-xs font-bold text-blue-700
+                                                          transition"
+                                                    title="Lihat semua {{ $attachmentCount }} lampiran">
+                                                    +{{ $attachmentCount - 2 }}
+                                                </button>
+                                            @endif
+
+                                        </div>
                                     @else
-                                        <span class="text-xs text-gray-400 italic">Tidak ada</span>
+                                        <div class="text-center">
+                                            <span class="text-xs text-gray-400 italic">Tidak ada</span>
+                                        </div>
                                     @endif
                                 </td>
 
-                                {{-- AKSI — sesuai role --}}
+                                {{-- ============================================================ --}}
+                                {{-- AKSI — Edit + Hapus --}}
+                                {{-- ============================================================ --}}
                                 <td class="px-5 py-4 text-right">
                                     @if (auth()->user()->hasAnyRole(['admin', 'support']))
                                         <div class="inline-flex items-center gap-2">
-                                            {{-- Edit — admin & support --}}
+                                            {{-- Edit --}}
                                             <a href="{{ route('knowledge.edit', $item) }}"
                                                 class="inline-flex items-center gap-1.5
                                                    px-3 py-1.5 rounded-lg
@@ -226,10 +244,10 @@
                                             @if (auth()->user()->isAdmin())
                                                 <button type="button"
                                                     @click="openDeleteModal(
-                                                    {{ $item->id }},
-                                                    '{{ addslashes($item->kata_kunci) }}',
-                                                    '{{ route('knowledge.destroy', $item) }}'
-                                                )"
+                                                        {{ $item->id }},
+                                                        '{{ addslashes($item->kata_kunci) }}',
+                                                        '{{ route('knowledge.destroy', $item) }}'
+                                                    )"
                                                     class="inline-flex items-center gap-1.5
                                                        px-3 py-1.5 rounded-lg
                                                        bg-red-50 text-red-700
@@ -301,6 +319,98 @@
                     {{ $items->links() }}
                 </div>
             @endif
+        </div>
+
+        {{-- ============================================================ --}}
+        {{-- MODAL PREVIEW LAMPIRAN --}}
+        {{-- ============================================================ --}}
+        <div x-show="showAttachmentsModal" x-cloak
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[95] flex items-center justify-center p-4"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+                @click.away="showAttachmentsModal = false" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+
+                {{-- HEADER --}}
+                <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600
+                                    flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-gray-900 text-base truncate">
+                                Lampiran: <span class="text-blue-600" x-text="attachmentsTarget.kata_kunci"></span>
+                            </h3>
+                            <p class="text-xs text-gray-500">
+                                Total <span class="font-semibold" x-text="attachmentsTarget.items.length"></span> file
+                            </p>
+                        </div>
+                    </div>
+                    <button @click="showAttachmentsModal = false"
+                        class="shrink-0 p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- BODY — LIST LAMPIRAN --}}
+                <div class="flex-1 overflow-y-auto p-5 space-y-2">
+                    <template x-for="(att, idx) in attachmentsTarget.items" :key="att.id">
+                        <div
+                            class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+
+                            {{-- Thumbnail / Icon --}}
+                            <template x-if="att.is_image">
+                                <img :src="att.url" :alt="att.file_name"
+                                    class="w-12 h-12 object-cover rounded-lg border border-gray-200 shrink-0">
+                            </template>
+                            <template x-if="!att.is_image">
+                                <div class="w-12 h-12 rounded-lg bg-white border border-gray-200
+                                            flex items-center justify-center text-xl shrink-0"
+                                    x-text="att.icon"></div>
+                            </template>
+
+                            {{-- Info --}}
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-800 truncate" x-text="att.file_name"></p>
+                                <p class="text-xs text-gray-500" x-text="att.file_size_human"></p>
+                            </div>
+
+                            {{-- Nomor urut --}}
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0"
+                                x-text="'#' + (idx + 1)"></span>
+
+                            {{-- Tombol Lihat --}}
+                            <a :href="att.url" target="_blank"
+                                class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700
+                                       border border-blue-200 hover:bg-blue-100
+                                       text-xs font-semibold transition">
+                                Lihat
+                            </a>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- FOOTER --}}
+                <div class="px-5 py-3 border-t border-gray-100 bg-gray-50 flex justify-end shrink-0">
+                    <button @click="showAttachmentsModal = false"
+                        class="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300
+                               text-gray-700 font-semibold text-sm transition">
+                        Tutup
+                    </button>
+                </div>
+            </div>
         </div>
 
         {{-- MODAL & FORM HAPUS — hanya di-render untuk admin --}}
@@ -407,18 +517,32 @@
     <script>
         function knowledgeManager() {
             return {
+                // ==== DELETE MODAL ====
                 showDeleteModal: false,
                 deleteTarget: {
                     id: null,
                     kata_kunci: '',
                     action: '',
                 },
+
+                // ==== ATTACHMENTS MODAL ====
+                showAttachmentsModal: false,
+                attachmentsTarget: {
+                    id: null,
+                    kata_kunci: '',
+                    items: [],
+                },
+
+                // ==== TOAST ====
                 toast: {
                     show: false,
                     message: '',
                     type: 'success',
                 },
 
+                // ============================================================
+                // DELETE
+                // ============================================================
                 openDeleteModal(id, kata_kunci, action) {
                     this.deleteTarget = {
                         id,
@@ -435,6 +559,21 @@
                     form.submit();
                 },
 
+                // ============================================================
+                // ATTACHMENTS MODAL
+                // ============================================================
+                openAttachmentsModal(id, kata_kunci, items) {
+                    this.attachmentsTarget = {
+                        id,
+                        kata_kunci,
+                        items: items || [],
+                    };
+                    this.showAttachmentsModal = true;
+                },
+
+                // ============================================================
+                // TOAST
+                // ============================================================
                 showToast(message, type = 'success') {
                     this.toast.message = message;
                     this.toast.type = type;
@@ -445,6 +584,9 @@
                     }, 3500);
                 },
 
+                // ============================================================
+                // INIT
+                // ============================================================
                 init() {
                     @if (session('success'))
                         this.showToast(@json(session('success')), 'success');
@@ -453,7 +595,7 @@
                         this.showToast(@json(session('error')), 'error');
                     @endif
 
-                    // 🆕 Search: auto-submit setelah 500ms
+                    // Search: auto-submit setelah 500ms
                     const searchInput = document.getElementById('searchInput');
                     const searchForm = document.getElementById('searchForm');
 
@@ -466,7 +608,6 @@
                             }, 500);
                         });
 
-                        // Fokus otomatis kalau ada keyword dari URL
                         @if (request('search'))
                             searchInput.focus();
                             const len = searchInput.value.length;

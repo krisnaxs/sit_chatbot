@@ -167,6 +167,7 @@
             {{-- Messages --}}
             <template x-for="(msg, idx) in messages" :key="idx">
                 <div>
+                    {{-- ============ USER ============ --}}
                     <template x-if="msg.role === 'user'">
                         <div class="flex justify-end">
                             <div
@@ -178,6 +179,7 @@
                         </div>
                     </template>
 
+                    {{-- ============ BOT ============ --}}
                     <template x-if="msg.role === 'bot'">
                         <div class="flex items-start gap-2">
                             <div
@@ -194,97 +196,123 @@
                                 <p class="text-sm text-gray-700 whitespace-pre-wrap break-words" x-text="msg.text">
                                 </p>
 
-                                {{-- 📎 FILE ATTACHMENT --}}
-                                <template x-if="msg.file">
-                                    <div class="mt-2 pt-2 border-t border-gray-100">
+                                {{-- ============================================================ --}}
+                                {{-- MULTIPLE FILES --}}
+                                {{-- ============================================================ --}}
+                                <template x-if="msg.files && msg.files.length > 0">
+                                    <div class="mt-2 pt-2 border-t border-gray-100 space-y-2">
 
-                                        {{-- Image --}}
-                                        <template x-if="msg.file.category === 'image'">
+                                        {{-- Header kalau >1 file --}}
+                                        <template x-if="msg.files.length > 1">
+                                            <p class="text-[11px] font-semibold text-gray-600 flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                </svg>
+                                                <span x-text="msg.files.length"></span> lampiran:
+                                            </p>
+                                        </template>
+
+                                        {{-- Loop semua file --}}
+                                        <template x-for="(f, fIdx) in msg.files" :key="fIdx">
                                             <div>
-                                                <img :src="msg.file.url" :alt="msg.file.name"
-                                                    class="max-w-full rounded-lg border border-gray-200 shadow-sm mb-2">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="text-[11px] text-gray-500 truncate flex-1"
-                                                        x-text="msg.file.name"></span>
-                                                    <a :href="msg.file.url" :download="msg.file.name" target="_blank"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1
-                                                               bg-blue-50 hover:bg-blue-100 text-blue-700
-                                                               border border-blue-200
-                                                               rounded-lg text-[11px] font-semibold
-                                                               transition shrink-0">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3"
-                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                {{-- IMAGE --}}
+                                                <template x-if="f.category === 'image'">
+                                                    <div>
+                                                        <img :src="f.url" :alt="f.name"
+                                                            class="max-w-full rounded-lg border border-gray-200 shadow-sm mb-1.5">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-[11px] text-gray-500 truncate flex-1"
+                                                                x-text="f.name"></span>
+                                                            <a :href="f.url" :download="f.name"
+                                                                target="_blank"
+                                                                class="inline-flex items-center gap-1 px-2.5 py-1
+                                                                       bg-blue-50 hover:bg-blue-100 text-blue-700
+                                                                       border border-blue-200
+                                                                       rounded-lg text-[11px] font-semibold
+                                                                       transition shrink-0">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                    class="h-3 w-3" fill="none"
+                                                                    viewBox="0 0 24 24" stroke="currentColor"
+                                                                    stroke-width="2.5">
+                                                                    <path stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
+                                                                </svg>
+                                                                Download
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                {{-- PDF --}}
+                                                <template x-if="f.category === 'pdf'">
+                                                    <a :href="f.url" target="_blank"
+                                                        class="flex items-center gap-2 p-2
+                                                               bg-red-50 hover:bg-red-100
+                                                               border border-red-200
+                                                               rounded-xl transition">
+                                                        <div
+                                                            class="shrink-0 w-9 h-9 rounded-lg bg-red-100
+                                                                    flex items-center justify-center">
+                                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                                class="h-4 w-4 text-red-600" fill="none"
+                                                                viewBox="0 0 24 24" stroke="currentColor"
+                                                                stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                            </svg>
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-xs font-semibold text-gray-800 truncate"
+                                                                x-text="f.name"></p>
+                                                            <p class="text-[10px] text-gray-500">
+                                                                PDF · <span x-text="formatSize(f.size)"></span>
+                                                            </p>
+                                                        </div>
+                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                            class="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor"
                                                             stroke-width="2.5">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
                                                         </svg>
-                                                        Download
                                                     </a>
-                                                </div>
+                                                </template>
+
+                                                {{-- GENERIC --}}
+                                                <template x-if="!['image', 'pdf'].includes(f.category)">
+                                                    <a :href="f.url" :download="f.name" target="_blank"
+                                                        class="flex items-center gap-2 p-2
+                                                               bg-gray-50 hover:bg-gray-100
+                                                               border border-gray-200
+                                                               rounded-xl transition">
+                                                        <div
+                                                            class="shrink-0 w-9 h-9 rounded-lg bg-white
+                                                                    border border-gray-200
+                                                                    flex items-center justify-center text-base">
+                                                            <span x-text="fileIcon(f.category)"></span>
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-xs font-semibold text-gray-800 truncate"
+                                                                x-text="f.name"></p>
+                                                            <p class="text-[10px] text-gray-500">
+                                                                <span x-text="f.category.toUpperCase()"></span>
+                                                                · <span x-text="formatSize(f.size)"></span>
+                                                            </p>
+                                                        </div>
+                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                            class="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor"
+                                                            stroke-width="2.5">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
+                                                        </svg>
+                                                    </a>
+                                                </template>
                                             </div>
-                                        </template>
-
-                                        {{-- PDF --}}
-                                        <template x-if="msg.file.category === 'pdf'">
-                                            <a :href="msg.file.url" target="_blank"
-                                                class="flex items-center gap-2 p-2
-                                                       bg-red-50 hover:bg-red-100
-                                                       border border-red-200
-                                                       rounded-xl transition">
-                                                <div
-                                                    class="shrink-0 w-9 h-9 rounded-lg bg-red-100
-                                                            flex items-center justify-center">
-                                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                                        class="h-4 w-4 text-red-600" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                    </svg>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="text-xs font-semibold text-gray-800 truncate"
-                                                        x-text="msg.file.name"></p>
-                                                    <p class="text-[10px] text-gray-500">
-                                                        PDF · <span x-text="formatSize(msg.file.size)"></span>
-                                                    </p>
-                                                </div>
-                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                    class="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
-                                                </svg>
-                                            </a>
-                                        </template>
-
-                                        {{-- Generic --}}
-                                        <template x-if="!['image', 'pdf'].includes(msg.file.category)">
-                                            <a :href="msg.file.url" :download="msg.file.name" target="_blank"
-                                                class="flex items-center gap-2 p-2
-                                                       bg-gray-50 hover:bg-gray-100
-                                                       border border-gray-200
-                                                       rounded-xl transition">
-                                                <div
-                                                    class="shrink-0 w-9 h-9 rounded-lg bg-white
-                                                            border border-gray-200
-                                                            flex items-center justify-center text-base">
-                                                    <span x-text="fileIcon(msg.file.category)"></span>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="text-xs font-semibold text-gray-800 truncate"
-                                                        x-text="msg.file.name"></p>
-                                                    <p class="text-[10px] text-gray-500">
-                                                        <span x-text="msg.file.category.toUpperCase()"></span>
-                                                        · <span x-text="formatSize(msg.file.size)"></span>
-                                                    </p>
-                                                </div>
-                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                    class="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0 0l-4-4m4 4l4-4M12 3v9" />
-                                                </svg>
-                                            </a>
                                         </template>
                                     </div>
                                 </template>
@@ -399,7 +427,8 @@
 
                     this.messages.push({
                         role: 'user',
-                        text: text
+                        text: text,
+                        files: [],
                     });
                     this.input = '';
                     this.isTyping = true;
@@ -427,20 +456,22 @@
                                 role: 'bot',
                                 text: data.jawaban,
                                 sumber: data.sumber || null,
-                                file: data.file || null,
+                                files: data.files || [],
                             });
                         } else {
                             this.messages.push({
                                 role: 'bot',
                                 text: 'Maaf, terjadi kesalahan. Coba lagi nanti.',
-                                file: null,
+                                sumber: null,
+                                files: [],
                             });
                         }
                     } catch (err) {
                         this.messages.push({
                             role: 'bot',
                             text: 'Maaf, tidak bisa terhubung ke server.',
-                            file: null,
+                            sumber: null,
+                            files: [],
                         });
                     } finally {
                         this.isTyping = false;

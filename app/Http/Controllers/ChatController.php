@@ -303,6 +303,9 @@ class ChatController extends Controller
             'is_privileged' => $this->isPrivileged(),
         ]);
 
+        // Inisialisasi
+        $files = null;
+
         // GUARD 0: Guest yang tanya tentang aset → wajib login
         if (!auth()->check() && $this->isAssetQuery($pesan)) {
             $jawaban = "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
@@ -312,7 +315,7 @@ class ChatController extends Controller
                 . "3. Setelah login, tanyakan lagi ke saya 😊\n\n"
                 . "_Kalau belum punya akun, hubungi IT Support._";
             $sumber = 'auth_guard';
-            $file = null;
+            $files = null;
 
             Log::info('chat.send.guest_blocked', [
                 'request_id' => $requestId,
@@ -324,7 +327,7 @@ class ChatController extends Controller
             $jawaban = '🔒 Maaf, saya hanya bisa membaca data. '
                 . 'Untuk mengubah data, silakan gunakan menu Aset Management di SIAM.';
             $sumber = 'readonly_guard';
-            $file = null;
+            $files = null;
         }
         // FLOW NORMAL
         else {
@@ -332,9 +335,9 @@ class ChatController extends Controller
 
             if ($followUp) {
                 [$jawaban, $sumber] = $followUp;
-                $file = null;
+                $files = null;
             } else {
-                [$jawaban, $sumber, $file] = $this->cariJawaban($pesan, $memory, $requestId);
+                [$jawaban, $sumber, $files] = $this->cariJawaban($pesan, $memory, $requestId);
             }
         }
 
@@ -342,33 +345,41 @@ class ChatController extends Controller
             $this->logPendingKnowledge($pesan, $jawaban);
         }
 
+        // Ambil file PERTAMA sebagai representasi history
+        $firstFile = is_array($files) && !empty($files) ? $files[0] : null;
+
         $chat = Chat::create([
             'session_id' => $sessionId,
             'pesan' => $pesan,
             'jawaban' => $jawaban,
             'sumber' => $sumber,
             'waktu' => now(),
-            'file_path' => $file['path'] ?? null,
-            'file_name' => $file['name'] ?? null,
-            'file_type' => $file['type'] ?? null,
-            'file_size' => $file['size'] ?? null,
+            'file_path' => $firstFile['path'] ?? null,
+            'file_name' => $firstFile['name'] ?? null,
+            'file_type' => $firstFile['type'] ?? null,
+            'file_size' => $firstFile['size'] ?? null,
         ]);
 
-        $fileResponse = null;
-        if ($chat->file_path) {
-            $fileResponse = [
-                'url' => asset('storage/' . $chat->file_path),
-                'name' => $chat->file_name,
-                'type' => $chat->file_type,
-                'size' => $chat->file_size,
-                'category' => Knowledge::detectCategory($chat->file_type),
-            ];
+        // Build response files — kirim SEMUA lampiran ke frontend
+        $filesResponse = [];
+
+        if (is_array($files) && !empty($files)) {
+            foreach ($files as $f) {
+                $filesResponse[] = [
+                    'url' => isset($f['url']) ? $f['url'] : asset('storage/' . $f['path']),
+                    'name' => $f['name'],
+                    'type' => $f['type'],
+                    'size' => $f['size'],
+                    'category' => Knowledge::detectCategory($f['type']),
+                ];
+            }
         }
 
         Log::info('chat.send.done', [
             'request_id' => $requestId,
             'sumber' => $sumber,
             'jawaban_len' => strlen($jawaban),
+            'files_count' => count($filesResponse),
         ]);
 
         return response()->json([
@@ -377,10 +388,9 @@ class ChatController extends Controller
             'jawaban' => $chat->jawaban,
             'waktu' => $chat->waktu,
             'sumber' => $sumber,
-            'file' => $fileResponse,
+            'files' => $filesResponse,
         ]);
     }
-
     private function isAssetQuery(string $pesan): bool
     {
         $lower = Str::lower($pesan);
@@ -963,24 +973,30 @@ class ChatController extends Controller
             return null;
         }
 
-        $knowledge = Knowledge::whereRaw('LOWER(kata_kunci) = ?', [$pesanBersih])->first();
+        $knowledge = Knowledge::whereRaw('LOWER(kata_kunci) = ?', [$pesanBersih])
+            ->with('attachments')          // ← eager load attachments
+            ->first();
 
         if ($knowledge) {
             return [
                 $knowledge->jawaban,
                 'database',
-                $this->extractFile($knowledge),
+                $this->extractFiles($knowledge),       // ← extractFiles (array)
             ];
         }
 
-        $candidates = Knowledge::search($pesanBersih)->take(20)->get();
+        $candidates = Knowledge::with('attachments')   // ← eager load
+            ->search($pesanBersih)
+            ->take(20)
+            ->get();
+
         $best = $this->pickBestMatch($candidates, $pesanBersih);
 
         if ($best) {
             return [
                 $best->jawaban,
                 'database',
-                $this->extractFile($best),
+                $this->extractFiles($best),            // ← extractFiles (array)
             ];
         }
 
@@ -3027,17 +3043,41 @@ class ChatController extends Controller
         return $bestScore >= 0.6 ? $best : null;
     }
 
-    private function extractFile(Knowledge $knowledge): ?array
+    /**
+     * Ambil SEMUA lampiran dari knowledge.
+     * Return array of files, atau null kalau kosong.
+     */
+    private function extractFiles(Knowledge $knowledge): ?array
     {
-        if (!$knowledge->file_path)
-            return null;
+        // Eager load kalau belum
+        if (!$knowledge->relationLoaded('attachments')) {
+            $knowledge->load('attachments');
+        }
 
-        return [
-            'path' => $knowledge->file_path,
-            'name' => $knowledge->file_name,
-            'type' => $knowledge->file_type,
-            'size' => $knowledge->file_size,
-        ];
+        $files = [];
+
+        // Prioritas 1: dari relasi attachments (multiple)
+        if ($knowledge->attachments->count() > 0) {
+            foreach ($knowledge->attachments as $att) {
+                $files[] = [
+                    'path' => $att->file_path,
+                    'name' => $att->file_name,
+                    'type' => $att->file_type,
+                    'size' => $att->file_size,
+                ];
+            }
+        }
+        // Fallback: kolom lama (kalau attachments kosong)
+        elseif ($knowledge->file_path) {
+            $files[] = [
+                'path' => $knowledge->file_path,
+                'name' => $knowledge->file_name,
+                'type' => $knowledge->file_type,
+                'size' => $knowledge->file_size,
+            ];
+        }
+
+        return $files ?: null;
     }
 
     private function matchAny(string $haystack, array $needles): bool

@@ -90,7 +90,9 @@
                         @enderror
                     </div>
 
-                    <!-- UPLOAD FILE -->
+                    <!-- ============================================================ -->
+                    <!-- UPLOAD FILE — MULTIPLE (TANPA BATAS JUMLAH) -->
+                    <!-- ============================================================ -->
                     <div>
                         <label class="block font-semibold text-sm text-gray-700 mb-2">
                             Lampiran (Opsional)
@@ -112,58 +114,50 @@
                                         d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                 </svg>
                                 Pilih File
-                                <input type="file" name="file"
+                                <input type="file" name="files[]" id="filesInput" multiple
                                     accept=".jpg,.jpeg,.png,.webp,.gif,.svg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.rar,.7z"
-                                    class="hidden" onchange="previewFile(event)">
+                                    class="hidden" onchange="previewFiles(event)">
                             </label>
+                            <button type="button" onclick="clearAllFiles()" id="clearAllBtn"
+                                class="hidden items-center gap-2 px-3 py-2.5 rounded-xl
+                                       border border-red-300 text-red-600 text-sm font-semibold
+                                       hover:bg-red-50 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Hapus Semua
+                            </button>
                             <span class="text-xs text-gray-500">
-                                JPG, PNG, PDF, Word, Excel, PPT, ZIP · Maks 10 MB
+                                JPG, PNG, PDF, Word, Excel, PPT, ZIP · Maks 500 MB/file
                             </span>
                         </div>
 
                         <p class="text-xs text-gray-500 mt-1.5">
-                            💡 File akan otomatis muncul di chat saat user bertanya dengan kata kunci ini
+                            💡 Bisa pilih banyak file sekaligus (Ctrl/Cmd + klik). Semua file akan muncul di chat saat user
+                            bertanya dengan kata kunci ini.
                         </p>
 
-                        @error('file')
+                        @error('files')
+                            <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
+                        @enderror
+                        @error('files.*')
                             <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
 
-                        <!-- Preview File -->
-                        <div id="filePreview" class="mt-3 hidden">
-                            <div class="p-3 border border-gray-200 rounded-xl bg-gray-50 flex items-center gap-3">
-                                <img id="imagePreviewEl" src="#" alt="Preview"
-                                    class="max-h-16 rounded-lg border border-gray-200 hidden">
-                                <div id="pdfPreviewEl" class="hidden">
-                                    <div class="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div id="docPreviewEl" class="hidden">
-                                    <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p id="fileNameEl" class="text-sm font-semibold text-gray-800 truncate"></p>
-                                    <p id="fileSizeEl" class="text-xs text-gray-500"></p>
-                                </div>
-                                <button type="button" onclick="clearFile()"
-                                    class="shrink-0 p-1.5 rounded-lg hover:bg-red-50 transition">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+                        <!-- ============================================================ -->
+                        <!-- PREVIEW DAFTAR FILE -->
+                        <!-- ============================================================ -->
+                        <div id="filesPreview" class="mt-4 hidden">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm font-semibold text-gray-700">
+                                    File terpilih: <span id="filesCount" class="text-blue-600">0</span>
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    Total: <span id="filesTotalSize">0 B</span>
+                                </p>
                             </div>
+                            <div id="filesList" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
                         </div>
                     </div>
 
@@ -240,46 +234,128 @@
 
 @push('scripts')
     <script>
-        function previewFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // ============================================================
+        // PREVIEW MULTIPLE FILES
+        // ============================================================
+        function previewFiles(event) {
+            const input = event.target;
+            const files = Array.from(input.files);
 
-            const preview = document.getElementById('filePreview');
-            const imgEl = document.getElementById('imagePreviewEl');
-            const pdfEl = document.getElementById('pdfPreviewEl');
-            const docEl = document.getElementById('docPreviewEl');
-            const nameEl = document.getElementById('fileNameEl');
-            const sizeEl = document.getElementById('fileSizeEl');
+            const preview = document.getElementById('filesPreview');
+            const list = document.getElementById('filesList');
+            const countEl = document.getElementById('filesCount');
+            const totalEl = document.getElementById('filesTotalSize');
+            const clearBtn = document.getElementById('clearAllBtn');
+
+            if (!files.length) {
+                preview.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+                clearBtn.classList.remove('inline-flex');
+                list.innerHTML = '';
+                return;
+            }
 
             preview.classList.remove('hidden');
-            nameEl.textContent = file.name;
-            let size = file.size;
+            clearBtn.classList.remove('hidden');
+            clearBtn.classList.add('inline-flex');
+
+            countEl.textContent = files.length;
+
+            let totalSize = 0;
+            list.innerHTML = '';
+
+            files.forEach((file, idx) => {
+                totalSize += file.size;
+
+                const sizeStr = formatSize(file.size);
+                const icon = getFileIcon(file.type, file.name);
+
+                const row = document.createElement('div');
+                row.className =
+                    'flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition';
+
+                // Untuk gambar, tampilkan thumbnail
+                let thumbHtml = '';
+                if (file.type.startsWith('image/')) {
+                    const url = URL.createObjectURL(file);
+                    thumbHtml =
+                        `<img src="${url}" class="w-10 h-10 object-cover rounded-lg border border-gray-200" alt="thumb">`;
+                } else {
+                    thumbHtml =
+                        `<div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-lg">${icon}</div>`;
+                }
+
+                row.innerHTML = `
+                    ${thumbHtml}
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(file.name)}</p>
+                        <p class="text-xs text-gray-500">${sizeStr}</p>
+                    </div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                        #${idx + 1}
+                    </span>
+                `;
+
+                list.appendChild(row);
+            });
+
+            totalEl.textContent = formatSize(totalSize);
+        }
+
+        // ============================================================
+        // CLEAR ALL FILES
+        // ============================================================
+        function clearAllFiles() {
+            const input = document.getElementById('filesInput');
+            input.value = '';
+
+            document.getElementById('filesPreview').classList.add('hidden');
+            const clearBtn = document.getElementById('clearAllBtn');
+            clearBtn.classList.add('hidden');
+            clearBtn.classList.remove('inline-flex');
+            document.getElementById('filesList').innerHTML = '';
+        }
+
+        // ============================================================
+        // HELPER: Format size
+        // ============================================================
+        function formatSize(bytes) {
             const units = ['B', 'KB', 'MB', 'GB'];
             let i = 0;
+            let size = bytes;
             while (size >= 1024 && i < units.length - 1) {
                 size /= 1024;
                 i++;
             }
-            sizeEl.textContent = size.toFixed(1) + ' ' + units[i];
-            imgEl.classList.add('hidden');
-            pdfEl.classList.add('hidden');
-            docEl.classList.add('hidden');
-
-            if (file.type.startsWith('image/')) {
-                imgEl.classList.remove('hidden');
-                imgEl.src = URL.createObjectURL(file);
-            } else if (file.type === 'application/pdf') {
-                pdfEl.classList.remove('hidden');
-            } else {
-                docEl.classList.remove('hidden');
-            }
+            return size.toFixed(2) + ' ' + units[i];
         }
 
-        function clearFile() {
-            document.querySelector('input[name="file"]').value = '';
-            document.getElementById('filePreview').classList.add('hidden');
+        // ============================================================
+        // HELPER: Icon berdasarkan tipe file
+        // ============================================================
+        function getFileIcon(mime, name) {
+            if (mime.startsWith('image/')) return '🖼️';
+            if (mime === 'application/pdf') return '📄';
+            if (mime.includes('word') || mime.includes('document')) return '📝';
+            if (mime.includes('excel') || mime.includes('spreadsheet') || mime === 'text/csv') return '📊';
+            if (mime.includes('powerpoint') || mime.includes('presentation')) return '📽️';
+            if (mime.includes('zip') || mime.includes('rar') || mime.includes('7z')) return '📦';
+            if (mime.startsWith('text/')) return '📃';
+            return '📎';
         }
 
+        // ============================================================
+        // HELPER: Escape HTML biar aman
+        // ============================================================
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        // ALPINE COMPONENT
+        // ============================================================
         function knowledgeForm() {
             return {
                 toast: {

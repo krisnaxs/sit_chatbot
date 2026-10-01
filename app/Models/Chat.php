@@ -8,6 +8,7 @@ class Chat extends Model
 {
     protected $table = 'chat';
     public $timestamps = false;
+
     protected $fillable = [
         'session_id',
         'pesan',
@@ -18,6 +19,11 @@ class Chat extends Model
         'file_name',
         'file_type',
         'file_size',
+    ];
+
+    protected $casts = [
+        'file_size' => 'integer',
+        'waktu' => 'datetime',
     ];
 
     /**
@@ -53,5 +59,33 @@ class Chat extends Model
             'archive' => '📦',
             default => '📎',
         };
+    }
+
+    // ============================================================
+    // ACCESSOR (opsional, untuk kemudahan)
+    // ============================================================
+
+    /**
+     * URL file publik (kolom lama).
+     */
+    public function getFileUrlAttribute(): ?string
+    {
+        return $this->file_path ? asset('storage/' . $this->file_path) : null;
+    }
+
+    /**
+     * Kategori file (dari kolom lama).
+     */
+    public function getFileCategoryAttribute(): string
+    {
+        return self::detectCategory($this->file_type);
+    }
+
+    /**
+     * Icon file (dari kolom lama).
+     */
+    public function getFileIconAttribute(): string
+    {
+        return self::iconForCategory($this->file_category);
     }
 }

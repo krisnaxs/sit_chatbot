@@ -100,8 +100,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // 2. Letakkan route resource (yang memiliki parameter/wildcard) di bawah
+    Route::delete(
+        '/knowledge/attachments/{attachment}',
+        [KnowledgeController::class, 'destroyAttachment']
+    )->name('knowledge.attachments.destroy');
+
+    // Resource utama (di bawah, biar wildcard {knowledge} tidak menangkap 'attachments')
     Route::resource('knowledge', KnowledgeController::class);
-    // ─── Activity Log ───
 
 
     // ─── Users ───

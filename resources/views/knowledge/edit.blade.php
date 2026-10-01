@@ -85,86 +85,84 @@
                         @enderror
                     </div>
 
-                    <!-- FILE LAMA -->
-                    @if ($knowledge->file_path)
+                    <!-- ============================================================ -->
+                    <!-- LAMPIRAN SAAT INI (DARI RELASI attachments) -->
+                    <!-- ============================================================ -->
+                    @if ($knowledge->attachments->count())
                         <div>
-                            <label class="block font-semibold text-sm text-gray-700 mb-2">
-                                Lampiran Saat Ini
-                            </label>
-                            @php
-                                $cat = match (true) {
-                                    str_starts_with($knowledge->file_type ?? '', 'image/') => 'image',
-                                    $knowledge->file_type === 'application/pdf' => 'pdf',
-                                    str_contains($knowledge->file_type ?? '', 'word') => 'word',
-                                    str_contains($knowledge->file_type ?? '', 'excel') ||
-                                        str_contains($knowledge->file_type ?? '', 'spreadsheet')
-                                        => 'excel',
-                                    str_contains($knowledge->file_type ?? '', 'powerpoint') ||
-                                        str_contains($knowledge->file_type ?? '', 'presentation')
-                                        => 'powerpoint',
-                                    str_contains($knowledge->file_type ?? '', 'zip') ||
-                                        str_contains($knowledge->file_type ?? '', 'rar')
-                                        => 'archive',
-                                    default => 'other',
-                                };
-                                $icon = match ($cat) {
-                                    'image' => '🖼️',
-                                    'pdf' => '📄',
-                                    'word' => '📝',
-                                    'excel' => '📊',
-                                    'powerpoint' => '📽️',
-                                    'archive' => '📦',
-                                    default => '📎',
-                                };
-                                $size = $knowledge->file_size ?? 0;
-                                $units = ['B', 'KB', 'MB', 'GB'];
-                                $i = 0;
-                                while ($size >= 1024 && $i < count($units) - 1) {
-                                    $size /= 1024;
-                                    $i++;
-                                }
-                                $sizeStr = round($size, 1) . ' ' . $units[$i];
-                            @endphp
-
-                            {{-- Preview Image --}}
-                            @if ($cat === 'image')
-                                <img src="{{ asset('storage/' . $knowledge->file_path) }}" alt="{{ $knowledge->file_name }}"
-                                    class="w-full max-h-64 object-contain rounded-xl border border-gray-200 bg-gray-50 mb-2">
-                            @endif
-
-                            <div class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">
-                                <span class="text-2xl shrink-0">{{ $icon }}</span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-semibold text-gray-800 truncate">{{ $knowledge->file_name }}</p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ strtoupper($cat) }} · {{ $sizeStr }}
-                                    </p>
-                                </div>
-                                <a href="{{ asset('storage/' . $knowledge->file_path) }}" target="_blank"
-                                    class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200
-                                       hover:bg-blue-100 text-xs font-semibold transition">
-                                    Lihat
-                                </a>
-                                <button type="button"
-                                    onclick="document.getElementById('remove_file').checked = true; document.getElementById('fileLama').classList.add('opacity-40', 'line-through')"
-                                    class="shrink-0 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200
-                                       hover:bg-red-100 text-xs font-semibold transition">
-                                    Hapus
-                                </button>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block font-semibold text-sm text-gray-700">
+                                    Lampiran Saat Ini
+                                </label>
+                                <span class="text-xs font-semibold px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                    {{ $knowledge->attachments->count() }} file
+                                </span>
                             </div>
 
-                            {{-- Hidden checkbox untuk hapus file --}}
-                            <input type="checkbox" id="remove_file" name="remove_file" value="1" class="hidden">
-                            <p class="text-xs text-gray-500 mt-1.5">
-                                💡 Klik <strong>Hapus</strong> lalu Update untuk menghapus lampiran ini.
+                            <p class="text-xs text-gray-500 mb-3">
+                                💡 Centang file yang ingin <strong>dihapus</strong>, lalu klik Update.
                             </p>
+
+                            <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                                @foreach ($knowledge->attachments as $att)
+                                    <div x-data="{ removed: false }" :class="removed ? 'opacity-40 line-through' : ''"
+                                        class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-gray-50 transition">
+
+                                        {{-- Checkbox hapus --}}
+                                        <input type="checkbox" name="remove_attachments[]" value="{{ $att->id }}"
+                                            x-model="removed" id="rm_{{ $att->id }}"
+                                            class="shrink-0 w-4 h-4 rounded border-gray-300 text-red-600
+                                                      focus:ring-red-500 cursor-pointer">
+
+                                        {{-- Thumbnail / Icon --}}
+                                        @if ($att->is_image)
+                                            <img src="{{ $att->url }}" alt="{{ $att->file_name }}"
+                                                class="w-12 h-12 object-cover rounded-lg border border-gray-200 shrink-0">
+                                        @else
+                                            <div
+                                                class="w-12 h-12 rounded-lg bg-white border border-gray-200
+                                                    flex items-center justify-center text-xl shrink-0">
+                                                {{ $att->icon }}
+                                            </div>
+                                        @endif
+
+                                        {{-- Info --}}
+                                        <div class="flex-1 min-w-0">
+                                            <label for="rm_{{ $att->id }}"
+                                                class="text-sm font-semibold text-gray-800 truncate block cursor-pointer">
+                                                {{ $att->file_name }}
+                                            </label>
+                                            <p class="text-xs text-gray-500">
+                                                {{ $att->file_size_human }}
+                                            </p>
+                                        </div>
+
+                                        {{-- Tombol Lihat --}}
+                                        <a href="{{ $att->url }}" target="_blank"
+                                            class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700
+                                                   border border-blue-200 hover:bg-blue-100
+                                                   text-xs font-semibold transition">
+                                            Lihat
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @error('remove_attachments')
+                                <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
+                            @enderror
+                            @error('remove_attachments.*')
+                                <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
+                            @enderror
                         </div>
                     @endif
 
-                    <!-- UPLOAD FILE BARU -->
+                    <!-- ============================================================ -->
+                    <!-- UPLOAD FILE BARU — MULTIPLE -->
+                    <!-- ============================================================ -->
                     <div>
                         <label class="block font-semibold text-sm text-gray-700 mb-2">
-                            {{ $knowledge->file_path ? 'Ganti Lampiran (Opsional)' : 'Lampiran (Opsional)' }}
+                            {{ $knowledge->attachments->count() ? 'Tambah Lampiran Baru (Opsional)' : 'Lampiran (Opsional)' }}
                         </label>
 
                         <div class="flex items-center gap-3 flex-wrap">
@@ -183,45 +181,49 @@
                                         d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                 </svg>
                                 Pilih File
-                                <input type="file" name="file"
+                                <input type="file" name="files[]" id="filesInput" multiple
                                     accept=".jpg,.jpeg,.png,.webp,.gif,.svg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.rar,.7z"
-                                    class="hidden" onchange="previewFile(event)">
+                                    class="hidden" onchange="previewFiles(event)">
                             </label>
+
+                            <button type="button" onclick="clearAllFiles()" id="clearAllBtn"
+                                class="hidden items-center gap-2 px-3 py-2.5 rounded-xl
+                                       border border-red-300 text-red-600 text-sm font-semibold
+                                       hover:bg-red-50 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Hapus Semua
+                            </button>
+
                             <span class="text-xs text-gray-500">
-                                JPG, PNG, PDF, Word, Excel, PPT, ZIP · Maks 10 MB
+                                JPG, PNG, PDF, Word, Excel, PPT, ZIP · Maks 500 MB/file
                             </span>
                         </div>
 
-                        @error('file')
+                        <p class="text-xs text-gray-500 mt-1.5">
+                            💡 File baru akan <strong>ditambahkan</strong> ke lampiran yang sudah ada.
+                        </p>
+
+                        @error('files')
+                            <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
+                        @enderror
+                        @error('files.*')
                             <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
 
-                        <!-- Preview file baru -->
-                        <div id="filePreview" class="mt-3 hidden">
-                            <div class="p-3 border border-gray-200 rounded-xl bg-gray-50 flex items-center gap-3">
-                                <img id="imagePreviewEl" src="#" alt="Preview"
-                                    class="max-h-16 rounded-lg border border-gray-200 hidden">
-                                <div id="pdfPreviewEl" class="hidden">
-                                    <div class="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p id="fileNameEl" class="text-sm font-semibold text-gray-800 truncate"></p>
-                                    <p id="fileSizeEl" class="text-xs text-gray-500"></p>
-                                </div>
-                                <button type="button" onclick="clearFile()"
-                                    class="shrink-0 p-1.5 rounded-lg hover:bg-red-50 transition">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+                        <!-- Preview daftar file baru -->
+                        <div id="filesPreview" class="mt-4 hidden">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm font-semibold text-gray-700">
+                                    File baru: <span id="filesCount" class="text-blue-600">0</span>
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    Total: <span id="filesTotalSize">0 B</span>
+                                </p>
                             </div>
+                            <div id="filesList" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
                         </div>
                     </div>
 
@@ -310,38 +312,127 @@
 
 @push('scripts')
     <script>
-        function previewFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // ============================================================
+        // PREVIEW MULTIPLE FILES (FILE BARU)
+        // ============================================================
+        function previewFiles(event) {
+            const input = event.target;
+            const files = Array.from(input.files);
 
-            const preview = document.getElementById('filePreview');
-            const imgEl = document.getElementById('imagePreviewEl');
-            const pdfEl = document.getElementById('pdfPreviewEl');
-            const nameEl = document.getElementById('fileNameEl');
-            const sizeEl = document.getElementById('fileSizeEl');
+            const preview = document.getElementById('filesPreview');
+            const list = document.getElementById('filesList');
+            const countEl = document.getElementById('filesCount');
+            const totalEl = document.getElementById('filesTotalSize');
+            const clearBtn = document.getElementById('clearAllBtn');
+
+            if (!files.length) {
+                preview.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+                clearBtn.classList.remove('inline-flex');
+                list.innerHTML = '';
+                return;
+            }
 
             preview.classList.remove('hidden');
-            nameEl.textContent = file.name;
-            sizeEl.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            clearBtn.classList.remove('hidden');
+            clearBtn.classList.add('inline-flex');
 
-            if (file.type === 'application/pdf') {
-                imgEl.classList.add('hidden');
-                pdfEl.classList.remove('hidden');
-            } else if (file.type.startsWith('image/')) {
-                pdfEl.classList.add('hidden');
-                imgEl.classList.remove('hidden');
-                imgEl.src = URL.createObjectURL(file);
-            } else {
-                imgEl.classList.add('hidden');
-                pdfEl.classList.remove('hidden');
+            countEl.textContent = files.length;
+
+            let totalSize = 0;
+            list.innerHTML = '';
+
+            files.forEach((file, idx) => {
+                totalSize += file.size;
+
+                const sizeStr = formatSize(file.size);
+                const icon = getFileIcon(file.type, file.name);
+
+                const row = document.createElement('div');
+                row.className =
+                    'flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition';
+
+                let thumbHtml = '';
+                if (file.type.startsWith('image/')) {
+                    const url = URL.createObjectURL(file);
+                    thumbHtml =
+                        `<img src="${url}" class="w-10 h-10 object-cover rounded-lg border border-gray-200" alt="thumb">`;
+                } else {
+                    thumbHtml =
+                        `<div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-lg">${icon}</div>`;
+                }
+
+                row.innerHTML = `
+                    ${thumbHtml}
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate">${escapeHtml(file.name)}</p>
+                        <p class="text-xs text-gray-500">${sizeStr}</p>
+                    </div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                        #${idx + 1}
+                    </span>
+                `;
+
+                list.appendChild(row);
+            });
+
+            totalEl.textContent = formatSize(totalSize);
+        }
+
+        // ============================================================
+        // CLEAR ALL FILES (FILE BARU)
+        // ============================================================
+        function clearAllFiles() {
+            const input = document.getElementById('filesInput');
+            input.value = '';
+
+            document.getElementById('filesPreview').classList.add('hidden');
+            const clearBtn = document.getElementById('clearAllBtn');
+            clearBtn.classList.add('hidden');
+            clearBtn.classList.remove('inline-flex');
+            document.getElementById('filesList').innerHTML = '';
+        }
+
+        // ============================================================
+        // HELPER: Format size
+        // ============================================================
+        function formatSize(bytes) {
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let i = 0;
+            let size = bytes;
+            while (size >= 1024 && i < units.length - 1) {
+                size /= 1024;
+                i++;
             }
+            return size.toFixed(2) + ' ' + units[i];
         }
 
-        function clearFile() {
-            document.querySelector('input[name="file"]').value = '';
-            document.getElementById('filePreview').classList.add('hidden');
+        // ============================================================
+        // HELPER: Icon berdasarkan tipe file
+        // ============================================================
+        function getFileIcon(mime, name) {
+            if (mime.startsWith('image/')) return '🖼️';
+            if (mime === 'application/pdf') return '📄';
+            if (mime.includes('word') || mime.includes('document')) return '📝';
+            if (mime.includes('excel') || mime.includes('spreadsheet') || mime === 'text/csv') return '📊';
+            if (mime.includes('powerpoint') || mime.includes('presentation')) return '📽️';
+            if (mime.includes('zip') || mime.includes('rar') || mime.includes('7z')) return '📦';
+            if (mime.startsWith('text/')) return '📃';
+            return '📎';
         }
 
+        // ============================================================
+        // HELPER: Escape HTML
+        // ============================================================
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        // ALPINE COMPONENT
+        // ============================================================
         function knowledgeForm() {
             return {
                 toast: {

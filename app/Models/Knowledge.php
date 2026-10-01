@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Scout\Searchable;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
@@ -24,10 +25,12 @@ class Knowledge extends Model
         'file_size',
     ];
 
+    protected $casts = [
+        'file_size' => 'integer',
+    ];
+
     /**
      * Field yang di-index ke TNTSearch.
-     * Wajib ada 'id' agar Scout bisa mapping hasil pencarian ke model.
-     * 'kata_kunci' dan 'jawaban' agar pencarian bisa mencocokkan keduanya.
      */
     public function toSearchableArray(): array
     {
@@ -46,6 +49,22 @@ class Knowledge extends Model
             ->dontSubmitEmptyLogs()
             ->useLogName('knowledge');
     }
+
+    // ============================================================
+    // RELASI BARU — banyak lampiran
+    // ============================================================
+
+    /**
+     * Semua lampiran (hasMany ke knowledge_attachments).
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(KnowledgeAttachment::class, 'knowledge_id', 'id');
+    }
+
+    // ============================================================
+    // DETEKSI KATEGORI FILE
+    // ============================================================
 
     /**
      * Deteksi kategori file dari MIME type
@@ -82,6 +101,10 @@ class Knowledge extends Model
             default => '📎',
         };
     }
+
+    // ============================================================
+    // HELPER — FILE LAMA (kompatibel dengan kolom file_path dkk)
+    // ============================================================
 
     /**
      * Helper: apakah knowledge punya file?
@@ -131,5 +154,34 @@ class Knowledge extends Model
     public function getFileIconAttribute(): string
     {
         return self::iconForCategory($this->file_category);
+    }
+
+    // ============================================================
+    // HELPER BARU — LAMPIRAN
+    // ============================================================
+
+    /**
+     * Cek apakah knowledge punya lampiran (di tabel knowledge_attachments).
+     */
+    public function hasAttachments(): bool
+    {
+        return $this->attachments()->exists();
+    }
+
+    /**
+     * Total lampiran.
+     */
+    public function getAttachmentCountAttribute(): int
+    {
+        return $this->attachments()->count();
+    }
+
+    /**
+     * File pertama (untuk kompatibilitas view lama).
+     * Kalau tidak ada lampiran, return null.
+     */
+    public function getFirstAttachmentAttribute(): ?KnowledgeAttachment
+    {
+        return $this->attachments()->first();
     }
 }
