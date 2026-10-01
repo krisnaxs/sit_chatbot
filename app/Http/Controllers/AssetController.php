@@ -617,6 +617,360 @@ class AssetController extends Controller
             ->with('success', $msg);
     }
 
+    /**
+     * Form bulk create — input banyak unit aset identik sekaligus.
+     */
+    /**
+     * Form bulk create — input banyak unit aset identik sekaligus.
+     */
+    public function bulkCreate()
+    {
+        $categories = AssetCategory::active()->where('is_consumable', false)->orderBy('name')->get();
+        $locations = Location::active()->orderBy('full_name')->get();
+        $users = User::active()->orderBy('name')->get();
+        $vendors = Vendor::active()->orderBy('name')->get();
+        $departments = Department::active()->orderBy('name')->get();
+        $brands = AssetType::active()->select('brand')->distinct()->orderBy('brand')->pluck('brand');
+        $assetTypes = AssetType::active()->orderBy('model')->get(['id', 'brand', 'model']);
+
+        return view('assets.bulk-create', compact(
+            'categories',
+            'locations',
+            'users',
+            'vendors',
+            'departments',
+            'brands',
+            'assetTypes'
+        ));
+    }
+
+    /**
+     * Preview serial & asset code yang akan di-generate (AJAX, tanpa simpan).
+     * Support 2 mode: auto-generate & manual (paste list).
+     */
+    public function bulkPreview(Request $request)
+    {
+        $qty = max(1, (int) $request->input('quantity', 1));
+        $autoSerial = filter_var($request->input('auto_serial', true), FILTER_VALIDATE_BOOLEAN);
+        $autoCode = filter_var($request->input('auto_code', true), FILTER_VALIDATE_BOOLEAN);
+
+        // === Build serials ===
+        $serials = [];
+        if (!$autoSerial) {
+            $text = (string) $request->input('serial_list', '');
+            $serials = array_values(array_filter(
+                array_map('trim', preg_split('/\r\n|\r|\n/', $text)),
+                fn($s) => $s !== ''
+            ));
+        } else {
+            $prefix = (string) $request->input('serial_prefix', '');
+            $start = max(1, (int) $request->input('serial_start', 1));
+            $pad = max(0, (int) $request->input('serial_pad', 4));
+
+            for ($i = 0; $i < $qty; $i++) {
+                $n = $start + $i;
+                $serials[] = $prefix . ($pad > 0 ? str_pad($n, $pad, '0', STR_PAD_LEFT) : $n);
+            }
+        }
+
+        // === Build codes ===
+        $codes = [];
+        if (!$autoCode) {
+            $text = (string) $request->input('code_list', '');
+            $codes = array_values(array_filter(
+                array_map('trim', preg_split('/\r\n|\r|\n/', $text)),
+                fn($s) => $s !== ''
+            ));
+        } elseif ($request->filled('code_prefix')) {
+            $prefix = (string) $request->input('code_prefix');
+            $start = max(1, (int) $request->input('code_start', 1));
+            $pad = max(0, (int) $request->input('code_pad', 4));
+
+            for ($i = 0; $i < $qty; $i++) {
+                $n = $start + $i;
+                $codes[] = $prefix . ($pad > 0 ? str_pad($n, $pad, '0', STR_PAD_LEFT) : $n);
+            }
+        }
+
+        // === Build rows ===
+        $rows = [];
+        $max = max(count($serials), count($codes), $qty);
+        for ($i = 0; $i < $max; $i++) {
+            $rows[] = [
+                'no' => $i + 1,
+                'serial' => $serials[$i] ?? null,
+                'code' => $codes[$i] ?? null,
+            ];
+        }
+
+        // === Cek duplikat ===
+        $dupSerial = $serials ? Asset::whereIn('serial_number', $serials)->pluck('serial_number')->toArray() : [];
+        $dupCode = $codes ? Asset::whereIn('asset_code', $codes)->pluck('asset_code')->toArray() : [];
+
+        return response()->json([
+            'rows' => $rows,
+            'dup_serial' => $dupSerial,
+            'dup_code' => $dupCode,
+        ]);
+    }
+
+    /**
+     * Simpan banyak unit aset sekaligus.
+     * Support 2 mode: auto-generate & manual (paste list).
+     */
+    public function bulkStore(Request $request)
+    {
+        $validated = $request->validate([
+            // === DATA UMUM ===
+            'brand' => 'required|string|max:100',
+            'model' => 'required|string|max:100',
+            'category_id' => 'required|exists:asset_categories,id',
+            'specification' => 'nullable|array',
+            'os' => 'nullable|string|max:100',
+            'os_license' => 'nullable|string|max:100',
+            'ownership_type' => 'required|in:owned,leased',
+            'purchase_date' => 'nullable|date',
+            'purchase_price' => 'nullable|numeric|min:0',
+            'warranty_expire' => 'nullable|date',
+            'vendor_id' => 'nullable|exists:vendors,id',
+            'invoice_number' => 'nullable|string|max:100',
+            'monthly_cost' => 'nullable|numeric|min:0',
+            'contract_end' => 'nullable|date',
+            'status' => 'required|in:available,in_use,retired,lost',
+            'condition_percent' => 'nullable|integer|min:0|max:100',
+            'condition_notes' => 'nullable|string',
+            'notes' => 'nullable|string',
+
+            // === JUMLAH ===
+            'quantity' => 'required|integer|min:1|max:500',
+
+            // === AUTO SERIAL ===
+            'serial_prefix' => 'nullable|string|max:50',
+            'serial_start' => 'nullable|integer|min:1',
+            'serial_pad' => 'nullable|integer|min:0|max:6',
+            'serial_list' => 'nullable|string',
+
+            // === AUTO CODE ===
+            'code_prefix' => 'nullable|string|max:50',
+            'code_start' => 'nullable|integer|min:1',
+            'code_pad' => 'nullable|integer|min:0|max:6',
+            'code_list' => 'nullable|string',
+
+            // === HOSTNAME ===
+            'hostname_prefix' => 'nullable|string|max:50',
+            'hostname_start' => 'nullable|integer|min:1',
+            'hostname_pad' => 'nullable|integer|min:0|max:6',
+
+            // === ASSIGN ===
+            'assign' => 'nullable|array',
+            'assign.user_id' => 'nullable|exists:users,id',
+            'assign.location_id' => 'nullable|exists:locations,id',
+            'assign.department_id' => 'nullable|exists:departments,id',
+            'assign.assigned_at' => 'nullable|date',
+            'assign.condition_on_assign' => 'nullable|integer|min:0|max:100',
+            'assign.notes' => 'nullable|string',
+        ]);
+
+        // Validasi kondisional
+        if ($validated['status'] === 'in_use' && empty($validated['assign']['user_id'])) {
+            return back()->withInput()
+                ->with('error', 'Untuk status "Dipakai", wajib isi pegawai penerima.');
+        }
+
+        $qty = (int) $validated['quantity'];
+
+        // ============================================================
+        // === GENERATE / PARSE SERIAL NUMBERS ===
+        // ============================================================
+        $serials = [];
+        $isManualSerial = !empty(trim($validated['serial_list'] ?? ''));
+
+        if ($isManualSerial) {
+            $serials = array_values(array_filter(
+                array_map('trim', preg_split('/\r\n|\r|\n/', $validated['serial_list'])),
+                fn($s) => $s !== ''
+            ));
+
+            if (count($serials) !== $qty) {
+                return back()->withInput()->with(
+                    'error',
+                    "Jumlah Serial Number manual (" . count($serials) . ") tidak sama dengan jumlah unit ($qty)."
+                );
+            }
+        } else {
+            if (empty($validated['serial_prefix'])) {
+                return back()->withInput()->with('error', 'Prefix serial wajib diisi untuk mode auto.');
+            }
+            $serialStart = (int) ($validated['serial_start'] ?? 1);
+            $serialPad = (int) ($validated['serial_pad'] ?? 0);
+
+            for ($i = 0; $i < $qty; $i++) {
+                $num = $serialStart + $i;
+                $serials[] = $validated['serial_prefix']
+                    . ($serialPad > 0 ? str_pad($num, $serialPad, '0', STR_PAD_LEFT) : $num);
+            }
+        }
+
+        // Cek duplikat serial (1 query)
+        $dupSerial = Asset::whereIn('serial_number', $serials)->pluck('serial_number')->toArray();
+        if (!empty($dupSerial)) {
+            return back()->withInput()
+                ->with('error', 'Serial number berikut sudah ada: ' . implode(', ', array_slice($dupSerial, 0, 10)));
+        }
+
+        // ============================================================
+        // === GENERATE / PARSE ASSET CODES ===
+        // ============================================================
+        $codes = [];
+        $isManualCode = !empty(trim($validated['code_list'] ?? ''));
+
+        if ($isManualCode) {
+            $codes = array_values(array_filter(
+                array_map('trim', preg_split('/\r\n|\r|\n/', $validated['code_list'])),
+                fn($s) => $s !== ''
+            ));
+
+            if (count($codes) !== $qty) {
+                return back()->withInput()->with(
+                    'error',
+                    "Jumlah Asset Code manual (" . count($codes) . ") tidak sama dengan jumlah unit ($qty)."
+                );
+            }
+        } elseif (!empty($validated['code_prefix'])) {
+            $codeStart = (int) ($validated['code_start'] ?? 1);
+            $codePad = (int) ($validated['code_pad'] ?? 0);
+
+            for ($i = 0; $i < $qty; $i++) {
+                $num = $codeStart + $i;
+                $codes[] = $validated['code_prefix']
+                    . ($codePad > 0 ? str_pad($num, $codePad, '0', STR_PAD_LEFT) : $num);
+            }
+        }
+
+        // Cek duplikat code
+        if (!empty($codes)) {
+            $dupCode = Asset::whereIn('asset_code', $codes)->pluck('asset_code')->toArray();
+            if (!empty($dupCode)) {
+                return back()->withInput()
+                    ->with('error', 'Asset code berikut sudah ada: ' . implode(', ', array_slice($dupCode, 0, 10)));
+            }
+        }
+
+        // ============================================================
+        // === GENERATE HOSTNAMES (opsional) ===
+        // ============================================================
+        $hostnames = [];
+        if (!empty($validated['hostname_prefix'])) {
+            $hostStart = (int) ($validated['hostname_start'] ?? 1);
+            $hostPad = (int) ($validated['hostname_pad'] ?? 0);
+
+            for ($i = 0; $i < $qty; $i++) {
+                $num = $hostStart + $i;
+                $hostnames[] = $validated['hostname_prefix']
+                    . ($hostPad > 0 ? str_pad($num, $hostPad, '0', STR_PAD_LEFT) : $num);
+            }
+        }
+
+        // ============================================================
+        // === SIMPAN (1 transaksi, batch insert) ===
+        // ============================================================
+        $count = DB::transaction(function () use ($validated, $qty, $serials, $codes, $hostnames) {
+            $now = now();
+            $assignUserId = $validated['assign']['user_id'] ?? null;
+            $assignLocationId = $validated['assign']['location_id'] ?? null;
+            $isAssign = $validated['status'] === 'in_use' && $assignUserId;
+
+            // Build rows untuk Asset::insert()
+            $rows = [];
+            for ($i = 0; $i < $qty; $i++) {
+                $rows[] = [
+                    'asset_code' => $codes[$i] ?? null,
+                    'serial_number' => $serials[$i],
+                    'hostname' => $hostnames[$i] ?? null,
+                    'brand' => $validated['brand'],
+                    'model' => $validated['model'],
+                    'category_id' => $validated['category_id'],
+                    'specification' => isset($validated['specification'])
+                        ? json_encode($validated['specification'])
+                        : null,
+                    'os' => $validated['os'] ?? null,
+                    'os_license' => $validated['os_license'] ?? null,
+                    'ownership_type' => $validated['ownership_type'],
+                    'purchase_date' => $validated['purchase_date'] ?? null,
+                    'purchase_price' => $validated['purchase_price'] ?? null,
+                    'warranty_expire' => $validated['warranty_expire'] ?? null,
+                    'status' => $validated['status'],
+                    'condition_percent' => $validated['condition_percent'] ?? 100,
+                    'condition_notes' => $validated['condition_notes'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                    'current_user_id' => $isAssign ? $assignUserId : null,
+                    'current_location_id' => $isAssign ? $assignLocationId : null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            Asset::insert($rows);
+
+            // Ambil ID baru
+            $newAssets = Asset::whereIn('serial_number', $serials)
+                ->get(['id', 'serial_number']);
+
+            // === Ownership batch ===
+            $ownerships = [];
+            foreach ($newAssets as $a) {
+                $ownerships[] = [
+                    'asset_id' => $a->id,
+                    'vendor_id' => $validated['vendor_id'] ?? null,
+                    'ownership_type' => $validated['ownership_type'],
+                    'purchase_price' => $validated['ownership_type'] === 'owned'
+                        ? ($validated['purchase_price'] ?? null) : null,
+                    'invoice_number' => $validated['ownership_type'] === 'owned'
+                        ? ($validated['invoice_number'] ?? null) : null,
+                    'contract_number' => $validated['ownership_type'] === 'leased'
+                        ? ($validated['invoice_number'] ?? null) : null,
+                    'contract_start' => $validated['ownership_type'] === 'leased'
+                        ? ($validated['purchase_date'] ?? null) : null,
+                    'contract_end' => $validated['ownership_type'] === 'leased'
+                        ? ($validated['contract_end'] ?? null) : null,
+                    'monthly_cost' => $validated['ownership_type'] === 'leased'
+                        ? ($validated['monthly_cost'] ?? null) : null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            AssetOwnership::insert($ownerships);
+
+            // === Assignment batch ===
+            if ($isAssign) {
+                $assignments = [];
+                foreach ($newAssets as $a) {
+                    $assignments[] = [
+                        'asset_id' => $a->id,
+                        'user_id' => $assignUserId,
+                        'location_id' => $validated['assign']['location_id'] ?? null,
+                        'department_id' => $validated['assign']['department_id'] ?? null,
+                        'assigned_at' => $validated['assign']['assigned_at'] ?? $now,
+                        'condition_on_assign' => $validated['assign']['condition_on_assign']
+                            ?? ($validated['condition_percent'] ?? 100),
+                        'notes' => $validated['assign']['notes'] ?? null,
+                        'assigned_by' => auth()->id(),
+                        'received_by' => $assignUserId,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                AssetAssignment::insert($assignments);
+            }
+
+            return $newAssets->count();
+        });
+
+        return redirect()
+            ->route('siam.assets.index')
+            ->with('success', "{$count} aset berhasil ditambahkan sekaligus.");
+    }
+
     public function exportExcel(Request $request)
     {
         $filters = $request->only([

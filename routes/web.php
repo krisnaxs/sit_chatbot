@@ -28,6 +28,7 @@ use App\Http\Controllers\MyAssetController;
 use App\Http\Controllers\QuickRequestController;
 use App\Http\Controllers\AssetPublicController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\BackupController;
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +127,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('email/test', [SettingController::class, 'testEmail'])->name('email.test');
         });
     Route::middleware(['role:admin,support'])->group(function () {
+
+
         Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
         Route::get('/activity/{activity}', [ActivityLogController::class, 'show'])->name('activity.show');
         Route::delete('/activity/clear', [ActivityLogController::class, 'clear'])->name('activity.clear');
@@ -155,6 +158,16 @@ Route::middleware(['auth'])->group(function () {
             Route::resource('vendors', VendorController::class);
             Route::resource('departments', DepartmentController::class);
             Route::resource('locations', LocationController::class);
+            Route::prefix('backup')->name('backup.')->group(function () {
+                Route::get('/', [BackupController::class, 'index'])->name('index');
+                Route::post('/create', [BackupController::class, 'create'])->name('create');
+                Route::get('/download/{filename}', [BackupController::class, 'download'])->name('download');
+                Route::delete('/{filename}', [BackupController::class, 'destroy'])->name('destroy');
+                Route::post('/restore', [BackupController::class, 'restore'])->name('restore');
+            });
+            Route::get('assets/bulk-create', [AssetController::class, 'bulkCreate'])->name('assets.bulk-create');
+            Route::post('assets/bulk-store', [AssetController::class, 'bulkStore'])->name('assets.bulk-store');
+            Route::post('assets/bulk-preview', [AssetController::class, 'bulkPreview'])->name('assets.bulk-preview');
             Route::resource('asset-types', AssetTypeController::class);
             Route::get('assets/export/excel', [AssetController::class, 'exportExcel'])->name('assets.export.excel');
             Route::get('assets/export/pdf', [AssetController::class, 'exportPdf'])->name('assets.export.pdf');

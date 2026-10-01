@@ -9,6 +9,7 @@
             request()->routeIs('admin.qr-code') => 'master',
             request()->routeIs('admin.qr-generator') => 'master',
             request()->routeIs('settings.*') => 'master',
+            request()->routeIs('siam.backup.*') => 'master',
             request()->routeIs('requests.*') => auth()->user()->role === 'user' ? 'my-assets' : 'siam',
             request()->routeIs('admin.requests.*') => 'siam',
             request()->routeIs('my-assets.*') => auth()->user()->role === 'user' ? 'my-assets' : 'siam',
@@ -733,6 +734,29 @@
                                 Pengaturan Sistem
                             </span>
                         </a>
+                        {{-- 🆕 BACKUP DATA (letakkan DI SINI, tepat setelah Pengaturan Sistem) --}}
+                        @if (auth()->user()->isAdmin())
+                            <a href="{{ route('siam.backup.index') }}"
+                                :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
+                                class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+
+                                <span
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-100' : 'bg-gray-100' }}">
+
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                    </svg>
+                                </span>
+
+                                <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
+                                    Backup Data
+                                </span>
+                            </a>
+                        @endif
                     @endif
                 @endif
 
