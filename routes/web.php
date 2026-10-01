@@ -116,6 +116,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+
+        Route::put('users/{user}/reset-password', [UserController::class, 'resetPassword'])
+            ->name('users.reset-password');
     });
     Route::middleware(['role:admin,support'])->group(function () {
         Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
@@ -130,6 +134,8 @@ Route::middleware(['auth'])->group(function () {
         })->name('admin.qr-generator');
     });
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+    Route::put('users/{user}/password', [UserController::class, 'updatePassword'])
+        ->name('users.update-password');
 
     /*
     |────────────────────────────────────────────────────────────

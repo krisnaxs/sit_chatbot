@@ -247,6 +247,72 @@ class UserController extends Controller
         }
     }
 
+
+    public function updatePassword(Request $request, User $user)
+    {
+        $currentUser = auth()->user();
+
+        $isSelf = $currentUser->id === $user->id;
+        $isAdmin = $currentUser->isAdmin();
+
+        if (!$isSelf && !$isAdmin) {
+            abort(403, 'Anda tidak berwenang mengubah password user ini.');
+        }
+
+        // Bangun aturan validasi secara dinamis
+        $rules = [
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ];
+
+        // User yang ganti password SENDIRI (dan bukan admin) wajib isi password lama
+        if ($isSelf && !$isAdmin) {
+            $rules['current_password'] = ['required', 'current_password'];
+        }
+
+        $data = $request->validate($rules, [
+            'current_password.required' => 'Password lama wajib diisi.',
+            'current_password.current_password' => 'Password lama tidak cocok.',
+            'new_password.required' => 'Password baru wajib diisi.',
+            'new_password.min' => 'Password minimal 8 karakter.',
+            'new_password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ]);
+
+        $user->password = Hash::make($data['new_password']);
+        $user->save();
+
+        return redirect()
+            ->route('users.show', $user)
+            ->with('success', 'Password berhasil diperbarui.');
+    }
+
+    /**
+     * Reset password user ke default (khusus admin).
+     * Langsung set tanpa form input.
+     */
+    public function resetPassword(User $user)
+    {
+        // Hanya admin yang boleh reset password orang lain
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang bisa reset password user.');
+        }
+
+        // Jangan reset password diri sendiri lewat jalur ini
+        if ($user->id === auth()->id()) {
+            return redirect()
+                ->route('users.show', $user)
+                ->with('error', 'Gunakan menu Ganti Password untuk akun Anda sendiri.');
+        }
+
+        $defaultPassword = 'password123';
+
+        $user->password = Hash::make($defaultPassword);
+        $user->save();
+
+        return redirect()
+            ->route('users.show', $user)
+            ->with('success', "Password user {$user->name} berhasil direset menjadi: {$defaultPassword}");
+    }
+
     /**
      * Hapus user.
      */

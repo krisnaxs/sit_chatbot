@@ -3,7 +3,46 @@
 @section('title', auth()->id() === $user->id ? 'Profil Saya' : 'Detail User — ' . $user->name)
 
 @section('content')
-    <div class="max-w-7xl mx-auto">
+    @php
+        $isSelf = auth()->id() === $user->id;
+        $isAdmin = auth()->user()->isAdmin();
+        $canManage = $isSelf || $isAdmin;
+        $isResetMode = $isAdmin && !$isSelf;
+    @endphp
+
+    <div class="max-w-7xl mx-auto" x-data="{ showPasswordModal: false, showResetModal: false }">
+
+        {{-- ============================================================ --}}
+        {{-- FLASH MESSAGE --}}
+        {{-- ============================================================ --}}
+        @if (session('success'))
+            <div
+                class="mb-4 p-4 rounded-xl bg-green-50 text-green-800 border border-green-200
+                        flex items-start gap-3 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 shrink-0 mt-0.5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="flex-1 text-sm font-medium">
+                    {{ session('success') }}
+                </div>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div
+                class="mb-4 p-4 rounded-xl bg-red-50 text-red-800 border border-red-200
+                        flex items-start gap-3 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 shrink-0 mt-0.5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="flex-1 text-sm font-medium">
+                    {{ session('error') }}
+                </div>
+            </div>
+        @endif
 
         <div class="space-y-6">
 
@@ -16,7 +55,9 @@
                 </div>
             @endif
 
+            {{-- ============================================================ --}}
             {{-- KARTU PROFIL --}}
+            {{-- ============================================================ --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="bg-gradient-to-br from-indigo-500 to-violet-600 h-24"></div>
 
@@ -64,15 +105,31 @@
                             </p>
                         </div>
 
-                        {{-- Tombol Edit — hanya admin --}}
-                        @if (auth()->user()->isAdmin())
-                            <div class="flex gap-2 pb-1">
+                        {{-- TOMBOL AKSI --}}
+                        <div class="flex flex-wrap gap-2 pb-1">
+                            @if (auth()->user()->isAdmin())
                                 <a href="{{ route('users.edit', $user) }}"
                                     class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
                                     ✏️ Edit
                                 </a>
-                            </div>
-                        @endif
+                            @endif
+
+                            @if ($canManage)
+                                <button type="button" @click="showPasswordModal = true"
+                                    class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium
+                                           inline-flex items-center gap-1.5">
+                                    🔑 Ganti Password
+                                </button>
+                            @endif
+
+                            @if ($isResetMode)
+                                <button type="button" @click="showResetModal = true"
+                                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium
+                                           inline-flex items-center gap-1.5">
+                                    🔄 Reset Password
+                                </button>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Info grid --}}
@@ -113,7 +170,9 @@
                 </div>
             </div>
 
+            {{-- ============================================================ --}}
             {{-- STATISTIK RINGKAS --}}
+            {{-- ============================================================ --}}
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-cyan-500">
                     <div class="text-xs text-gray-500 uppercase">Aset Dipegang</div>
@@ -132,6 +191,7 @@
                     <div class="text-2xl font-bold text-pink-600">{{ $user->consumableTransactions->count() }}</div>
                 </div>
             </div>
+
             {{-- ============================================================ --}}
             {{-- ASET YANG SEDANG DIPEGANG --}}
             {{-- ============================================================ --}}
@@ -156,7 +216,6 @@
                             <a href="{{ route('siam.assets.show', $asset) }}"
                                 class="flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 transition group">
 
-                                {{-- Icon --}}
                                 <div class="w-12 h-12 rounded-lg bg-cyan-100 flex items-center justify-center shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-600" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -165,10 +224,7 @@
                                     </svg>
                                 </div>
 
-                                {{-- Content --}}
                                 <div class="flex-1 min-w-0">
-
-                                    {{-- 🆕 Nama + Badge Status --}}
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <div class="font-medium text-gray-800 truncate">
                                             {{ $asset->brand }} {{ $asset->model }}
@@ -203,19 +259,16 @@
                                         </span>
                                     </div>
 
-                                    {{-- SN --}}
                                     <div class="text-xs text-gray-500 font-mono">
                                         SN: {{ $asset->serial_number }}
                                     </div>
 
-                                    {{-- Hostname --}}
                                     @if ($asset->hostname)
                                         <div class="text-xs text-gray-600 font-mono mt-0.5">
                                             🖥️ {{ $asset->hostname }}
                                         </div>
                                     @endif
 
-                                    {{-- Kategori + Lokasi --}}
                                     <div class="text-xs text-gray-500 mt-1">
                                         {{ $asset->category?->name }}
                                         @if ($asset->currentLocation)
@@ -223,7 +276,6 @@
                                         @endif
                                     </div>
 
-                                    {{-- Kondisi --}}
                                     @if ($asset->condition_percent !== null)
                                         <div class="mt-2 flex items-center gap-2">
                                             <div class="w-20 bg-gray-200 rounded-full h-1.5">
@@ -242,7 +294,6 @@
                                     @endif
                                 </div>
 
-                                {{-- Arrow --}}
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                     class="h-4 w-4 text-gray-400 group-hover:text-cyan-600 transition shrink-0"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -460,5 +511,189 @@
             </div>
 
         </div>
+        {{-- ⬆️ TUTUP: space-y-6 --}}
+
+        {{-- ============================================================ --}}
+        {{-- MODAL GANTI PASSWORD --}}
+        {{-- ============================================================ --}}
+        @if ($canManage)
+            <div x-show="showPasswordModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showPasswordModal = false"></div>
+
+                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                    @click.away="showPasswordModal = false">
+
+                    {{-- HEADER --}}
+                    <div class="bg-gradient-to-br from-amber-400 to-orange-500 px-6 py-5 text-white">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold">Ganti Password</h3>
+                                    <p class="text-sm text-white/80">
+                                        {{ $isSelf ? 'Akun Anda sendiri' : $user->name }}
+                                    </p>
+                                </div>
+                            </div>
+                            <button @click="showPasswordModal = false"
+                                class="p-1.5 rounded-lg hover:bg-white/20 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- FORM --}}
+                    <form action="{{ route('users.update-password', $user) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="px-6 py-5 space-y-4">
+
+                            @if ($isSelf && !$isAdmin)
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Password Lama</label>
+                                    <input type="password" name="current_password" required
+                                        class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                                               focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                    @error('current_password')
+                                        <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Password Baru</label>
+                                <input type="password" name="new_password" required minlength="8"
+                                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                                           focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                @error('new_password')
+                                    <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Konfirmasi Password</label>
+                                <input type="password" name="new_password_confirmation" required minlength="8"
+                                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm
+                                           focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-2">
+                            <button type="button" @click="showPasswordModal = false"
+                                class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium">
+                                Batal
+                            </button>
+                            <button type="submit"
+                                class="px-4 py-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500
+                                       hover:from-amber-600 hover:to-orange-600 text-white text-sm font-semibold
+                                       shadow-lg shadow-amber-500/30 transition">
+                                Simpan Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
+        {{-- ============================================================ --}}
+        {{-- MODAL RESET PASSWORD (khusus admin, user lain) --}}
+        {{-- ============================================================ --}}
+        @if ($isResetMode)
+            <div x-show="showResetModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showResetModal = false"></div>
+
+                <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                    @click.away="showResetModal = false">
+
+                    {{-- HEADER --}}
+                    <div class="bg-gradient-to-br from-red-500 to-rose-600 px-6 py-5 text-white">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold">Reset Password</h3>
+                                    <p class="text-sm text-white/80">{{ $user->name }}</p>
+                                </div>
+                            </div>
+                            <button @click="showResetModal = false" class="p-1.5 rounded-lg hover:bg-white/20 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- BODY --}}
+                    <div class="px-6 py-5">
+                        <div class="flex justify-center mb-4">
+                            <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <p class="text-sm text-gray-600 text-center mb-4">
+                            Password <strong>{{ $user->name }}</strong> akan direset ke default:
+                        </p>
+
+                        <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-center mb-4">
+                            <code class="font-mono text-base font-bold text-red-600">password123</code>
+                        </div>
+
+                        <p class="text-xs text-gray-500 text-center">
+                            ⚠️ User harus login ulang dengan password baru setelah direset.
+                        </p>
+                    </div>
+
+                    {{-- FOOTER --}}
+                    <form action="{{ route('users.reset-password', $user) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-2">
+                            <button type="button" @click="showResetModal = false"
+                                class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium">
+                                Batal
+                            </button>
+                            <button type="submit"
+                                class="px-4 py-2 rounded-lg bg-gradient-to-br from-red-500 to-rose-600
+                                       hover:from-red-600 hover:to-rose-700 text-white text-sm font-semibold
+                                       shadow-lg shadow-red-500/30 transition">
+                                Ya, Reset Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
+
     </div>
+    {{-- ⬆️ TUTUP: max-w-7xl --}}
 @endsection

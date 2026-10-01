@@ -12,7 +12,6 @@
                 <p class="text-sm text-gray-500 mt-1">Kelola akun admin, support, dan user</p>
             </div>
 
-            {{-- 🆕 TOMBOL IMPORT + TAMBAH --}}
             <div class="flex items-center gap-2 flex-wrap">
                 <a href="{{ route('users.import.form') }}"
                     class="inline-flex items-center gap-2
@@ -48,7 +47,7 @@
             </div>
         </div>
 
-        {{-- 🆕 ALERT DETAIL GAGAL IMPORT --}}
+        {{-- ALERT DETAIL GAGAL IMPORT --}}
         @if (session('import_failures') && count(session('import_failures')) > 0)
             <div class="mb-6 bg-red-50 border border-red-200 rounded-2xl p-5">
                 <div class="flex items-start gap-3 mb-3">
@@ -177,6 +176,7 @@
                                         'show' => route('users.show', $user),
                                         'edit' => route('users.edit', $user),
                                         'delete' => route('users.destroy', $user),
+                                        'reset_password' => route('users.reset-password', $user),
                                     ],
                                 ];
                             @endphp
@@ -353,6 +353,7 @@
                     <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pilih Aksi</h4>
 
                     <div class="space-y-2">
+                        {{-- LIHAT DETAIL --}}
                         <a :href="selectedUser?.routes.show"
                             class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
                                   hover:border-blue-300 hover:bg-blue-50 transition group">
@@ -371,6 +372,7 @@
                             </div>
                         </a>
 
+                        {{-- EDIT --}}
                         <a :href="selectedUser?.routes.edit"
                             class="flex items-center gap-3 p-3 rounded-xl border border-gray-200
                                   hover:border-amber-300 hover:bg-amber-50 transition group">
@@ -387,6 +389,26 @@
                             </div>
                         </a>
 
+                        {{-- RESET PASSWORD (admin only, bukan diri sendiri) --}}
+                        <template x-if="{{ auth()->user()->isAdmin() ? 'true' : 'false' }} && !selectedUser?.is_self">
+                            <button type="button" @click="confirmResetPassword()"
+                                class="w-full flex items-center gap-3 p-3 rounded-xl border border-orange-200
+                                       bg-orange-50 hover:bg-orange-100 hover:border-orange-300 transition text-left">
+                                <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-600"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-sm text-orange-700">Reset Password</div>
+                                    <div class="text-xs text-orange-500">Kembalikan ke password default</div>
+                                </div>
+                            </button>
+                        </template>
+
+                        {{-- HAPUS (admin only, bukan diri sendiri) --}}
                         <template x-if="{{ auth()->user()->isAdmin() ? 'true' : 'false' }} && !selectedUser?.is_self">
                             <button type="button" @click="confirmDelete()"
                                 class="w-full flex items-center gap-3 p-3 rounded-xl border border-red-200
@@ -419,15 +441,12 @@
         {{-- ============================================================ --}}
         {{-- MODAL KONFIRMASI HAPUS --}}
         {{-- ============================================================ --}}
-        <div x-show="showDeleteModal"
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center"
+        <div x-show="showDeleteModal" x-cloak
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative transform transition-all duration-300"
-                @click.away="showDeleteModal = false" x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
-
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showDeleteModal = false">
                 <div class="flex justify-center mb-4">
                     <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-600" fill="none"
@@ -437,13 +456,11 @@
                         </svg>
                     </div>
                 </div>
-
                 <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Hapus User?</h3>
                 <p class="text-sm text-gray-500 text-center mb-6">
                     Yakin ingin menghapus <strong class="text-gray-800" x-text="deleteTarget.name"></strong>?
                     Tindakan ini tidak bisa dibatalkan.
                 </p>
-
                 <div class="flex gap-2">
                     <button type="button" @click="showDeleteModal = false"
                         class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
@@ -459,9 +476,64 @@
             </div>
         </div>
 
+        {{-- ============================================================ --}}
+        {{-- MODAL KONFIRMASI RESET PASSWORD --}}
+        {{-- ============================================================ --}}
+        <div x-show="showResetModal" x-cloak
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showResetModal = false">
+
+                <div class="flex justify-center mb-4">
+                    <div class="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-orange-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Reset Password?</h3>
+                <p class="text-sm text-gray-500 text-center mb-4">
+                    Password <strong class="text-gray-800" x-text="resetTarget.name"></strong> akan direset ke:
+                </p>
+
+                <div class="p-3 rounded-xl bg-orange-50 border border-orange-200 text-center mb-4">
+                    <code class="font-mono text-base font-bold text-orange-600">password123</code>
+                </div>
+
+                <p class="text-xs text-gray-500 text-center mb-6">
+                    ⚠️ User harus login ulang dengan password baru setelah direset.
+                </p>
+
+                <div class="flex gap-2">
+                    <button type="button" @click="showResetModal = false"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
+                               text-gray-700 font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="button" @click="confirmResetPasswordSubmit()"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700
+                               text-white font-semibold transition shadow-lg shadow-orange-500/30">
+                        Ya, Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- HIDDEN FORMS --}}
         <form id="deleteForm" method="POST" class="hidden">
             @csrf
             @method('DELETE')
+        </form>
+
+        <form id="resetPasswordForm" method="POST" class="hidden">
+            @csrf
+            @method('PUT')
         </form>
 
         {{-- TOAST --}}
@@ -514,11 +586,19 @@
                     name: '',
                     action: ''
                 },
+                // state reset password
+                showResetModal: false,
+                resetTarget: {
+                    id: null,
+                    name: '',
+                    action: ''
+                },
                 toast: {
                     show: false,
                     message: '',
                     type: 'success'
                 },
+
                 openUserModal(user) {
                     this.selectedUser = user;
                     this.showUserModal = true;
@@ -528,6 +608,7 @@
                     this.showUserModal = false;
                     this.selectedUser = null;
                 },
+
                 confirmDelete() {
                     this.deleteTarget = {
                         id: this.selectedUser.id,
@@ -543,6 +624,24 @@
                     form.action = this.deleteTarget.action;
                     form.submit();
                 },
+
+                // reset password
+                confirmResetPassword() {
+                    this.resetTarget = {
+                        id: this.selectedUser.id,
+                        name: this.selectedUser.name,
+                        action: this.selectedUser.routes.reset_password
+                    };
+                    this.closeUserModal();
+                    this.showResetModal = true;
+                },
+
+                confirmResetPasswordSubmit() {
+                    const form = document.getElementById('resetPasswordForm');
+                    form.action = this.resetTarget.action;
+                    form.submit();
+                },
+
                 showToast(message, type = 'success') {
                     this.toast.message = message;
                     this.toast.type = type;
@@ -560,6 +659,7 @@
                     @if (session('error'))
                         this.showToast(@json(session('error')), 'error');
                     @endif
+
                     const searchInput = document.getElementById('searchInput');
                     const table = document.getElementById('usersTable');
                     if (searchInput && table) {
@@ -580,9 +680,12 @@
                             });
                         });
                     }
+
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
-                            if (this.showDeleteModal) {
+                            if (this.showResetModal) {
+                                this.showResetModal = false;
+                            } else if (this.showDeleteModal) {
                                 this.showDeleteModal = false;
                             } else if (this.showUserModal) {
                                 this.closeUserModal();
