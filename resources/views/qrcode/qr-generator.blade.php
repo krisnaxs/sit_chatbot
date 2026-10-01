@@ -182,9 +182,6 @@
 
 @push('scripts')
     <script>
-        // ═══════════════════════════════════════════════════════════
-        //  ALPINE COMPONENT — Toast Manager
-        // ═══════════════════════════════════════════════════════════
         function qrGenerator() {
             return {
                 toast: {
@@ -204,30 +201,22 @@
                 },
             };
         }
-
-        // ═══════════════════════════════════════════════════════════
-        //  QR GENERATOR — Global function
-        // ═══════════════════════════════════════════════════════════
         let currentUrl = '';
 
-        // Get Alpine component instance
         function getAlpine() {
             return Alpine.$data(document.querySelector('[x-data="qrGenerator()"]'));
         }
 
-        // Helper: show toast from global scope
         function notify(message, type = 'success') {
             const comp = getAlpine();
             if (comp) comp.showToast(message, type);
         }
 
-        // Set preset link
         function setPreset(url) {
             document.getElementById('inputUrl').value = url;
             generateQR();
         }
 
-        // Reset form
         function resetForm() {
             document.getElementById('inputUrl').value = '';
             document.getElementById('qrResult').classList.add('hidden');
@@ -238,9 +227,6 @@
             notify('Form berhasil di-reset', 'info');
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  GENERATE QR
-        // ═══════════════════════════════════════════════════════════
         function generateQR() {
             const input = document.getElementById('inputUrl');
             const url = input.value.trim();
@@ -265,13 +251,10 @@
 
             const container = document.getElementById('qrcode');
             container.innerHTML = '';
-
-            // Reset HD variables
             window.__QR_HD_URL = null;
             window.__QR_HD_CANVAS = null;
 
             if (typeof QRCode.toDataURL === 'function') {
-                // 🅰️ Library 'qrcode' (soldair)
                 QRCode.toDataURL(url, {
                     width: 1000,
                     margin: 6,
@@ -287,8 +270,6 @@
                         notify('Gagal generate QR Code', 'error');
                         return;
                     }
-
-                    // Tampilkan preview 280x280
                     const img = document.createElement('img');
                     img.src = dataUrl;
                     img.alt = 'QR Code';
@@ -300,10 +281,9 @@
                     window.__QR_HD_URL = dataUrl;
 
                     notify('QR Code berhasil dibuat!', 'success');
-                    console.log('✅ QR berhasil');
+                    console.log(' QR berhasil');
                 });
             } else {
-                // 🅱️ Library 'qrcodejs'
                 new QRCode(container, {
                     text: url,
                     width: 280,
@@ -312,8 +292,6 @@
                     colorLight: '#ffffff',
                     correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.H : 2
                 });
-
-                // HD version hidden
                 const hdContainer = document.createElement('div');
                 hdContainer.style.display = 'none';
                 document.body.appendChild(hdContainer);
@@ -333,7 +311,7 @@
                         window.__QR_HD_CANVAS = hdCanvas;
                     }
                     notify('QR Code berhasil dibuat!', 'success');
-                    console.log('✅ QR HD siap');
+                    console.log(' QR HD siap');
                 }, 300);
             }
 
@@ -344,12 +322,7 @@
                 });
             }, 100);
         }
-
-        // ═══════════════════════════════════════════════════════════
-        //  DOWNLOAD QR — PNG dengan frame (judul + QR + URL)
-        // ═══════════════════════════════════════════════════════════
         async function downloadQR() {
-            // ─── 1. Ambil QR source ───
             let qrSource = null;
 
             if (window.__QR_HD_URL) {
@@ -371,8 +344,6 @@
                 notify('QR belum siap. Tunggu sebentar lalu coba lagi', 'warning');
                 return;
             }
-
-            // ─── 2. Setup ukuran canvas akhir ───
             const Q = 800;
             const PADDING = 50;
             const QR_SIZE = 440;
@@ -380,26 +351,18 @@
             const URL_SPACE = 80;
             const BORDER_RADIUS = 20;
             const TOTAL_H = PADDING + TITLE_SPACE + QR_SIZE + URL_SPACE + PADDING;
-
-            // ─── 3. Buat canvas baru ───
             const finalCanvas = document.createElement('canvas');
             finalCanvas.width = Q;
             finalCanvas.height = TOTAL_H;
             const ctx = finalCanvas.getContext('2d');
-
-            // Background putih rounded
             ctx.fillStyle = '#ffffff';
             roundRect(ctx, 0, 0, Q, TOTAL_H, BORDER_RADIUS);
             ctx.fill();
-
-            // ─── 4. Judul ───
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('Scan QR Code', Q / 2, PADDING + 40);
-
-            // ─── 5. Border dashed ───
             const boxX = (Q - QR_SIZE) / 2 - 20;
             const boxY = PADDING + TITLE_SPACE;
             const boxW = QR_SIZE + 40;
@@ -411,13 +374,9 @@
             roundRect(ctx, boxX, boxY, boxW, boxH, 16);
             ctx.stroke();
             ctx.setLineDash([]);
-
-            // ─── 6. QR Code ───
             const qrX = (Q - QR_SIZE) / 2;
             const qrY = boxY + 20;
             ctx.drawImage(qrSource, qrX, qrY, QR_SIZE, QR_SIZE);
-
-            // ─── 7. URL (potong kalau panjang) ───
             let urlText = currentUrl || '—';
             if (urlText.length > 60) {
                 urlText = urlText.substring(0, 57) + '...';
@@ -425,8 +384,6 @@
             ctx.fillStyle = '#6b7280';
             ctx.font = '16px "Courier New", monospace';
             ctx.fillText(urlText, Q / 2, qrY + QR_SIZE + 45);
-
-            // ─── 8. Download ───
             const dataUrl = finalCanvas.toDataURL('image/png');
 
             const link = document.createElement('a');
@@ -435,12 +392,9 @@
             link.click();
 
             notify('QR Code berhasil di-download!', 'success');
-            console.log('✅ QR PNG dengan frame ter-download');
+            console.log(' QR PNG dengan frame ter-download');
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  PRINT QR
-        // ═══════════════════════════════════════════════════════════
         function printQR() {
             const img = document.querySelector('#qrcode img');
             const canvas = document.querySelector('#qrcode canvas');
@@ -537,9 +491,6 @@
             notify('Membuka dialog print...', 'info');
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  HELPER FUNCTIONS
-        // ═══════════════════════════════════════════════════════════
         function roundRect(ctx, x, y, w, h, r) {
             ctx.beginPath();
             ctx.moveTo(x + r, y);
@@ -570,8 +521,6 @@
                 resolve(canvas);
             });
         }
-
-        // Auto-generate kalau URL di query string
         document.addEventListener('DOMContentLoaded', function() {
             const params = new URLSearchParams(window.location.search);
             const urlParam = params.get('url');

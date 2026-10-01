@@ -17,7 +17,7 @@
             </a>
         </div>
 
-        {{-- 🆕 INFO PENGAJUAN TERBARU --}}
+        {{--  INFO PENGAJUAN TERBARU --}}
         @if ($latestRequest)
             @php
                 $statusConfig = [
@@ -189,7 +189,7 @@
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <h2 class="font-bold text-gray-800">Peminjaman Aktif</h2>
-                        {{-- 🆕 indikator nyala --}}
+                        {{--  indikator nyala --}}
                         <span class="relative flex h-2.5 w-2.5">
                             <span
                                 class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>

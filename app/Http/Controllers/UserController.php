@@ -18,6 +18,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::with(['department', 'location']);
+
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -31,6 +32,14 @@ class UserController extends Controller
         }
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
+        }
+        if ($request->filled('status_pensiun')) {
+            match ($request->status_pensiun) {
+                'pensiun' => $query->pensiun(),
+                'belum_pensiun' => $query->belumPensiun(),
+                'akan_pensiun' => $query->akanPensiun(30),
+                default => null,
+            };
         }
 
         $users = $query->orderByDesc('id')->paginate(10)->withQueryString();
@@ -66,6 +75,7 @@ class UserController extends Controller
             'location_id' => ['nullable', 'exists:locations,id'],
             'role' => ['required', Rule::in(['admin', 'support', 'user'])],
             'is_active' => ['nullable'],
+            'waktu_pensiun' => ['nullable', 'date'], //  tambahan
         ], [
             'nip.unique' => 'NIP sudah terdaftar.',
             'name.required' => 'Nama wajib diisi.',
@@ -79,7 +89,9 @@ class UserController extends Controller
             'role.in' => 'Role tidak valid.',
             'department_id.exists' => 'Departemen tidak valid.',
             'location_id.exists' => 'Lokasi tidak valid.',
+            'waktu_pensiun.date' => 'Format tanggal pensiun tidak valid.', //  tambahan
         ]);
+
         $username = User::generateUsername($data['email']);
 
         User::create([
@@ -94,6 +106,7 @@ class UserController extends Controller
             'location_id' => $data['location_id'] ?? null,
             'role' => $data['role'],
             'is_active' => $request->has('is_active'),
+            'waktu_pensiun' => $data['waktu_pensiun'] ?? null, //  tambahan
         ]);
 
         return redirect()
@@ -156,6 +169,7 @@ class UserController extends Controller
             'location_id' => ['nullable', 'exists:locations,id'],
             'role' => ['required', Rule::in(['admin', 'support', 'user'])],
             'is_active' => ['nullable'],
+            'waktu_pensiun' => ['nullable', 'date'], //  tambahan
         ], [
             'name.required' => 'Nama wajib diisi.',
             'email.required' => 'Email wajib diisi.',
@@ -163,6 +177,7 @@ class UserController extends Controller
             'nip.unique' => 'NIP sudah dipakai user lain.',
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'waktu_pensiun.date' => 'Format tanggal pensiun tidak valid.', //  tambahan
         ]);
 
         $user->nip = $data['nip'] ?? null;
@@ -174,6 +189,8 @@ class UserController extends Controller
         $user->location_id = $data['location_id'] ?? null;
         $user->role = $data['role'];
         $user->is_active = $request->has('is_active');
+        $user->waktu_pensiun = $data['waktu_pensiun'] ?? null; //  tambahan
+
         if (!empty($data['password'])) {
             $user->password = Hash::make($data['password']);
         }
@@ -205,9 +222,6 @@ class UserController extends Controller
     /**
      * Proses import user dari Excel.
      */
-    /**
-     * Proses import user dari Excel.
-     */
     public function import(Request $request)
     {
         $request->validate([
@@ -225,7 +239,7 @@ class UserController extends Controller
             $success = $import->successCount;
             $skipped = $import->skipCount;
             $failed = count($import->failures());
-            $msg = "✅ Import selesai. Berhasil: {$success} user.";
+            $msg = " Import selesai. Berhasil: {$success} user.";
             if ($skipped > 0) {
                 $msg .= " Dilewati: {$skipped} (email sudah ada).";
             }
@@ -247,7 +261,6 @@ class UserController extends Controller
         }
     }
 
-
     public function updatePassword(Request $request, User $user)
     {
         $currentUser = auth()->user();
@@ -258,13 +271,9 @@ class UserController extends Controller
         if (!$isSelf && !$isAdmin) {
             abort(403, 'Anda tidak berwenang mengubah password user ini.');
         }
-
-        // Bangun aturan validasi secara dinamis
         $rules = [
             'new_password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
-
-        // User yang ganti password SENDIRI (dan bukan admin) wajib isi password lama
         if ($isSelf && !$isAdmin) {
             $rules['current_password'] = ['required', 'current_password'];
         }
@@ -291,12 +300,9 @@ class UserController extends Controller
      */
     public function resetPassword(User $user)
     {
-        // Hanya admin yang boleh reset password orang lain
         if (!auth()->user()->isAdmin()) {
             abort(403, 'Hanya admin yang bisa reset password user.');
         }
-
-        // Jangan reset password diri sendiri lewat jalur ini
         if ($user->id === auth()->id()) {
             return redirect()
                 ->route('users.show', $user)
@@ -330,5 +336,4 @@ class UserController extends Controller
             ->route('users.index')
             ->with('success', 'User berhasil dihapus.');
     }
-
 }

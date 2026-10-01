@@ -50,10 +50,6 @@ class Knowledge extends Model
             ->useLogName('knowledge');
     }
 
-    // ============================================================
-    // RELASI BARU — banyak lampiran
-    // ============================================================
-
     /**
      * Semua lampiran (hasMany ke knowledge_attachments).
      */
@@ -61,10 +57,6 @@ class Knowledge extends Model
     {
         return $this->hasMany(KnowledgeAttachment::class, 'knowledge_id', 'id');
     }
-
-    // ============================================================
-    // DETEKSI KATEGORI FILE
-    // ============================================================
 
     /**
      * Deteksi kategori file dari MIME type
@@ -101,10 +93,6 @@ class Knowledge extends Model
             default => '📎',
         };
     }
-
-    // ============================================================
-    // HELPER — FILE LAMA (kompatibel dengan kolom file_path dkk)
-    // ============================================================
 
     /**
      * Helper: apakah knowledge punya file?
@@ -155,10 +143,6 @@ class Knowledge extends Model
     {
         return self::iconForCategory($this->file_category);
     }
-
-    // ============================================================
-    // HELPER BARU — LAMPIRAN
-    // ============================================================
 
     /**
      * Cek apakah knowledge punya lampiran (di tabel knowledge_attachments).

@@ -62,8 +62,6 @@ return [
                 (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
-
-        // Koneksi read-only khusus untuk AI / Ollama
         'ai_readonly' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST', '127.0.0.1'),
@@ -76,7 +74,6 @@ return [
             'prefix' => '',
             'strict' => true,
             'engine' => null,
-            // Read-only: hindari query yang bisa nulis
             'options' => extension_loaded('pdo_mysql') ? [
                 \PDO::ATTR_EMULATE_PREPARES => false,
                 \PDO::MYSQL_ATTR_INIT_COMMAND => "SET SESSION TRANSACTION READ ONLY",

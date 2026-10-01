@@ -1,9 +1,5 @@
 import "./bootstrap";
 import Alpine from "alpinejs";
-
-// ═══════════════════════════════════════════════════════
-// REGISTER STORE — WAJIB SEBELUM Alpine.start()
-// ═══════════════════════════════════════════════════════
 Alpine.store("sidebar", {
     open: window.innerWidth >= 1024,
     collapsed: localStorage.getItem("sidebar-collapsed") === "true",
@@ -22,10 +18,6 @@ Alpine.store("sidebar", {
         );
     },
 });
-
-// ═══════════════════════════════════════════════════════
-// REGISTER KOMPONEN HEADER
-// ═══════════════════════════════════════════════════════
 Alpine.data("headerApp", () => ({
     showLogin: false,
     toast: { show: false, message: "" },
@@ -82,16 +74,8 @@ Alpine.data("headerApp", () => ({
         });
     },
 }));
-
-// ═══════════════════════════════════════════════════════
-// RESIZE LISTENER
-// ═══════════════════════════════════════════════════════
 window.addEventListener("resize", () => {
     Alpine.store("sidebar").open = window.innerWidth >= 1024;
 });
-
-// ═══════════════════════════════════════════════════════
-// START ALPINE
-// ═══════════════════════════════════════════════════════
 window.Alpine = Alpine;
 Alpine.start();

@@ -100,7 +100,7 @@
                             </div>
 
                             <p class="text-xs text-gray-500 mb-3">
-                                💡 Centang file yang ingin <strong>dihapus</strong>, lalu klik Update.
+                                Centang file yang ingin <strong>dihapus</strong>, lalu klik Update.
                             </p>
 
                             <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
@@ -203,7 +203,7 @@
                         </div>
 
                         <p class="text-xs text-gray-500 mt-1.5">
-                            💡 File baru akan <strong>ditambahkan</strong> ke lampiran yang sudah ada.
+                            File baru akan <strong>ditambahkan</strong> ke lampiran yang sudah ada.
                         </p>
 
                         @error('files')
@@ -312,9 +312,6 @@
 
 @push('scripts')
     <script>
-        // ============================================================
-        // PREVIEW MULTIPLE FILES (FILE BARU)
-        // ============================================================
         function previewFiles(event) {
             const input = event.target;
             const files = Array.from(input.files);
@@ -379,9 +376,6 @@
             totalEl.textContent = formatSize(totalSize);
         }
 
-        // ============================================================
-        // CLEAR ALL FILES (FILE BARU)
-        // ============================================================
         function clearAllFiles() {
             const input = document.getElementById('filesInput');
             input.value = '';
@@ -393,9 +387,6 @@
             document.getElementById('filesList').innerHTML = '';
         }
 
-        // ============================================================
-        // HELPER: Format size
-        // ============================================================
         function formatSize(bytes) {
             const units = ['B', 'KB', 'MB', 'GB'];
             let i = 0;
@@ -407,9 +398,6 @@
             return size.toFixed(2) + ' ' + units[i];
         }
 
-        // ============================================================
-        // HELPER: Icon berdasarkan tipe file
-        // ============================================================
         function getFileIcon(mime, name) {
             if (mime.startsWith('image/')) return '🖼️';
             if (mime === 'application/pdf') return '📄';
@@ -421,18 +409,12 @@
             return '📎';
         }
 
-        // ============================================================
-        // HELPER: Escape HTML
-        // ============================================================
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
 
-        // ============================================================
-        // ALPINE COMPONENT
-        // ============================================================
         function knowledgeForm() {
             return {
                 toast: {

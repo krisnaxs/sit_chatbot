@@ -43,6 +43,7 @@ class Asset extends Model
             'purchase_price' => 'decimal:2',
         ];
     }
+
     protected static function booted(): void
     {
         static::creating(function (Asset $asset) {
@@ -68,6 +69,7 @@ class Asset extends Model
 
         return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
+
     public function category()
     {
         return $this->belongsTo(AssetCategory::class, 'category_id');
@@ -83,17 +85,11 @@ class Asset extends Model
         return $this->belongsTo(Location::class, 'current_location_id');
     }
 
-    /**
-     * History assignment (dari terbaru).
-     */
     public function assignments()
     {
         return $this->hasMany(AssetAssignment::class)->orderByDesc('assigned_at');
     }
 
-    /**
-     * Assignment aktif (belum dikembalikan).
-     */
     public function activeAssignment()
     {
         return $this->hasOne(AssetAssignment::class)->whereNull('returned_at');
@@ -138,6 +134,7 @@ class Asset extends Model
     {
         return $this->hasMany(ConsumableTransaction::class);
     }
+
     public function scopeStatus($query, string $status)
     {
         return $query->where('status', $status);
@@ -177,6 +174,46 @@ class Asset extends Model
                 ->orWhere('model', 'like', "%{$keyword}%");
         });
     }
+
+    /**
+     * Scope: aset yang dipegang user yang sudah/sedang mendekati pensiun.
+     *
+     * @param  int  $hari  Rentang hari ke depan (default 30)
+     */
+    public function scopePerluDitarik($query, int $hari = 30)
+    {
+        return $query->whereNotNull('current_user_id')
+            ->whereIn('status', ['in_use', 'loaned'])
+            ->whereHas('currentUser', function ($q) use ($hari) {
+                $q->whereNotNull('waktu_pensiun')
+                    ->where('waktu_pensiun', '<=', now()->addDays($hari));
+            });
+    }
+    /**
+     * Scope: aset yang dipegang user yang SUDAH pensiun.
+     */
+    public function scopeDipegangPensiunan($query)
+    {
+        return $query->whereNotNull('current_user_id')
+            ->whereHas('currentUser', function ($q) {
+                $q->whereNotNull('waktu_pensiun')
+                    ->where('waktu_pensiun', '<=', now());
+            });
+    }
+
+    /**
+     * Scope: aset yang dipegang user yang AKAN pensiun (belum, tapi dekat).
+     */
+    public function scopeAkanDitarik($query, int $hari = 30)
+    {
+        return $query->whereNotNull('current_user_id')
+            ->whereHas('currentUser', function ($q) use ($hari) {
+                $q->whereNotNull('waktu_pensiun')
+                    ->where('waktu_pensiun', '>', now())
+                    ->where('waktu_pensiun', '<=', now()->addDays($hari));
+            });
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim("{$this->brand} {$this->model}");
@@ -191,12 +228,6 @@ class Asset extends Model
         };
     }
 
-    /**
-     * 🆕 Label kepemilikan + nama vendor (untuk export Excel & PDF)
-     * Contoh: HAK MILIK "PT Lenovo Indonesia"
-     *         SEWA "PT XYZ Leasing"
-     *         HAK MILIK  (kalau tidak ada vendor)
-     */
     public function getOwnershipLabelWithVendorAttribute(): string
     {
         $base = match ($this->ownership_type) {
@@ -257,8 +288,88 @@ class Asset extends Model
             default => 'red',
         };
     }
+
     public function getPublicUrlAttribute(): string
     {
         return route('assets.public', ['serial' => rawurlencode($this->serial_number)]);
+    }
+
+    /**
+     * Cek apakah aset ini perlu ditarik karena user-nya akan/sudah pensiun.
+     * Default: cek 30 hari ke depan.
+     */
+    public function getPerluDitarikAttribute(): bool
+    {
+        if (!$this->currentUser || !$this->currentUser->waktu_pensiun) {
+            return false;
+        }
+
+        return $this->currentUser->waktu_pensiun->lte(now()->addDays(30));
+    }
+
+    /**
+     * Cek apakah user pemegang aset SUDAH pensiun.
+     */
+    public function getDipegangPensiunanAttribute(): bool
+    {
+        if (!$this->currentUser || !$this->currentUser->waktu_pensiun) {
+            return false;
+        }
+
+        return $this->currentUser->waktu_pensiun->isPast();
+    }
+
+    /**
+     * Sisa hari sebelum user pensiun.
+     * Nilai negatif = sudah lewat (sudah pensiun).
+     * Null = user tidak punya waktu_pensiun.
+     */
+    public function getSisaHariPensiunAttribute(): ?int
+    {
+        if (!$this->currentUser || !$this->currentUser->waktu_pensiun) {
+            return null;
+        }
+
+        return (int) now()->diffInDays($this->currentUser->waktu_pensiun, false);
+    }
+
+    /**
+     * Label pengingat pensiun (untuk badge di view).
+     */
+    public function getLabelPengingatPensiunAttribute(): ?string
+    {
+        $sisa = $this->sisa_hari_pensiun;
+
+        if ($sisa === null) {
+            return null;
+        }
+
+        return match (true) {
+            $sisa < 0 => 'Pensiun ' . abs($sisa) . ' hari lalu',
+            $sisa === 0 => 'Pensiun hari ini',
+            $sisa <= 7 => "Pensiun {$sisa} hari lagi",
+            $sisa <= 30 => "Pensiun {$sisa} hari lagi",
+            default => null, // lebih dari 30 hari, tidak perlu ditampilkan
+        };
+    }
+
+    /**
+     * Warna badge pengingat pensiun.
+     */
+    public function getWarnaPengingatPensiunAttribute(): ?string
+    {
+        $sisa = $this->sisa_hari_pensiun;
+
+        if ($sisa === null) {
+            return null;
+        }
+
+        return match (true) {
+            $sisa < 0 => 'red',      // sudah pensiun
+            $sisa === 0 => 'red',      // hari ini
+            $sisa <= 7 => 'orange',   // mendesak
+            $sisa <= 30 => 'yellow',   // perhatian
+            default => null,
+        };
     }
 }

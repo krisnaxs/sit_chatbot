@@ -505,7 +505,6 @@
                 init() {
                     @if (isset($history) && $history->count() > 0)
                         @foreach ($history as $chat)
-                            // User message
                             this.messages.push({
                                 role: 'user',
                                 text: @json($chat->pesan),
@@ -513,8 +512,6 @@
                                 sumber: null,
                                 files: [],
                             });
-
-                            // Bot message
                             @php
                                 $filesData = [];
                                 if ($chat->file_path) {

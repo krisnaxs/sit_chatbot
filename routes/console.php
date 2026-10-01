@@ -59,3 +59,9 @@ Schedule::call(function () {
 })->daily()
     ->name('auto-approve-learned-faqs')
     ->withoutOverlapping();
+
+Schedule::command('assets:retirement-reminder --days=30')
+    ->dailyAt('08:00')
+    ->timezone('Asia/Jakarta')
+    ->onOneServer()
+    ->withoutOverlapping();

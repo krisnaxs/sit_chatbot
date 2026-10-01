@@ -60,23 +60,26 @@ class UsersTemplateGuideSheet implements FromArray, WithTitle, WithStyles, WithC
             ['📋 PETUNJUK IMPORT USER — SIAM'],
             [''],
             ['Kolom', 'Wajib?', 'Contoh', 'Keterangan'],
-            ['name', '✅ WAJIB', 'Budi Santoso', 'Nama lengkap user'],
-            ['email', '✅ WAJIB', 'budi@perusahaan.com', 'Unik, format email valid'],
-            ['password', '✅ WAJIB', 'Password123!', 'Minimal 8 karakter'],
-            ['role', '✅ WAJIB', 'user', 'Pilih: admin / support / user'],
+            ['name', ' WAJIB', 'Budi Santoso', 'Nama lengkap user'],
+            ['email', ' WAJIB', 'budi@perusahaan.com', 'Unik, format email valid'],
+            ['password', ' WAJIB', 'Password123!', 'Minimal 8 karakter'],
+            ['role', ' WAJIB', 'user', 'Pilih: admin / support / user'],
             ['nip', '⬜ Opsional', '20000001', 'NIP karyawan (unik jika diisi)'],
             ['phone', '⬜ Opsional', '08123456789', 'Nomor HP'],
             ['department_code', '⬜ Opsional', 'IT', 'Kode departemen (lihat daftar di bawah)'],
             ['location_code', '⬜ Opsional', 'Gedung A - Lt. 1 - Ruang IT', 'Full name lokasi (lihat daftar di bawah)'],
             ['position', '⬜ Opsional', 'Programmer', 'Jabatan'],
             ['is_active', '⬜ Opsional', '1', '1=aktif, 0=nonaktif. Default: 1'],
+            ['waktu_pensiun', '⬜ Opsional', '2027-12-31', 'Tanggal pensiun (format: YYYY-MM-DD). Kosongkan jika belum ada jadwal.'],
             [''],
-            ['⚠️ CATATAN PENTING:'],
+            [' CATATAN PENTING:'],
             ['• Email HARUS unik. Kalau sudah ada di sistem, baris akan dilewati.'],
             ['• Password akan di-hash otomatis (aman).'],
             ['• Username akan di-generate otomatis dari email.'],
             ['• department_code & location_code HARUS PERSIS (case-insensitive).'],
             ['• Kalau kode tidak ditemukan, user tetap dibuat tapi department/location kosong.'],
+            ['• waktu_pensiun mendukung format: 2027-12-31, 31/12/2027, 31-12-2027, 31 Desember 2027.'],
+            ['• Kalau waktu_pensiun diisi, sistem akan menampilkan pengingat aset 30 hari sebelum tanggal tersebut.'],
             [''],
             ['📌 DAFTAR KODE DEPARTEMEN:'],
         ];
@@ -101,7 +104,7 @@ class UsersTemplateGuideSheet implements FromArray, WithTitle, WithStyles, WithC
             'A' => 25,
             'B' => 12,
             'C' => 35,
-            'D' => 60,
+            'D' => 75, // diperlebar untuk keterangan waktu_pensiun
         ];
     }
 
@@ -118,6 +121,10 @@ class UsersTemplateGuideSheet implements FromArray, WithTitle, WithStyles, WithC
         $sheet->getStyle('A3:D3')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '3B82F6']],
+        ]);
+        $sheet->getStyle('A14:D14')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => '7C2D12']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FEF3C7']],
         ]);
 
         foreach (['A5', 'A6', 'A7', 'A8'] as $cell) {
@@ -151,6 +158,7 @@ class UsersTemplateDataSheet implements FromArray, WithHeadings, WithTitle, With
             'location_code',
             'position',
             'is_active',
+            'waktu_pensiun', //  tambahan
         ];
     }
 
@@ -168,6 +176,7 @@ class UsersTemplateDataSheet implements FromArray, WithHeadings, WithTitle, With
                 'Gedung A - Lt. 1 - Ruang IT',
                 'IT Support',
                 '1',
+                '', //  kosong = tidak ada jadwal pensiun
             ],
             [
                 'Siti Aminah',
@@ -180,6 +189,7 @@ class UsersTemplateDataSheet implements FromArray, WithHeadings, WithTitle, With
                 'Gedung A - Lt. 2 - Ruang Finance',
                 'Staff Finance',
                 '1',
+                '2027-12-31', //  contoh dengan tanggal pensiun
             ],
             [
                 'Andi Wijaya',
@@ -192,6 +202,7 @@ class UsersTemplateDataSheet implements FromArray, WithHeadings, WithTitle, With
                 'Gedung A - Lt. 2 - Ruang HRD',
                 'HRD Admin',
                 '1',
+                '', //  kosong
             ],
         ];
     }
@@ -209,14 +220,20 @@ class UsersTemplateDataSheet implements FromArray, WithHeadings, WithTitle, With
             'H' => 35,
             'I' => 20,
             'J' => 12,
+            'K' => 18, //  tambahan untuk waktu_pensiun
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
-        $sheet->getStyle('A1:J1')->applyFromArray([
+        $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '10B981']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+        $sheet->getStyle('K1')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F59E0B']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
 

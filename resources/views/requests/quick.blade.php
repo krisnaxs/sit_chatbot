@@ -538,8 +538,6 @@
                 }
             }
         }
-
-        // Toggle field sesuai tipe
         document.addEventListener('DOMContentLoaded', () => {
             const radios = document.querySelectorAll('input[name="type"]');
             if (radios.length === 0) return;
@@ -555,8 +553,6 @@
             radios.forEach(r => r.addEventListener('change', updateFields));
             updateFields();
         });
-
-        // Handle login form (guest)
         const loginForm = document.getElementById('quickLoginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', async (e) => {

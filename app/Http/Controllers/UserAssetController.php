@@ -25,7 +25,6 @@ class UserAssetController extends Controller
             'location',
             'currentAssets.category',
             'currentAssets.currentLocation',
-            // 🆕 Load relasi tanggal untuk status aset
             'currentAssets.assignments' => function ($q) {
                 $q->whereNull('returned_at')
                     ->latest('assigned_at')
@@ -87,8 +86,6 @@ class UserAssetController extends Controller
 
         $departments = Department::active()->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
-
-        // Summary
         $summary = [
             'total_users' => User::active()->count(),
             'users_with_assets' => User::active()->has('currentAssets')->count(),
@@ -130,7 +127,6 @@ class UserAssetController extends Controller
             'location',
             'currentAssets.category',
             'currentAssets.currentLocation',
-            // 🆕 Load relasi tanggal (sama dengan index)
             'currentAssets.assignments' => function ($q) {
                 $q->whereNull('returned_at')
                     ->latest('assigned_at')

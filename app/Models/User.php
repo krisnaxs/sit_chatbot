@@ -28,6 +28,7 @@ class User extends Authenticatable
         'location_id',
         'role',
         'is_active',
+        'waktu_pensiun',
     ];
 
     /**
@@ -48,6 +49,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'deleted_at' => 'datetime',
+            'waktu_pensiun' => 'date',
         ];
     }
 
@@ -68,7 +70,6 @@ class User extends Authenticatable
 
     /**
      * Generate username unik dari email (bagian sebelum @).
-     * Kalau sudah dipakai, tambah angka: budi, budi1, budi2, dst.
      */
     public static function generateUsername(string $email, ?int $ignoreUserId = null): string
     {
@@ -161,12 +162,90 @@ class User extends Authenticatable
         return strtoupper(substr($this->name ?? 'U', 0, 1));
     }
 
-    /**
-     * Nama lengkap + role (untuk dropdown/select).
-     */
     public function getDisplayNameAttribute(): string
     {
         return "{$this->name} ({$this->username})";
+    }
+
+    /**
+     * Cek apakah user sudah masuk masa pensiun.
+     * True kalau waktu_pensiun sudah lewat (atau hari ini).
+     */
+    public function getIsPensiunAttribute(): bool
+    {
+        return $this->waktu_pensiun !== null
+            && $this->waktu_pensiun->isPast();
+    }
+
+    /**
+     * Cek apakah user masih aktif bekerja (belum pensiun).
+     */
+    public function getIsAktifKerjaAttribute(): bool
+    {
+        return !$this->is_pensiun;
+    }
+
+    /**
+     * Label status pensiun (untuk badge di view).
+     */
+    public function getStatusPensiunLabelAttribute(): string
+    {
+        if ($this->waktu_pensiun === null) {
+            return 'Aktif';
+        }
+
+        if ($this->is_pensiun) {
+            return 'Pensiun';
+        }
+        return 'Akan Pensiun';
+    }
+
+    /**
+     * Warna badge status pensiun.
+     */
+    public function getStatusPensiunColorAttribute(): string
+    {
+        if ($this->waktu_pensiun === null) {
+            return 'green';
+        }
+
+        if ($this->is_pensiun) {
+            return 'gray';
+        }
+
+        return 'yellow';
+    }
+
+    /**
+     * Scope: user yang sudah pensiun.
+     */
+    public function scopePensiun($query)
+    {
+        return $query->whereNotNull('waktu_pensiun')
+            ->where('waktu_pensiun', '<=', now());
+    }
+
+    /**
+     * Scope: user yang belum pensiun (termasuk yang tidak punya tanggal).
+     */
+    public function scopeBelumPensiun($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('waktu_pensiun')
+                ->orWhere('waktu_pensiun', '>', now());
+        });
+    }
+
+    /**
+     * Scope: user yang akan pensiun dalam N hari ke depan.
+     */
+    public function scopeAkanPensiun($query, int $hari = 30)
+    {
+        return $query->whereNotNull('waktu_pensiun')
+            ->whereBetween('waktu_pensiun', [
+                now(),
+                now()->addDays($hari),
+            ]);
     }
 
     public function department()
@@ -179,41 +258,26 @@ class User extends Authenticatable
         return $this->belongsTo(Location::class);
     }
 
-    /**
-     * Aset yang SEDANG dipegang user ini.
-     */
     public function currentAssets()
     {
         return $this->hasMany(Asset::class, 'current_user_id');
     }
 
-    /**
-     * History semua assignment aset ke user ini.
-     */
     public function assetAssignments()
     {
         return $this->hasMany(AssetAssignment::class);
     }
 
-    /**
-     * Peminjaman aktif (belum dikembalikan).
-     */
     public function activeLoans()
     {
         return $this->hasMany(AssetLoan::class)->whereNull('returned_at');
     }
 
-    /**
-     * Semua peminjaman (history).
-     */
     public function assetLoans()
     {
         return $this->hasMany(AssetLoan::class);
     }
 
-    /**
-     * Transaksi konsumable user ini.
-     */
     public function consumableTransactions()
     {
         return $this->hasMany(ConsumableTransaction::class);

@@ -83,7 +83,7 @@
                         @enderror
                     </div>
 
-                    {{-- 🆕 Divisi: DROPDOWN dari master departments --}}
+                    {{--  Divisi: DROPDOWN dari master departments --}}
                     <div>
                         <label class="block font-semibold text-sm text-gray-700 mb-2">
                             Divisi

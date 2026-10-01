@@ -45,7 +45,6 @@ class QuickRequestController extends Controller
      */
     public function store(Request $request)
     {
-        // 🆕 Cek login
         if (!auth()->check()) {
             return redirect()
                 ->route('requests.quick')
@@ -68,8 +67,6 @@ class QuickRequestController extends Controller
             'consumable_id.required_if' => 'Konsumable wajib dipilih.',
             'quantity.min' => 'Jumlah minimal 1.',
         ]);
-
-        // Validasi stok consumable
         if ($validated['type'] === AssetRequest::TYPE_CONSUMABLE) {
             $consumable = Consumable::find($validated['consumable_id']);
             if ($consumable->stock_available < $validated['quantity']) {
@@ -85,8 +82,6 @@ class QuickRequestController extends Controller
 
             return AssetRequest::create($validated);
         });
-
-        // 🆕 Redirect ke halaman surat pengajuan
         return redirect()
             ->route('requests.quick.receipt', $assetRequest)
             ->with('success', 'Pengajuan berhasil dikirim!');
@@ -98,7 +93,6 @@ class QuickRequestController extends Controller
      */
     public function receipt(AssetRequest $assetRequest)
     {
-        // Cek ownership — user hanya bisa lihat miliknya sendiri
         if (!auth()->check() || $assetRequest->user_id !== auth()->id()) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }

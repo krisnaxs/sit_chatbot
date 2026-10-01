@@ -64,7 +64,7 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            $this->command->info("✅ {$data['role']} created: {$username} / {$defaultPassword}");
+            $this->command->info(" {$data['role']} created: {$username} / {$defaultPassword}");
         }
 
         $this->command->newLine();

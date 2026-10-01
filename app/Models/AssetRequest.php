@@ -1,5 +1,4 @@
 <?php
-// app/Models/AssetRequest.php
 
 namespace App\Models;
 
@@ -222,8 +221,6 @@ class AssetRequest extends Model
     | Accessors — Label & Warna
     |--------------------------------------------------------------------------
     */
-
-    // ─── Type ───
     public function getTypeLabelAttribute(): string
     {
         return self::$types[$this->type] ?? $this->type;
@@ -248,8 +245,6 @@ class AssetRequest extends Model
             default => '📄',
         };
     }
-
-    // ─── Status ───
     public function getStatusLabelAttribute(): string
     {
         return self::$statuses[$this->status] ?? $this->status;

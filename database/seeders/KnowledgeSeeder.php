@@ -52,7 +52,7 @@ class KnowledgeSeeder extends Seeder
             DB::table('knowledge')->insert($rows);
         }
 
-        $this->command->info("✅ " . count($data) . " knowledge berhasil di-seed.");
+        $this->command->info(" " . count($data) . " knowledge berhasil di-seed.");
     }
     private function sapaan(): array
     {
@@ -102,8 +102,8 @@ class KnowledgeSeeder extends Seeder
             ['bingung', 'Apa yang membuat Anda bingung? Saya akan bantu jelaskan.'],
             ['error', 'Apa error yang muncul? Coba jelaskan lebih detail.'],
             ['tidak tahu', 'Tidak masalah, saya akan bantu. Apa yang ingin Anda ketahui?'],
-            ['test', 'Test berhasil! ✅ Sistem berjalan normal.'],
-            ['tes', 'Tes berhasil! ✅ Sistem berjalan normal.'],
+            ['test', 'Test berhasil!  Sistem berjalan normal.'],
+            ['tes', 'Tes berhasil!  Sistem berjalan normal.'],
             ['ping', 'Pong! 🏓 Sistem aktif dan berjalan normal.'],
             ['hi bot', 'Hai! 👋 Ada yang bisa saya bantu?'],
         ];

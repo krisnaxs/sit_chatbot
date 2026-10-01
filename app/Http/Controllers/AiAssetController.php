@@ -11,11 +11,10 @@ use Illuminate\Support\Str;
 class AiAssetController extends Controller
 {
     /**
-     * 🆕 Keyword yang menandakan pesan berkaitan dengan data aset.
+     *  Keyword yang menandakan pesan berkaitan dengan data aset.
      * Dipakai untuk guard guest — kalau guest tanya hal ini, wajib login.
      */
     private const ASSET_KEYWORDS = [
-        // Aset fisik
         'aset',
         'asset',
         'laptop',
@@ -35,13 +34,11 @@ class AiAssetController extends Controller
         'harddisk',
         'ssd',
         'flashdisk',
-        // Konsumable
         'konsumable',
         'consumable',
         'stok',
         'stock',
         'atk',
-        // Field aset
         'sn',
         'serial',
         'hostname',
@@ -54,14 +51,12 @@ class AiAssetController extends Controller
         'tipe',
         'garansi',
         'warranty',
-        // Ownership
         'hak milik',
         'sewa',
         'lease',
         'owned',
         'leased',
         'rental',
-        // Pemegang
         'pemegang',
         'pegang',
         'dipegang',
@@ -70,7 +65,6 @@ class AiAssetController extends Controller
         'dipegang siapa',
         'yang pakai',
         'yang pegang',
-        // Aksi pada aset
         'pinjam',
         'peminjaman',
         'loan',
@@ -81,11 +75,9 @@ class AiAssetController extends Controller
         'hilang',
         'pensiun',
         'retired',
-        // Lokasi
         'lokasi aset',
         'ruangan aset',
         'gedung aset',
-        // Assignment
         'serah terima',
         'assignment',
         'di-assign',
@@ -103,10 +95,6 @@ class AiAssetController extends Controller
     {
         $request->validate(['message' => 'required|string|max:500']);
         $pesan = trim($request->input('message'));
-
-        // ═══════════════════════════════════════════════════════════
-        // 🆕 GUARD 0: Guest yang tanya tentang aset → wajib login
-        // ═══════════════════════════════════════════════════════════
         if (!auth()->check() && $this->isAssetQuery($pesan)) {
             return response()->json([
                 'reply' => "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
@@ -118,10 +106,6 @@ class AiAssetController extends Controller
                 'source' => 'auth_guard',
             ], 401);
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // 🛡️ GUARD 1: Tolak intent tulis
-        // ═══════════════════════════════════════════════════════════
         if ($this->isWriteIntent($pesan)) {
             return response()->json([
                 'reply' => '🔒 Maaf, saya hanya bisa membaca data. '
@@ -129,12 +113,9 @@ class AiAssetController extends Controller
                 'source' => 'readonly_guard',
             ]);
         }
-
-        // 🧠 Step 1: Ollama pahami pertanyaan
         $intent = $this->parser->parse($pesan);
 
         if (!$intent) {
-            // Ollama gagal parse → fallback ke query service langsung
             $direct = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
             if ($direct) {
                 return response()->json([
@@ -149,8 +130,6 @@ class AiAssetController extends Controller
                 'source' => 'fallback',
             ]);
         }
-
-        // ⚙️ Step 2: Laravel jalankan query
         $result = $this->executor->execute($intent);
 
         if (!$result) {
@@ -160,8 +139,6 @@ class AiAssetController extends Controller
                 'intent' => $intent,
             ]);
         }
-
-        // 💬 Step 3: Susun jawaban (opsional lewat Ollama untuk yang singkat)
         $reply = $this->formatter->format($pesan, $result['answer']);
 
         return response()->json([
@@ -171,32 +148,22 @@ class AiAssetController extends Controller
         ]);
     }
 
-    // ============================================================
-    // 🆕 GUARD HELPERS
-    // ============================================================
-
     /**
-     * 🆕 Deteksi apakah pesan berkaitan dengan data aset.
+     *  Deteksi apakah pesan berkaitan dengan data aset.
      * Dipakai untuk memblokir guest sebelum menyentuh database.
      */
     protected function isAssetQuery(string $pesan): bool
     {
         $lower = Str::lower($pesan);
-
-        // 1️⃣ SN/hostname pattern (contoh: NB-T14-005, AST-2026-0001)
         if (preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan)) {
             return true;
         }
-
-        // 2️⃣ Keyword aset (word-boundary)
         foreach (self::ASSET_KEYWORDS as $kw) {
             $pattern = '/\b' . preg_quote($kw, '/') . '\b/i';
             if (preg_match($pattern, $lower)) {
                 return true;
             }
         }
-
-        // 3️⃣ Kombinasi: kata tanya + objek
         $questionWords = [
             'berapa',
             'jumlah',

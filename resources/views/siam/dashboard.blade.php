@@ -179,6 +179,489 @@
         </div>
 
         {{-- ============================================================ --}}
+        {{--  3 CARD ROW: PENSIUN + ACTIVITY LOG + STATUS --}}
+        {{-- ============================================================ --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+            {{-- ============================================================ --}}
+            {{-- CARD 1: PENGINGAT PENSIUN --}}
+            {{-- ============================================================ --}}
+            <div
+                class="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm flex flex-col">
+
+                {{-- HEADER --}}
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b border-amber-200">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-bold text-amber-900 truncate">Pengingat Pensiun</h2>
+                        <p class="text-[10px] text-amber-700">Aset perlu ditarik</p>
+                    </div>
+                    <a href="{{ route('siam.assets.index', ['pemakai_status' => 'perlu_ditarik']) }}"
+                        class="text-[10px] font-semibold text-amber-700 hover:text-amber-900 underline shrink-0">
+                        Semua →
+                    </a>
+                </div>
+
+                {{-- STATISTIK RINGKAS --}}
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="bg-white rounded-lg p-2 border border-amber-200 text-center">
+                        <div class="text-[9px] text-amber-600 uppercase font-semibold">Aset</div>
+                        <div class="text-xl font-bold text-amber-700">
+                            {{ $pensiunStats['aset_perlu_ditarik'] }}
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-2 border border-amber-200 text-center">
+                        <div class="text-[9px] text-amber-600 uppercase font-semibold">Akan Pensiun</div>
+                        <div class="text-xl font-bold text-amber-700">
+                            {{ $pensiunStats['user_akan_pensiun'] }}
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg p-2 border border-red-200 text-center">
+                        <div class="text-[9px] text-red-600 uppercase font-semibold">Sudah</div>
+                        <div class="text-xl font-bold text-red-700">
+                            {{ $pensiunStats['user_sudah_pensiun'] }}
+                        </div>
+                    </div>
+                </div>
+
+                {{-- LIST ASET PERLU DITARIK --}}
+                <div class="flex-1 space-y-2 max-h-64 overflow-y-auto">
+                    @forelse($assetsPerluDitarik->take(5) as $asset)
+                        @php $sisa = $asset->sisa_hari_pensiun; @endphp
+                        <a href="{{ route('siam.assets.show', $asset) }}"
+                            class="block p-2 rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-xs font-semibold text-gray-800 truncate">
+                                        {{ $asset->brand }} {{ $asset->model }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 font-mono truncate">
+                                        {{ $asset->serial_number }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-600 truncate mt-0.5">
+                                        👤 {{ $asset->currentUser?->name ?? '-' }}
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    @if ($sisa === null)
+                                        <span class="text-[9px] text-gray-400">-</span>
+                                    @elseif($sisa < 0)
+                                        <span
+                                            class="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[9px] whitespace-nowrap">
+                                            {{ abs($sisa) }} hr lalu
+                                        </span>
+                                    @elseif($sisa == 0)
+                                        <span
+                                            class="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[9px] whitespace-nowrap">
+                                            Hari ini
+                                        </span>
+                                    @elseif($sisa <= 7)
+                                        <span
+                                            class="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-bold text-[9px] whitespace-nowrap">
+                                            {{ $sisa }} hr lagi
+                                        </span>
+                                    @else
+                                        <span
+                                            class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold text-[9px] whitespace-nowrap">
+                                            {{ $sisa }} hr lagi
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </a>
+                    @empty
+                        <div class="text-center py-6">
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <p class="text-xs text-gray-500 font-semibold">Tidak ada aset perlu ditarik</p>
+                            <p class="text-[10px] text-gray-400 mt-0.5">Semua aset aman</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                @if ($assetsPerluDitarik->count() > 5)
+                    <div class="mt-3 pt-3 border-t border-amber-200 text-center">
+                        <a href="{{ route('siam.assets.index', ['pemakai_status' => 'perlu_ditarik']) }}"
+                            class="text-[10px] text-amber-700 hover:text-amber-900 font-semibold underline">
+                            +{{ $assetsPerluDitarik->count() - 5 }} aset lainnya →
+                        </a>
+                    </div>
+                @endif
+
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- CARD 2: ACTIVITY LOG TERBARU --}}
+            {{-- ============================================================ --}}
+            @php
+                $hasAlerts =
+                    $overdueLoans->count() > 0 ||
+                    $lowStockConsumables->count() > 0 ||
+                    $expiringContracts->count() > 0 ||
+                    $expiringWarranties->count() > 0;
+            @endphp
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col">
+
+                {{-- HEADER --}}
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                    <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-bold text-gray-800 truncate">Activity Log</h2>
+                        <p class="text-[10px] text-gray-500">Aktivitas terbaru</p>
+                    </div>
+                    <a href="{{ route('activity.index') }}"
+                        class="text-[10px] font-semibold text-slate-600 hover:text-slate-800 underline shrink-0">
+                        Semua →
+                    </a>
+                </div>
+
+                {{-- LIST ACTIVITY --}}
+                <div class="flex-1 space-y-2 max-h-96 overflow-y-auto">
+                    @forelse ($recentActivities as $log)
+                        @php
+                            $eventColor = match ($log->event) {
+                                'created' => 'bg-emerald-100 text-emerald-700',
+                                'updated' => 'bg-blue-100 text-blue-700',
+                                'deleted' => 'bg-red-100 text-red-700',
+                                'returned' => 'bg-cyan-100 text-cyan-700',
+                                'approved' => 'bg-green-100 text-green-700',
+                                'rejected' => 'bg-rose-100 text-rose-700',
+                                'cleared' => 'bg-orange-100 text-orange-700',
+                                'clicked' => 'bg-violet-100 text-violet-700',
+                                default => 'bg-gray-100 text-gray-700',
+                            };
+                        @endphp
+
+                        <div class="flex items-start gap-2 p-2 rounded-lg hover:bg-slate-50 transition">
+                            <div
+                                class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-[10px] font-bold text-slate-700">
+                                {{ strtoupper(substr($log->causer?->name ?? 'S', 0, 1)) }}
+                            </div>
+
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                    <span
+                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase {{ $eventColor }}">
+                                        {{ $log->event ?? 'log' }}
+                                    </span>
+                                    <span class="text-[11px] font-semibold text-gray-800 truncate">
+                                        {{ Str::limit($log->description, 30) }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-[9px] text-gray-400 flex-wrap">
+                                    <span class="truncate">{{ $log->causer?->name ?? 'System' }}</span>
+                                    <span>•</span>
+                                    <span>{{ $log->created_at?->diffForHumans() }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-8">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <p class="text-xs text-gray-400 italic">Belum ada aktivitas</p>
+                        </div>
+                    @endforelse
+                </div>
+
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- CARD 3: STATUS / PERINGATAN --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col">
+
+                {{-- HEADER --}}
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                    <div
+                        class="w-10 h-10 rounded-xl {{ $hasAlerts ? 'bg-red-100' : 'bg-green-100' }} flex items-center justify-center shrink-0">
+                        @if ($hasAlerts)
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        @else
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        @endif
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-bold text-gray-800 truncate">
+                            {{ $hasAlerts ? 'Peringatan' : 'Status Sistem' }}
+                        </h2>
+                        <p class="text-[10px] text-gray-500">
+                            {{ $hasAlerts ? 'Perlu tindakan segera' : 'Semua aman' }}
+                        </p>
+                    </div>
+                </div>
+
+                {{-- CONTENT --}}
+                @if ($hasAlerts)
+                    <div class="flex-1 space-y-2 max-h-96 overflow-y-auto">
+
+                        @if ($overdueLoans->count() > 0)
+                            <div class="rounded-lg border border-red-200 bg-red-50 p-3">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                                    <p class="font-semibold text-xs text-red-800">
+                                        {{ $overdueLoans->count() }} Peminjaman Terlambat
+                                    </p>
+                                </div>
+                                <div class="space-y-0.5">
+                                    @foreach ($overdueLoans->take(2) as $loan)
+                                        <div class="text-[10px] text-red-700 truncate">
+                                            • {{ $loan->asset?->serial_number }} — {{ $loan->user?->name }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <a href="{{ route('siam.loans.index', ['status' => 'borrowed']) }}"
+                                    class="inline-block mt-1.5 text-[10px] font-semibold text-red-700 hover:underline">
+                                    Lihat semua →
+                                </a>
+                            </div>
+                        @endif
+
+                        @if ($lowStockConsumables->count() > 0)
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    <p class="font-semibold text-xs text-amber-800">
+                                        {{ $lowStockConsumables->count() }} Konsumable Stok Rendah
+                                    </p>
+                                </div>
+                                <div class="space-y-0.5">
+                                    @foreach ($lowStockConsumables->take(2) as $c)
+                                        <div class="text-[10px] text-amber-700 truncate">
+                                            • {{ $c->name }} ({{ $c->stock_available }}/{{ $c->stock_minimum }})
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <a href="{{ route('siam.consumables.index', ['low_stock' => 1]) }}"
+                                    class="inline-block mt-1.5 text-[10px] font-semibold text-amber-700 hover:underline">
+                                    Lihat semua →
+                                </a>
+                            </div>
+                        @endif
+
+                        @if ($expiringContracts->count() > 0)
+                            <div class="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                                    <p class="font-semibold text-xs text-orange-800">
+                                        {{ $expiringContracts->count() }} Kontrak Sewa < 30 Hari </p>
+                                </div>
+                                <div class="space-y-0.5">
+                                    @foreach ($expiringContracts->take(2) as $asset)
+                                        <div class="text-[10px] text-orange-700 truncate">
+                                            • {{ $asset->serial_number }} — {{ $asset->brand }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        @if ($expiringWarranties->count() > 0)
+                            <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                    <p class="font-semibold text-xs text-yellow-800">
+                                        {{ $expiringWarranties->count() }} Garansi < 60 Hari </p>
+                                </div>
+                                <div class="space-y-0.5">
+                                    @foreach ($expiringWarranties->take(2) as $asset)
+                                        <div class="text-[10px] text-yellow-700 truncate">
+                                            • {{ $asset->serial_number }} — {{ $asset->brand }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                    </div>
+                @else
+                    {{-- Semua Aman --}}
+                    <div class="flex-1 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <p class="font-semibold text-gray-800 text-sm">Semua Aman! ✨</p>
+                            <p class="text-xs text-gray-500 mt-1 max-w-[200px] mx-auto">
+                                Tidak ada peringatan yang perlu ditindaklanjuti
+                            </p>
+                        </div>
+                    </div>
+                @endif
+
+            </div>
+
+        </div>
+        {{-- ============================================================ --}}
+        {{-- SELESAI 3 CARD ROW --}}
+        {{-- ============================================================ --}}
+
+        {{-- ============================================================ --}}
+        {{-- AKTIVITAS TERBARU (Perbaikan, Peminjaman, Serah Terima) --}}
+        {{-- ============================================================ --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                        Perbaikan Terbaru
+                    </h3>
+                    <a href="{{ route('siam.maintenances.index') }}"
+                        class="text-xs text-orange-600 hover:underline">Semua →</a>
+                </div>
+                <div class="space-y-2">
+                    @forelse ($recentMaintenances as $m)
+                        <a href="{{ route('siam.maintenances.show', $m) }}"
+                            class="block p-2 rounded-lg hover:bg-orange-50 transition">
+                            <div class="text-xs font-semibold text-gray-800 truncate">
+                                {{ $m->asset?->serial_number }}
+                                @if ($m->asset?->hostname)
+                                    <span class="font-mono text-gray-500 font-normal">
+                                        ({{ $m->asset->hostname }})
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-[10px] text-gray-500 truncate">
+                                {{ Str::limit($m->issue, 40) }}
+                            </div>
+                            <div class="text-[10px] text-gray-400">
+                                {{ $m->created_at?->diffForHumans() }}
+                            </div>
+                        </a>
+                    @empty
+                        <p class="text-xs text-gray-400 italic text-center py-4">Belum ada perbaikan</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Peminjaman Terbaru
+                    </h3>
+                    <a href="{{ route('siam.loans.index') }}" class="text-xs text-amber-600 hover:underline">Semua →</a>
+                </div>
+                <div class="space-y-2">
+                    @forelse ($recentLoans as $loan)
+                        <a href="{{ route('siam.loans.show', $loan) }}"
+                            class="block p-2 rounded-lg hover:bg-amber-50 transition">
+                            <div class="text-xs font-semibold text-gray-800 truncate">
+                                {{ $loan->asset?->serial_number }}
+                                @if ($loan->asset?->hostname)
+                                    <span class="font-mono text-gray-500 font-normal">
+                                        ({{ $loan->asset->hostname }})
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-[10px] text-gray-500 truncate">
+                                {{ $loan->user?->name ?? 'Tanpa peminjam' }}
+                            </div>
+                            <div class="text-[10px] text-gray-400">
+                                {{ $loan->created_at?->diffForHumans() }}
+                            </div>
+                        </a>
+                    @empty
+                        <p class="text-xs text-gray-400 italic text-center py-4">Belum ada peminjaman</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-teal-500"></span>
+                        Serah Terima Terbaru
+                    </h3>
+                    <a href="{{ route('siam.assignments.index') }}" class="text-xs text-teal-600 hover:underline">Semua
+                        →</a>
+                </div>
+                <div class="space-y-2">
+                    @forelse ($recentAssignments as $item)
+                        @php
+                            $isReturn = $item['type'] === 'kembali';
+                            $a = $item['model'];
+                        @endphp
+                        <div class="p-2 rounded-lg hover:bg-teal-50 transition">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                @if ($isReturn)
+                                    <span
+                                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-700">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                        Kembali
+                                    </span>
+                                @else
+                                    <span
+                                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-700">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Serah
+                                    </span>
+                                @endif
+
+                                <div class="text-xs font-semibold text-gray-800 truncate">
+                                    {{ $a->asset?->serial_number }}
+                                    @if ($a->hostname)
+                                        <span class="font-mono text-gray-500 font-normal">
+                                            ({{ $a->hostname }})
+                                        </span>
+                                    @elseif ($a->asset?->hostname)
+                                        <span class="font-mono text-gray-400 font-normal">
+                                            ({{ $a->asset->hostname }})
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="text-[10px] text-gray-500 truncate">
+                                {{ $a->user?->name ?? '-' }}
+                            </div>
+                            <div class="text-[10px] text-gray-400">
+                                {{ $item['at']?->diffForHumans() }}
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-gray-400 italic text-center py-4">Belum ada serah terima</p>
+                    @endforelse
+                </div>
+            </div>
+
+        </div>
+
+        {{-- ============================================================ --}}
         {{--  HERO: PERBANDINGAN HAK MILIK vs SEWA --}}
         {{-- ============================================================ --}}
         <div
@@ -225,10 +708,6 @@
                             <div class="text-4xl font-extrabold">{{ $ownershipBreakdown['owned']['total'] }}</div>
                             <div class="text-sm text-slate-400 mb-1">unit</div>
                         </div>
-                        {{-- <div class="text-[11px] text-slate-400 mb-3">
-                            Rp {{ number_format($ownershipBreakdown['owned']['value'], 0, ',', '.') }}
-                            <span class="text-slate-500">(nilai beli)</span>
-                        </div> --}}
 
                         @php
                             $ownedTotal = max($ownershipBreakdown['owned']['total'], 1);
@@ -296,10 +775,6 @@
                             </div>
                             <div class="text-sm text-slate-400 mb-1">unit</div>
                         </div>
-                        {{-- <div class="text-[11px] text-slate-400 mb-3">
-                            Rp {{ number_format($ownershipBreakdown['leased']['monthly_cost'], 0, ',', '.') }}
-                            <span class="text-slate-500">/ bulan</span>
-                        </div> --}}
 
                         @php
                             $leasedTotal = max($ownershipBreakdown['leased']['total'], 1);
@@ -787,174 +1262,6 @@
         </div>
 
         {{-- ============================================================ --}}
-        {{-- ALERT / WARNING --}}
-        {{-- ============================================================ --}}
-        @php
-            $hasAlerts =
-                $overdueLoans->count() > 0 ||
-                $lowStockConsumables->count() > 0 ||
-                $expiringContracts->count() > 0 ||
-                $expiringWarranties->count() > 0;
-        @endphp
-
-        @if ($hasAlerts)
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                    <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="font-bold text-gray-800">Peringatan</h2>
-                        <p class="text-xs text-gray-500">Perlu tindakan segera</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-
-                    @if ($overdueLoans->count() > 0)
-                        <div class="rounded-xl border border-red-200 bg-red-50 p-3">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                                <p class="font-semibold text-sm text-red-800">
-                                    {{ $overdueLoans->count() }} Peminjaman Terlambat
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                @foreach ($overdueLoans->take(3) as $loan)
-                                    <div class="text-xs text-red-700">
-                                        • {{ $loan->asset?->serial_number }}
-                                        @if ($loan->asset?->hostname)
-                                            <span class="font-mono text-red-500">({{ $loan->asset->hostname }})</span>
-                                        @endif
-                                        — {{ $loan->user?->name }}
-                                        <span class="text-red-500">
-                                            ({{ $loan->due_date?->diffForHumans() }})
-                                        </span>
-                                    </div>
-                                @endforeach
-                                @if ($overdueLoans->count() > 3)
-                                    <div class="text-xs text-red-500 italic">
-                                        +{{ $overdueLoans->count() - 3 }} lainnya
-                                    </div>
-                                @endif
-                            </div>
-                            <a href="{{ route('siam.loans.index', ['status' => 'borrowed']) }}"
-                                class="inline-block mt-2 text-xs font-semibold text-red-700 hover:underline">
-                                Lihat semua →
-                            </a>
-                        </div>
-                    @endif
-
-                    @if ($lowStockConsumables->count() > 0)
-                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                <p class="font-semibold text-sm text-amber-800">
-                                    {{ $lowStockConsumables->count() }} Konsumable Stok Rendah
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                @foreach ($lowStockConsumables->take(3) as $c)
-                                    <div class="text-xs text-amber-700">
-                                        • {{ $c->name }}
-                                        <span class="text-amber-500">
-                                            ({{ $c->stock_available }}/{{ $c->stock_minimum }}
-                                            {{ $c->unit }})
-                                        </span>
-                                    </div>
-                                @endforeach
-                                @if ($lowStockConsumables->count() > 3)
-                                    <div class="text-xs text-amber-500 italic">
-                                        +{{ $lowStockConsumables->count() - 3 }} lainnya
-                                    </div>
-                                @endif
-                            </div>
-                            <a href="{{ route('siam.consumables.index', ['low_stock' => 1]) }}"
-                                class="inline-block mt-2 text-xs font-semibold text-amber-700 hover:underline">
-                                Lihat semua →
-                            </a>
-                        </div>
-                    @endif
-
-                    @if ($expiringContracts->count() > 0)
-                        <div class="rounded-xl border border-orange-200 bg-orange-50 p-3">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-                                <p class="font-semibold text-sm text-orange-800">
-                                    {{ $expiringContracts->count() }} Kontrak Sewa Berakhir < 30 Hari </p>
-                            </div>
-                            <div class="space-y-1">
-                                @foreach ($expiringContracts->take(3) as $asset)
-                                    <div class="text-xs text-orange-700">
-                                        • {{ $asset->serial_number }}
-                                        @if ($asset->hostname)
-                                            <span class="font-mono text-orange-500">({{ $asset->hostname }})</span>
-                                        @endif
-                                        — {{ $asset->brand }} {{ $asset->model }}
-                                        <span class="text-orange-500">
-                                            ({{ $asset->ownership?->contract_end?->diffForHumans() }})
-                                        </span>
-                                    </div>
-                                @endforeach
-                                @if ($expiringContracts->count() > 3)
-                                    <div class="text-xs text-orange-500 italic">
-                                        +{{ $expiringContracts->count() - 3 }} lainnya
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
-
-                    @if ($expiringWarranties->count() > 0)
-                        <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-3">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-                                <p class="font-semibold text-sm text-yellow-800">
-                                    {{ $expiringWarranties->count() }} Garansi Berakhir < 60 Hari </p>
-                            </div>
-                            <div class="space-y-1">
-                                @foreach ($expiringWarranties->take(3) as $asset)
-                                    <div class="text-xs text-yellow-700">
-                                        • {{ $asset->serial_number }}
-                                        @if ($asset->hostname)
-                                            <span class="font-mono text-yellow-500">({{ $asset->hostname }})</span>
-                                        @endif
-                                        — {{ $asset->brand }} {{ $asset->model }}
-                                        <span class="text-yellow-500">
-                                            ({{ $asset->warranty_expire?->diffForHumans() }})
-                                        </span>
-                                    </div>
-                                @endforeach
-                                @if ($expiringWarranties->count() > 3)
-                                    <div class="text-xs text-yellow-500 italic">
-                                        +{{ $expiringWarranties->count() - 3 }} lainnya
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
-
-                </div>
-            </div>
-        @else
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-                <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-green-600" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <p class="font-semibold text-gray-800">Semua Aman! ✨</p>
-                <p class="text-sm text-gray-500 mt-1">Tidak ada peringatan yang perlu ditindaklanjuti</p>
-            </div>
-        @endif
-
-        {{-- ============================================================ --}}
         {{-- GRAFIK --}}
         {{-- ============================================================ --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1047,137 +1354,6 @@
                 </div>
                 <div class="h-64">
                     <canvas id="chartMaintenance"></canvas>
-                </div>
-            </div>
-
-        </div>
-
-        {{-- ============================================================ --}}
-        {{-- AKTIVITAS TERBARU --}}
-        {{-- ============================================================ --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-                        Perbaikan Terbaru
-                    </h3>
-                    <a href="{{ route('siam.maintenances.index') }}"
-                        class="text-xs text-orange-600 hover:underline">Semua →</a>
-                </div>
-                <div class="space-y-2">
-                    @forelse ($recentMaintenances as $m)
-                        <a href="{{ route('siam.maintenances.show', $m) }}"
-                            class="block p-2 rounded-lg hover:bg-orange-50 transition">
-                            <div class="text-xs font-semibold text-gray-800 truncate">
-                                {{ $m->asset?->serial_number }}
-                                @if ($m->asset?->hostname)
-                                    <span class="font-mono text-gray-500 font-normal">
-                                        ({{ $m->asset->hostname }})
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="text-[10px] text-gray-500 truncate">
-                                {{ Str::limit($m->issue, 40) }}
-                            </div>
-                            <div class="text-[10px] text-gray-400">
-                                {{ $m->created_at?->diffForHumans() }}
-                            </div>
-                        </a>
-                    @empty
-                        <p class="text-xs text-gray-400 italic text-center py-4">Belum ada perbaikan</p>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        Peminjaman Terbaru
-                    </h3>
-                    <a href="{{ route('siam.loans.index') }}" class="text-xs text-amber-600 hover:underline">Semua →</a>
-                </div>
-                <div class="space-y-2">
-                    @forelse ($recentLoans as $loan)
-                        <a href="{{ route('siam.loans.show', $loan) }}"
-                            class="block p-2 rounded-lg hover:bg-amber-50 transition">
-                            <div class="text-xs font-semibold text-gray-800 truncate">
-                                {{ $loan->asset?->serial_number }}
-                                @if ($loan->asset?->hostname)
-                                    <span class="font-mono text-gray-500 font-normal">
-                                        ({{ $loan->asset->hostname }})
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="text-[10px] text-gray-500 truncate">
-                                {{ $loan->user?->name ?? 'Tanpa peminjam' }}
-                            </div>
-                            <div class="text-[10px] text-gray-400">
-                                {{ $loan->created_at?->diffForHumans() }}
-                            </div>
-                        </a>
-                    @empty
-                        <p class="text-xs text-gray-400 italic text-center py-4">Belum ada peminjaman</p>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-teal-500"></span>
-                        Serah Terima Terbaru
-                    </h3>
-                    <a href="{{ route('siam.assignments.index') }}" class="text-xs text-teal-600 hover:underline">Semua
-                        →</a>
-                </div>
-                <div class="space-y-2">
-                    @forelse ($recentAssignments as $item)
-                        @php
-                            $isReturn = $item['type'] === 'kembali';
-                            $a = $item['model'];
-                        @endphp
-                        <div class="p-2 rounded-lg hover:bg-teal-50 transition">
-                            <div class="flex items-center gap-2 mb-0.5">
-                                @if ($isReturn)
-                                    <span
-                                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-700">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                        Kembali
-                                    </span>
-                                @else
-                                    <span
-                                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-700">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        Serah
-                                    </span>
-                                @endif
-
-                                <div class="text-xs font-semibold text-gray-800 truncate">
-                                    {{ $a->asset?->serial_number }}
-                                    @if ($a->hostname)
-                                        <span class="font-mono text-gray-500 font-normal">
-                                            ({{ $a->hostname }})
-                                        </span>
-                                    @elseif ($a->asset?->hostname)
-                                        <span class="font-mono text-gray-400 font-normal">
-                                            ({{ $a->asset->hostname }})
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="text-[10px] text-gray-500 truncate">
-                                {{ $a->user?->name ?? '-' }}
-                            </div>
-                            <div class="text-[10px] text-gray-400">
-                                {{ $item['at']?->diffForHumans() }}
-                            </div>
-                        </div>
-                    @empty
-                        <p class="text-xs text-gray-400 italic text-center py-4">Belum ada serah terima</p>
-                    @endforelse
                 </div>
             </div>
 
@@ -1350,69 +1526,6 @@
                 </div>
             </div>
 
-        </div>
-
-        {{-- ============================================================ --}}
-        {{-- ACTIVITY LOG TERBARU --}}
-        {{-- ============================================================ --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
-                <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-slate-500"></span>
-                    Activity Log Terbaru
-                </h3>
-                <a href="{{ route('activity.index') }}" class="text-xs text-slate-600 hover:underline">Semua
-                    →</a>
-            </div>
-
-            <div class="space-y-2">
-                @forelse ($recentActivities as $log)
-                    @php
-                        $eventColor = match ($log->event) {
-                            'created' => 'bg-emerald-100 text-emerald-700',
-                            'updated' => 'bg-blue-100 text-blue-700',
-                            'deleted' => 'bg-red-100 text-red-700',
-                            'returned' => 'bg-cyan-100 text-cyan-700',
-                            'approved' => 'bg-green-100 text-green-700',
-                            'rejected' => 'bg-rose-100 text-rose-700',
-                            'cleared' => 'bg-orange-100 text-orange-700',
-                            'clicked' => 'bg-violet-100 text-violet-700',
-                            default => 'bg-gray-100 text-gray-700',
-                        };
-                    @endphp
-
-                    <div class="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition">
-                        <div
-                            class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-xs font-bold text-slate-700">
-                            {{ strtoupper(substr($log->causer?->name ?? 'S', 0, 1)) }}
-                        </div>
-
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap mb-0.5">
-                                <span
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase {{ $eventColor }}">
-                                    {{ $log->event ?? 'log' }}
-                                </span>
-                                <span class="text-xs font-semibold text-gray-800 truncate">
-                                    {{ $log->description }}
-                                </span>
-                            </div>
-
-                            <div class="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
-                                <span>{{ $log->causer?->name ?? 'System' }}</span>
-                                <span>•</span>
-                                <span>{{ $log->created_at?->diffForHumans() }}</span>
-                                @if ($log->properties && $log->properties->has('ip'))
-                                    <span>•</span>
-                                    <span class="font-mono">{{ $log->properties->get('ip') }}</span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-xs text-gray-400 italic text-center py-4">Belum ada aktivitas</p>
-                @endforelse
-            </div>
         </div>
 
     </div>

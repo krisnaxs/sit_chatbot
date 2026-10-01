@@ -37,7 +37,7 @@
             <span class="whitespace-nowrap sm:hidden">Tanya</span>
         </button>
 
-        {{-- 🆕 TOMBOL MINIMIZE — di LUAR FAB, posisi absolute --}}
+        {{--  TOMBOL MINIMIZE — di LUAR FAB, posisi absolute --}}
         <button type="button" @click="toggleMinimize()"
             class="absolute -top-1 -left-1 w-6 h-6 rounded-full
            bg-white border-2 border-blue-500
@@ -52,7 +52,7 @@
         </button>
     </div>
 
-    {{-- 🆕 TAB KECIL NEMPEL DI POJOK KANAN (kalau minimized) --}}
+    {{--  TAB KECIL NEMPEL DI POJOK KANAN (kalau minimized) --}}
     <button type="button" x-show="minimized" x-cloak @click="toggleMinimize()"
         class="fixed bottom-6 right-0 z-[60]
            flex items-center justify-center

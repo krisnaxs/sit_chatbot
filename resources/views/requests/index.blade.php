@@ -441,9 +441,6 @@
 
 @push('scripts')
     <script>
-        // ═══════════════════════════════════════════════════════════
-        //  DATA PENGAJUAN
-        // ═══════════════════════════════════════════════════════════
         const REQUESTS = {
             @foreach ($requests as $r)
                 {{ $r->id }}: {
@@ -471,10 +468,6 @@
                 },
             @endforeach
         };
-
-        // ═══════════════════════════════════════════════════════════
-        //  DETAIL MODAL
-        // ═══════════════════════════════════════════════════════════
         let currentRequestId = null;
 
         function openDetail(id) {
@@ -482,8 +475,6 @@
             if (!r) return;
 
             currentRequestId = id;
-
-            // Header color sesuai status
             const header = document.getElementById('detailHeader');
             const headerGradients = {
                 'pending': 'bg-gradient-to-br from-amber-500 to-orange-600',
@@ -492,20 +483,14 @@
                 'cancelled': 'bg-gradient-to-br from-gray-500 to-slate-600',
             };
             header.className = headerGradients[r.status] + ' px-6 py-5 text-white shrink-0';
-
-            // Header info
             document.getElementById('detailTitle').textContent = r.type_label;
             document.getElementById('detailSubtitle').textContent = r.request_number;
-
-            // Body info
             document.getElementById('detailUser').textContent = r.user_name;
             document.getElementById('detailDepartment').textContent = r.user_department;
             document.getElementById('detailItem').textContent = r.item_detail;
             document.getElementById('detailLocation').textContent = r.location;
             document.getElementById('detailCreatedAt').textContent = r.created_at;
             document.getElementById('detailPurpose').textContent = r.purpose;
-
-            // Due date (hanya loan)
             const dueWrapper = document.getElementById('detailDueDateWrapper');
             if (r.due_date) {
                 dueWrapper.classList.remove('hidden');
@@ -513,8 +498,6 @@
             } else {
                 dueWrapper.classList.add('hidden');
             }
-
-            // Admin notes
             const adminWrapper = document.getElementById('detailAdminNotesWrapper');
             if (r.admin_notes) {
                 adminWrapper.classList.remove('hidden');
@@ -522,8 +505,6 @@
             } else {
                 adminWrapper.classList.add('hidden');
             }
-
-            // Rejection reason
             const rejectWrapper = document.getElementById('detailRejectionWrapper');
             if (r.rejection_reason) {
                 rejectWrapper.classList.remove('hidden');
@@ -531,8 +512,6 @@
             } else {
                 rejectWrapper.classList.add('hidden');
             }
-
-            // Processed info
             const processedWrapper = document.getElementById('detailProcessedWrapper');
             if (r.approved_at) {
                 processedWrapper.classList.remove('hidden');
@@ -541,8 +520,6 @@
             } else {
                 processedWrapper.classList.add('hidden');
             }
-
-            // Aksi — hanya kalau pending & bukan milik sendiri
             const actionWrapper = document.getElementById('detailActionWrapper');
             const selfNotice = document.getElementById('detailSelfNotice');
 
@@ -556,8 +533,6 @@
                 actionWrapper.classList.add('hidden');
                 selfNotice.classList.add('hidden');
             }
-
-            // Show modal
             const modal = document.getElementById('detailModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -572,9 +547,6 @@
             currentRequestId = null;
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  APPROVE
-        // ═══════════════════════════════════════════════════════════
         function switchToApprove() {
             const id = currentRequestId;
             const r = REQUESTS[id];
@@ -607,9 +579,6 @@
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  REJECT
-        // ═══════════════════════════════════════════════════════════
         function switchToReject() {
             const id = currentRequestId;
             if (!id) return;
@@ -633,10 +602,6 @@
                 closeDetail();
             }
         }
-
-        // ═══════════════════════════════════════════════════════════
-        //  ESC HANDLER
-        // ═══════════════════════════════════════════════════════════
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (!document.getElementById('approveModal').classList.contains('hidden')) {

@@ -141,9 +141,6 @@
 
 @push('scripts')
     <script>
-        // ═══════════════════════════════════════════════════════════
-        //  GENERATE QR CODE — HD (1000x1000px untuk download)
-        // ═══════════════════════════════════════════════════════════
         function generateQR() {
             const container = document.getElementById('qrcode');
             if (!container) return;
@@ -156,11 +153,10 @@
             }
 
             const url = '{{ url('/request/quick') }}';
-            console.log('✅ QRCode loaded:', typeof QRCode);
+            console.log(' QRCode loaded:', typeof QRCode);
             console.log('🔗 Generate QR untuk:', url);
 
             if (typeof QRCode.toCanvas === 'function') {
-                // 🅰️ Library 'qrcode' (soldair)
                 console.log('📚 Library: qrcode (soldair)');
 
                 QRCode.toCanvas(container, url, {
@@ -177,9 +173,7 @@
                         container.innerHTML = '<p class="text-red-500 text-xs">Gagal generate QR</p>';
                         return;
                     }
-                    console.log('✅ QR berhasil (toCanvas)');
-
-                    // Simpan HD version untuk download/print
+                    console.log(' QR berhasil (toCanvas)');
                     QRCode.toDataURL(url, {
                         width: 1000,
                         margin: 4,
@@ -193,12 +187,11 @@
                             console.error('❌ QR HD error:', err);
                         } else {
                             window.__QR_HD_URL = hdUrl;
-                            console.log('✅ QR HD siap');
+                            console.log(' QR HD siap');
                         }
                     });
                 });
             } else {
-                // 🅱️ Library 'qrcodejs' (davidshimjs)
                 console.log('📚 Library: qrcodejs (davidshimjs)');
                 container.innerHTML = '';
 
@@ -210,8 +203,6 @@
                     colorLight: '#ffffff',
                     correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.H : 2
                 });
-
-                // Render HD tersembunyi
                 const hdContainer = document.createElement('div');
                 hdContainer.style.display = 'none';
                 document.body.appendChild(hdContainer);
@@ -233,10 +224,10 @@
                     } else if (hdImg) {
                         window.__QR_HD_IMG = hdImg;
                     }
-                    console.log('✅ QR HD siap');
+                    console.log(' QR HD siap');
                 }, 300);
 
-                console.log('✅ QR berhasil (constructor)');
+                console.log(' QR berhasil (constructor)');
             }
         }
 
@@ -246,9 +237,6 @@
             generateQR();
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  PRINT QR — buka window baru berisi QR card saja
-        // ═══════════════════════════════════════════════════════════
         function printQR() {
             let qrSrc = '';
 
@@ -427,13 +415,7 @@
 
             printWindow.document.close();
         }
-
-        // ═══════════════════════════════════════════════════════════
-        //  DOWNLOAD QR — PNG dengan frame (judul + QR + URL)
-        //  Tanpa logo — sesuai preview
-        // ═══════════════════════════════════════════════════════════
         async function downloadQR() {
-            // ─── 1. Ambil QR source ───
             let qrSource = null;
 
             if (window.__QR_HD_CANVAS) {
@@ -453,8 +435,6 @@
                 alert('QR belum siap. Tunggu sebentar lalu coba lagi.');
                 return;
             }
-
-            // ─── 2. Setup ukuran canvas akhir ───
             const Q = 800;
             const PADDING = 50;
             const QR_SIZE = 440;
@@ -462,26 +442,18 @@
             const URL_SPACE = 60;
             const BORDER_RADIUS = 20;
             const TOTAL_H = PADDING + TITLE_SPACE + QR_SIZE + URL_SPACE + PADDING;
-
-            // ─── 3. Buat canvas baru ───
             const finalCanvas = document.createElement('canvas');
             finalCanvas.width = Q;
             finalCanvas.height = TOTAL_H;
             const ctx = finalCanvas.getContext('2d');
-
-            // Background putih dengan rounded corners
             ctx.fillStyle = '#ffffff';
             roundRect(ctx, 0, 0, Q, TOTAL_H, BORDER_RADIUS);
             ctx.fill();
-
-            // ─── 4. Judul "Scan QR Code" ───
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('Scan QR Code', Q / 2, PADDING + 40);
-
-            // ─── 5. Border dashed di sekitar QR ───
             const boxX = (Q - QR_SIZE) / 2 - 20;
             const boxY = PADDING + TITLE_SPACE;
             const boxW = QR_SIZE + 40;
@@ -493,19 +465,13 @@
             roundRect(ctx, boxX, boxY, boxW, boxH, 16);
             ctx.stroke();
             ctx.setLineDash([]);
-
-            // ─── 6. QR Code di dalam ───
             const qrX = (Q - QR_SIZE) / 2;
             const qrY = boxY + 20;
             ctx.drawImage(qrSource, qrX, qrY, QR_SIZE, QR_SIZE);
-
-            // ─── 7. URL di bawah ───
             const url = '{{ url('/request/quick') }}';
             ctx.fillStyle = '#6b7280';
             ctx.font = '18px "Courier New", monospace';
             ctx.fillText(url, Q / 2, qrY + QR_SIZE + 55);
-
-            // ─── 8. Download PNG ───
             const dataUrl = finalCanvas.toDataURL('image/png');
 
             const link = document.createElement('a');
@@ -513,12 +479,9 @@
             link.href = dataUrl;
             link.click();
 
-            console.log('✅ QR PNG ter-download (dengan frame)');
+            console.log(' QR PNG ter-download (dengan frame)');
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  Helper — Rounded rectangle
-        // ═══════════════════════════════════════════════════════════
         function roundRect(ctx, x, y, w, h, r) {
             ctx.beginPath();
             ctx.moveTo(x + r, y);
@@ -529,9 +492,6 @@
             ctx.closePath();
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  Helper — Convert <img> ke <canvas>
-        // ═══════════════════════════════════════════════════════════
         function imgToCanvas(img) {
             return new Promise((resolve) => {
                 const canvas = document.createElement('canvas');

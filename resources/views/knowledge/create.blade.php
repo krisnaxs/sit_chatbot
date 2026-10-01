@@ -64,7 +64,7 @@
                                 required>
                         </div>
                         <p class="text-xs text-gray-500 mt-1.5">
-                            💡 Gunakan kata kunci yang spesifik dan mudah diingat
+                            Gunakan kata kunci yang spesifik dan mudah diingat
                         </p>
                         @error('kata_kunci')
                             <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
@@ -83,7 +83,7 @@
                                resize-none transition"
                             required>{{ old('jawaban') }}</textarea>
                         <p class="text-xs text-gray-500 mt-1.5">
-                            💡 Berikan jawaban yang jelas, singkat, dan informatif
+                            Berikan jawaban yang jelas, singkat, dan informatif
                         </p>
                         @error('jawaban')
                             <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
@@ -134,7 +134,7 @@
                         </div>
 
                         <p class="text-xs text-gray-500 mt-1.5">
-                            💡 Bisa pilih banyak file sekaligus (Ctrl/Cmd + klik). Semua file akan muncul di chat saat user
+                            Bisa pilih banyak file sekaligus (Ctrl/Cmd + klik). Semua file akan muncul di chat saat user
                             bertanya dengan kata kunci ini.
                         </p>
 
@@ -234,9 +234,6 @@
 
 @push('scripts')
     <script>
-        // ============================================================
-        // PREVIEW MULTIPLE FILES
-        // ============================================================
         function previewFiles(event) {
             const input = event.target;
             const files = Array.from(input.files);
@@ -273,8 +270,6 @@
                 const row = document.createElement('div');
                 row.className =
                     'flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 transition';
-
-                // Untuk gambar, tampilkan thumbnail
                 let thumbHtml = '';
                 if (file.type.startsWith('image/')) {
                     const url = URL.createObjectURL(file);
@@ -302,9 +297,6 @@
             totalEl.textContent = formatSize(totalSize);
         }
 
-        // ============================================================
-        // CLEAR ALL FILES
-        // ============================================================
         function clearAllFiles() {
             const input = document.getElementById('filesInput');
             input.value = '';
@@ -316,9 +308,6 @@
             document.getElementById('filesList').innerHTML = '';
         }
 
-        // ============================================================
-        // HELPER: Format size
-        // ============================================================
         function formatSize(bytes) {
             const units = ['B', 'KB', 'MB', 'GB'];
             let i = 0;
@@ -330,9 +319,6 @@
             return size.toFixed(2) + ' ' + units[i];
         }
 
-        // ============================================================
-        // HELPER: Icon berdasarkan tipe file
-        // ============================================================
         function getFileIcon(mime, name) {
             if (mime.startsWith('image/')) return '🖼️';
             if (mime === 'application/pdf') return '📄';
@@ -344,18 +330,12 @@
             return '📎';
         }
 
-        // ============================================================
-        // HELPER: Escape HTML biar aman
-        // ============================================================
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
 
-        // ============================================================
-        // ALPINE COMPONENT
-        // ============================================================
         function knowledgeForm() {
             return {
                 toast: {

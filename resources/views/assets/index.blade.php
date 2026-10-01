@@ -39,18 +39,7 @@
                         PDF
                     </a>
 
-                    {{-- Brand & Model
-                    <a href="{{ route('siam.asset-types.index') }}"
-                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium inline-flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                        </svg>
-                        Brand & Model
-                    </a> --}}
-
-                    {{-- 🆕 Cetak QR Massal (semua aset sesuai filter) --}}
+                    {{-- Cetak QR Massal --}}
                     <a href="{{ route('siam.assets.qr.batch', request()->query()) }}" target="_blank"
                         title="Cetak QR semua aset (sesuai filter)"
                         class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 text-sm font-medium inline-flex items-center gap-2">
@@ -151,6 +140,26 @@
                             <option value="lost" @selected(request('status') === 'lost')>Hilang</option>
                         </select>
                     </div>
+
+                    {{--  Filter baru: status pemakai --}}
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Status Pemakai</label>
+                        <select name="pemakai_status" data-auto-submit
+                            class="w-full border rounded-lg px-3 py-2 text-sm
+                                   @if (request('pemakai_status')) border-amber-400 bg-amber-50 @endif">
+                            <option value="">Semua</option>
+                            <option value="perlu_ditarik" @selected(request('pemakai_status') === 'perlu_ditarik')>
+                                Perlu Ditarik (pensiun ≤ 30 hari)
+                            </option>
+                            <option value="sudah_pensiun" @selected(request('pemakai_status') === 'sudah_pensiun')>
+                                Dipegang Pensiunan
+                            </option>
+                            <option value="akan_pensiun" @selected(request('pemakai_status') === 'akan_pensiun')>
+                                Akan Pensiun (belum lewat)
+                            </option>
+                        </select>
+                    </div>
+
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Brand</label>
                         <select name="brand" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -308,7 +317,35 @@
                 </div>
             @endif
 
-            {{-- 🆕 TOOLBAR BATCH QR (muncul kalau ada yang dicentang) --}}
+            {{--  BANNER PENGINGAT PENSIUN (kalau ada aset perlu ditarik) --}}
+            @php
+                $asetPerluDitarik = $assets->getCollection()->filter(fn($a) => $a->perlu_ditarik);
+            @endphp
+            @if ($asetPerluDitarik->count() > 0 && !request('pemakai_status'))
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold text-amber-800 text-sm">
+                            {{ $asetPerluDitarik->count() }} aset di halaman ini perlu ditarik
+                        </div>
+                        <div class="text-xs text-amber-700 mt-0.5">
+                            Pemakainya akan/sudah pensiun dalam 30 hari ke depan.
+                            <a href="{{ route('siam.assets.index', array_merge(request()->query(), ['pemakai_status' => 'perlu_ditarik'])) }}"
+                                class="font-semibold underline hover:text-amber-900">
+                                Lihat semua aset perlu ditarik →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- TOOLBAR BATCH QR --}}
             <div id="qrBatchBar"
                 class="hidden bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3">
                 <div class="flex items-center gap-3">
@@ -343,7 +380,7 @@
                 </div>
             </div>
 
-            {{-- 🆕 FORM TERSEMBUNYI untuk submit batch QR --}}
+            {{-- FORM TERSEMBUNYI untuk submit batch QR --}}
             <form id="qrBatchForm" method="GET" action="{{ route('siam.assets.qr.batch') }}" target="_blank"
                 class="hidden">
                 {{-- checkbox di tabel akan di-submit lewat form ini --}}
@@ -355,7 +392,6 @@
                     <table class="min-w-full text-sm">
                         <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                             <tr>
-                                {{-- 🆕 Kolom Checkbox --}}
                                 <th class="px-3 py-2 text-center w-10">
                                     <input type="checkbox" id="selectAllCheckbox"
                                         class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
@@ -377,6 +413,7 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($assets as $index => $asset)
                                 @php
+                                    $perluDitarik = $asset->perlu_ditarik;
                                     $assetData = [
                                         'id' => $asset->id,
                                         'asset_code' => $asset->asset_code,
@@ -393,6 +430,10 @@
                                         'current_user' => $asset->currentUser?->name,
                                         'current_location' => $asset->currentLocation?->full_name,
                                         'purchase_year' => $asset->purchase_date?->format('Y'),
+                                        'perlu_ditarik' => $perluDitarik,
+                                        'label_pengingat_pensiun' => $asset->label_pengingat_pensiun,
+                                        'warna_pengingat_pensiun' => $asset->warna_pengingat_pensiun,
+                                        'sisa_hari_pensiun' => $asset->sisa_hari_pensiun,
                                         'routes' => [
                                             'show' => route('siam.assets.show', $asset),
                                             'edit' => route('siam.assets.edit', $asset),
@@ -407,8 +448,12 @@
                                     ];
                                 @endphp
 
-                                <tr class="hover:bg-indigo-50 transition-colors">
-                                    {{-- 🆕 Checkbox --}}
+                                {{--  Highlight baris kalau perlu ditarik --}}
+                                <tr
+                                    class="transition-colors
+                                    @if ($perluDitarik) bg-amber-50 hover:bg-amber-100
+                                    @else
+                                        hover:bg-indigo-50 @endif">
                                     <td class="px-3 py-2 text-center">
                                         <input type="checkbox" name="ids[]" value="{{ $asset->id }}"
                                             form="qrBatchForm"
@@ -443,15 +488,39 @@
                                         <span
                                             class="px-2 py-0.5 text-xs rounded {{ $ownColor }}">{{ $asset->ownership_label }}</span>
                                     </td>
+
+                                    {{--  KOLOM PEMAKAI — dengan badge pengingat pensiun --}}
                                     <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
                                         class="px-3 py-2 cursor-pointer">
                                         @if ($asset->currentUser)
                                             <div class="text-gray-800">{{ $asset->currentUser->name }}</div>
                                             <div class="text-xs text-gray-500">{{ $asset->currentUser->position }}</div>
+
+                                            {{--  Badge pengingat pensiun --}}
+                                            @if ($perluDitarik)
+                                                <div class="mt-1">
+                                                    <span
+                                                        class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-bold
+                                                        @if ($asset->warna_pengingat_pensiun === 'red') bg-red-100 text-red-700 border border-red-200
+                                                        @elseif($asset->warna_pengingat_pensiun === 'orange')
+                                                            bg-orange-100 text-orange-700 border border-orange-200
+                                                        @else
+                                                            bg-amber-100 text-amber-700 border border-amber-200 @endif">
+                                                        @if ($asset->sisa_hari_pensiun < 0)
+                                                            {{ $asset->label_pengingat_pensiun }}
+                                                        @elseif($asset->sisa_hari_pensiun == 0)
+                                                            Pensiun hari ini
+                                                        @else
+                                                            ⏳ {{ $asset->label_pengingat_pensiun }}
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            @endif
                                         @else
                                             <span class="text-xs text-gray-400 italic">-</span>
                                         @endif
                                     </td>
+
                                     <td @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
                                         class="px-3 py-2 text-xs cursor-pointer">
                                         @if ($asset->currentLocation)
@@ -556,6 +625,13 @@
                                     x-text="selectedAsset?.category"></span>
                                 <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
                                     x-text="selectedAsset?.ownership_label"></span>
+
+                                {{--  Badge pensiun di modal --}}
+                                <template x-if="selectedAsset?.perlu_ditarik">
+                                    <span class="text-xs px-2 py-0.5 rounded bg-amber-400 text-amber-900 font-bold">
+                                        PERLU DITARIK
+                                    </span>
+                                </template>
                             </div>
                             <h3 class="text-xl font-bold truncate"
                                 x-text="selectedAsset ? selectedAsset.brand + ' ' + selectedAsset.model : ''"></h3>
@@ -600,6 +676,16 @@
                                 x-text="selectedAsset?.condition_percent !== null ? selectedAsset.condition_percent + '%' : '-'">
                             </div>
                         </div>
+
+                        {{--  Info pensiun di modal --}}
+                        <template x-if="selectedAsset?.perlu_ditarik">
+                            <div class="col-span-2 mt-1 p-2 rounded-lg bg-amber-50 border border-amber-200">
+                                <div class="text-xs text-amber-800">
+                                    <span class="font-bold"> Perlu Ditarik:</span>
+                                    <span x-text="selectedAsset?.label_pengingat_pensiun"></span>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
@@ -624,7 +710,6 @@
                             </div>
                         </a>
 
-                        {{-- 🆕 QR CODE --}}
                         <a :href="selectedAsset?.routes.qr" target="_blank"
                             class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 transition group">
                             <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center shrink-0">
@@ -1012,17 +1097,10 @@
                 }
             }
         }
-
-        // ═══════════════════════════════════════════════════════════
-        //  AUTO-SUBMIT FILTER
-        // ═══════════════════════════════════════════════════════════
         document.querySelectorAll('[data-auto-submit]').forEach(el => {
             el.addEventListener('change', () => el.closest('form').submit());
         });
 
-        // ═══════════════════════════════════════════════════════════
-        //  🆕 BATCH QR — Checkbox & Toolbar
-        // ═══════════════════════════════════════════════════════════
         function getCheckboxes() {
             return document.querySelectorAll('.asset-checkbox');
         }
@@ -1081,7 +1159,6 @@
             if (form) form.submit();
         }
 
-        // Pasang listener saat DOM ready
         document.addEventListener('DOMContentLoaded', function() {
             getCheckboxes().forEach(cb => {
                 cb.addEventListener('change', updateSelectedCount);

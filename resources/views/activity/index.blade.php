@@ -1,7 +1,4 @@
 @php
-    // ═══════════════════════════════════════════════════════
-    // HELPER FUNCTIONS (tetap di atas, dipakai di seluruh view)
-    // ═══════════════════════════════════════════════════════
     if (!function_exists('activityFieldLabel')) {
         function activityFieldLabel(string $field): string
         {

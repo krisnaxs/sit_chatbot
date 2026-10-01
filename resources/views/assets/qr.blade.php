@@ -3,7 +3,6 @@
 @section('title', 'QR Code — ' . $asset->serial_number)
 
 @php
-    // ─── Definisi variable di sini (bukan di dalam JS) ───
     $publicUrl = $asset->public_url ?? '';
     $safeSerial = str_replace(['/', '\\', ' ', '#'], '-', $asset->serial_number ?? 'asset');
     $brand = $asset->brand ?? '';
@@ -76,7 +75,7 @@
                 </p>
             @else
                 <div class="p-6 bg-red-50 border border-red-200 rounded-2xl">
-                    <p class="text-sm text-red-700 font-semibold">⚠️ QR tidak bisa dibuat</p>
+                    <p class="text-sm text-red-700 font-semibold"> QR tidak bisa dibuat</p>
                     <p class="text-xs text-red-600 mt-1">Serial number kosong.</p>
                 </div>
             @endif
@@ -106,7 +105,7 @@
         {{-- Info --}}
         <div class="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl no-print">
             <p class="text-xs text-indigo-700 leading-relaxed">
-                <strong>💡 Info:</strong> QR ini berisi link permanen ke halaman publik aset.
+                <strong> Info:</strong> QR ini berisi link permanen ke halaman publik aset.
                 QR <strong>tidak akan berubah</strong> meski data aset diupdate.
             </p>
         </div>
@@ -115,9 +114,6 @@
 
 @push('scripts')
     <script>
-        // ═══════════════════════════════════════════════════════════
-        //  SAFE DATA — pakai Js::from biar tidak ada masalah escaping
-        // ═══════════════════════════════════════════════════════════
         const qrUrl = {{ Js::from($publicUrl) }};
         const safeFilename = {{ Js::from($safeSerial) }};
         const assetBrand = {{ Js::from($brand) }};
@@ -126,9 +122,6 @@
         const assetSN = {{ Js::from($serialNum) }};
         const logoUrl = {{ Js::from($logoUrl) }};
 
-        // ═══════════════════════════════════════════════════════════
-        //  GENERATE QR CODE — HD
-        // ═══════════════════════════════════════════════════════════
         function generateQR() {
             const container = document.getElementById('qrcode');
             if (!container) return;
@@ -142,7 +135,6 @@
             if (!qrUrl) return;
 
             if (typeof QRCode.toCanvas === 'function') {
-                // 🅰️ Library 'qrcode' (soldair)
                 QRCode.toCanvas(container, qrUrl, {
                     width: 260,
                     margin: 4,
@@ -169,7 +161,6 @@
                     });
                 });
             } else {
-                // 🅱️ Library 'qrcodejs' (davidshimjs)
                 container.innerHTML = '';
 
                 new QRCode(container, {
@@ -209,11 +200,6 @@
             generateQR();
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  PRINT QR — popup window
-        //  Dibangun dengan string concatenation (bukan template literal)
-        //  untuk menghindari konflik parser Blade
-        // ═══════════════════════════════════════════════════════════
         function printQR() {
             let qrSrc = '';
 
@@ -291,8 +277,6 @@
                 '<div><div class="step-num">3</div><div class="step-title">Hubungi Admin</div><div class="step-desc">Kalau ada masalah</div></div>';
             html += '</div>';
             html += '</div>';
-
-            // Tag script dipecah agar tidak dianggap penutup Blade
             html += '<scr' + 'ipt>';
             html += 'window.onload = function() { setTimeout(function() { window.print(); }, 600); };';
             html += '</scr' + 'ipt>';
@@ -302,10 +286,6 @@
             printWindow.document.write(html);
             printWindow.document.close();
         }
-
-        // ═══════════════════════════════════════════════════════════
-        //  DOWNLOAD QR — PNG dengan frame (judul + QR + URL)
-        // ═══════════════════════════════════════════════════════════
         async function downloadQR() {
             let qrSource = null;
 
@@ -336,30 +316,20 @@
             finalCanvas.width = Q;
             finalCanvas.height = TOTAL_H;
             const ctx = finalCanvas.getContext('2d');
-
-            // Background putih
             ctx.fillStyle = '#ffffff';
             roundRect(ctx, 0, 0, Q, TOTAL_H, BORDER_RADIUS);
             ctx.fill();
-
-            // Judul
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('SIAM — Aset', Q / 2, PADDING + 30);
-
-            // Nama aset
             ctx.fillStyle = '#4b5563';
             ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
             ctx.fillText(assetBrand + ' ' + assetModel, Q / 2, PADDING + 70);
-
-            // Kode aset
             ctx.fillStyle = '#6b7280';
             ctx.font = '14px "Courier New", monospace';
             ctx.fillText(assetCode, Q / 2, PADDING + 100);
-
-            // Border dashed
             const boxX = (Q - QR_SIZE) / 2 - 20;
             const boxY = PADDING + TITLE_SPACE;
             const boxW = QR_SIZE + 40;
@@ -371,18 +341,12 @@
             roundRect(ctx, boxX, boxY, boxW, boxH, 16);
             ctx.stroke();
             ctx.setLineDash([]);
-
-            // QR
             const qrX = (Q - QR_SIZE) / 2;
             const qrY = boxY + 20;
             ctx.drawImage(qrSource, qrX, qrY, QR_SIZE, QR_SIZE);
-
-            // URL
             ctx.fillStyle = '#6b7280';
             ctx.font = '16px "Courier New", monospace';
             ctx.fillText(qrUrl, Q / 2, qrY + QR_SIZE + 55);
-
-            // Download
             const dataUrl = finalCanvas.toDataURL('image/png');
 
             const link = document.createElement('a');
@@ -391,9 +355,6 @@
             link.click();
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  Helper — Rounded rectangle
-        // ═══════════════════════════════════════════════════════════
         function roundRect(ctx, x, y, w, h, r) {
             ctx.beginPath();
             ctx.moveTo(x + r, y);
@@ -404,9 +365,6 @@
             ctx.closePath();
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  Helper — Convert <img> ke <canvas>
-        // ═══════════════════════════════════════════════════════════
         function imgToCanvas(img) {
             return new Promise((resolve) => {
                 const canvas = document.createElement('canvas');

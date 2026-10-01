@@ -77,7 +77,7 @@ class VendorQueryService
             ->limit(10)->get();
 
         if ($contracts->isEmpty()) {
-            return ["Tidak ada kontrak sewa yang berakhir dalam 30 hari ke depan. ✅", 'database'];
+            return ["Tidak ada kontrak sewa yang berakhir dalam 30 hari ke depan. ", 'database'];
         }
 
         $jawaban = "" . $contracts->count() . " kontrak berakhir < 30 hari:\n\n";

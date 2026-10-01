@@ -204,7 +204,7 @@ class AnalyticsQueryService
             ->get();
 
         if ($oldAssets->isEmpty()) {
-            return ["✅ Tidak ada aset yang perlu dipensiunkan saat ini.", 'database'];
+            return [" Tidak ada aset yang perlu dipensiunkan saat ini.", 'database'];
         }
 
         $total = Asset::whereIn('status', ['available', 'in_use'])
@@ -261,7 +261,7 @@ class AnalyticsQueryService
             ->get();
 
         if ($assets->isEmpty()) {
-            return ["✅ Tidak ada garansi yang berakhir dalam 60 hari.", 'database'];
+            return [" Tidak ada garansi yang berakhir dalam 60 hari.", 'database'];
         }
 
         $total = Asset::whereNotNull('warranty_expire')
@@ -269,7 +269,7 @@ class AnalyticsQueryService
             ->whereDate('warranty_expire', '<=', now()->addDays(60))
             ->count();
 
-        $lines = ["⚠️ **{$total} Aset Garansi Berakhir < 60 Hari:**\n"];
+        $lines = [" **{$total} Aset Garansi Berakhir < 60 Hari:**\n"];
         foreach ($assets as $a) {
             $end = $a->warranty_expire->format('d M Y');
             $days = $a->warranty_expire->diffInDays(now());

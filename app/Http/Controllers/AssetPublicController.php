@@ -8,10 +8,7 @@ class AssetPublicController extends Controller
 {
     public function show(string $serial)
     {
-        // Decode & sanitize
         $serial = trim(urldecode($serial));
-
-        // Guard: SN kosong atau tidak wajar
         if (empty($serial) || strlen($serial) > 100) {
             abort(404, 'Serial number tidak valid.');
         }

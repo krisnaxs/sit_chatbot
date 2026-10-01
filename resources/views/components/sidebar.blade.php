@@ -8,6 +8,7 @@
             request()->routeIs('activity.*') => 'master',
             request()->routeIs('admin.qr-code') => 'master',
             request()->routeIs('admin.qr-generator') => 'master',
+            request()->routeIs('settings.*') => 'master',
             request()->routeIs('requests.*') => auth()->user()->role === 'user' ? 'my-assets' : 'siam',
             request()->routeIs('admin.requests.*') => 'siam',
             request()->routeIs('my-assets.*') => auth()->user()->role === 'user' ? 'my-assets' : 'siam',
@@ -16,8 +17,6 @@
             request()->routeIs('knowledge.*', 'chat.*') => 'chatbot',
             default => 'portal',
         };
-
-        // 🆕 Hitung pending sekali saja (guard kalau tabel belum ada)
         $pendingRequestCount = \Illuminate\Support\Facades\Schema::hasTable('asset_requests')
             ? \App\Models\AssetRequest::where('status', 'pending')->count()
             : 0;
@@ -464,7 +463,7 @@
                         Aset Saya
                     </p>
 
-                    {{-- 🆕 Aset yang Saya Pegang --}}
+                    {{--  Aset yang Saya Pegang --}}
                     <a href="{{ route('my-assets.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
@@ -672,14 +671,14 @@
                         </a>
                     @endif
 
-                    {{-- 🆕 QR Code Pengajuan --}}
+                    {{--  QR Code Pengajuan --}}
                     <a href="{{ route('admin.qr-code') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-          {{ request()->routeIs('admin.qr-code') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                         {{ request()->routeIs('admin.qr-code') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                {{ request()->routeIs('admin.qr-code') ? 'bg-indigo-100' : 'bg-gray-100' }}">
+                        {{ request()->routeIs('admin.qr-code') ? 'bg-indigo-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -690,14 +689,14 @@
                             Pengajuan</span>
                     </a>
 
-                    {{-- 🆕 QR Code Generator --}}
+                    {{--  QR Code Generator --}}
                     <a href="{{ route('admin.qr-generator') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                         class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-          {{ request()->routeIs('admin.qr-generator') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        {{ request()->routeIs('admin.qr-generator') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
                             class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                {{ request()->routeIs('admin.qr-generator') ? 'bg-violet-100' : 'bg-gray-100' }}">
+                     {{ request()->routeIs('admin.qr-generator') ? 'bg-violet-100' : 'bg-gray-100' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -707,6 +706,34 @@
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">QR Code
                             Generator</span>
                     </a>
+                    {{-- ════════════ PENGATURAN (admin & support) ════════════ --}}
+                    @if (auth()->user()->hasAnyRole(['admin', 'support']))
+                        <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
+                            class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
+                            Pengaturan
+                        </p>
+
+                        {{-- Pengaturan Sistem --}}
+                        <a href="{{ route('settings.index') }}"
+                            :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
+                            class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+              {{ request()->routeIs('settings.*') ? 'bg-slate-100 text-slate-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <span
+                                class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                    {{ request()->routeIs('settings.*') ? 'bg-slate-200' : 'bg-gray-100' }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </span>
+                            <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
+                                Pengaturan Sistem
+                            </span>
+                        </a>
+                    @endif
                 @endif
 
             </nav>

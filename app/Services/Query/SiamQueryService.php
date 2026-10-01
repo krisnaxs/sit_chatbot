@@ -271,7 +271,7 @@ class SiamQueryService
             ->get();
 
         if ($loans->isEmpty()) {
-            return ["✅ Tidak ada peminjaman terlambat. Semua aman!", 'database'];
+            return [" Tidak ada peminjaman terlambat. Semua aman!", 'database'];
         }
 
         $total = AssetLoan::where('status', 'borrowed')
@@ -332,7 +332,7 @@ class SiamQueryService
             ->get();
 
         if ($items->isEmpty()) {
-            return ["✅ Semua stok konsumable aman.", 'database'];
+            return [" Semua stok konsumable aman.", 'database'];
         }
 
         $total = Consumable::whereColumn('stock_available', '<=', 'stock_minimum')->count();

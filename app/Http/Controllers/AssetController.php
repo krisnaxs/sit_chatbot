@@ -48,6 +48,15 @@ class AssetController extends Controller
             $query->where('ownership_type', $request->ownership_type);
         if ($request->filled('status'))
             $query->where('status', $request->status);
+        if ($request->filled('pemakai_status')) {
+            match ($request->pemakai_status) {
+                'perlu_ditarik' => $query->perluDitarik(30),
+                'sudah_pensiun' => $query->dipegangPensiunan(),
+                'akan_pensiun' => $query->akanDitarik(30),
+                default => null,
+            };
+        }
+
         if ($request->filled('brand'))
             $query->where('brand', $request->brand);
         if ($request->filled('model'))
@@ -74,6 +83,7 @@ class AssetController extends Controller
             || $request->filled('category_id')
             || $request->filled('ownership_type')
             || $request->filled('status')
+            || $request->filled('pemakai_status')   //  tambahan
             || $request->filled('brand')
             || $request->filled('model')
             || $request->filled('location_id')
@@ -177,7 +187,6 @@ class AssetController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // Identitas
             'serial_number' => 'required|unique:assets,serial_number',
             'asset_code' => 'nullable|unique:assets,asset_code',
             'hostname' => 'nullable|string|max:100',
@@ -187,8 +196,6 @@ class AssetController extends Controller
             'specification' => 'nullable|array',
             'os' => 'nullable|string|max:100',
             'os_license' => 'nullable|string|max:100',
-
-            // Kepemilikan
             'ownership_type' => 'required|in:owned,leased',
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0',
@@ -197,15 +204,11 @@ class AssetController extends Controller
             'invoice_number' => 'nullable|string|max:100',
             'monthly_cost' => 'nullable|numeric|min:0',
             'contract_end' => 'nullable|date',
-
-            // Status
             'status' => 'required|in:available,in_use,loaned,maintenance,retired,lost',
             'condition_percent' => 'nullable|integer|min:0|max:100',
             'condition_notes' => 'nullable|string',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
-
-            // 🆕 Assign
             'assign' => 'nullable|array',
             'assign.user_id' => 'nullable|exists:users,id',
             'assign.location_id' => 'nullable|exists:locations,id',
@@ -214,8 +217,6 @@ class AssetController extends Controller
             'assign.assigned_at' => 'nullable|date',
             'assign.condition_on_assign' => 'nullable|integer|min:0|max:100',
             'assign.notes' => 'nullable|string',
-
-            // 🆕 Loan
             'loan' => 'nullable|array',
             'loan.user_id' => 'nullable|exists:users,id',
             'loan.loan_date' => 'nullable|date',
@@ -223,8 +224,6 @@ class AssetController extends Controller
             'loan.purpose' => 'nullable|string|max:255',
             'loan.condition_on_loan' => 'nullable|integer|min:0|max:100',
             'loan.notes' => 'nullable|string',
-
-            // 🆕 Maintenance
             'maintenance' => 'nullable|array',
             'maintenance.issue' => 'nullable|string|max:255',
             'maintenance.action' => 'nullable|string',
@@ -238,7 +237,6 @@ class AssetController extends Controller
             'maintenance.notes' => 'nullable|string',
         ]);
 
-        // 🆕 Validasi wajib isi detail kalau status tertentu
         if ($validated['status'] === 'in_use' && empty($validated['assign']['user_id'])) {
             return back()->withInput()
                 ->with('error', 'Untuk status "Dipakai", wajib isi data pegawai penerima.');
@@ -257,7 +255,6 @@ class AssetController extends Controller
                 $validated['photo_path'] = $request->file('photo')->store('assets', 'public');
             }
 
-            // 🆕 Tentukan current_user_id & current_location_id dari assign/loan
             $currentUserId = null;
             $currentLocationId = null;
 
@@ -287,12 +284,10 @@ class AssetController extends Controller
                 'condition_notes' => $validated['condition_notes'] ?? null,
                 'photo_path' => $validated['photo_path'] ?? null,
                 'notes' => $validated['notes'] ?? null,
-                // 🆕 SET current holder
                 'current_user_id' => $currentUserId,
                 'current_location_id' => $currentLocationId,
             ]);
 
-            // Ownership
             AssetOwnership::create([
                 'asset_id' => $asset->id,
                 'vendor_id' => $validated['vendor_id'] ?? null,
@@ -305,7 +300,6 @@ class AssetController extends Controller
                 'monthly_cost' => $validated['ownership_type'] === 'leased' ? ($validated['monthly_cost'] ?? null) : null,
             ]);
 
-            // 🆕 AssetAssignment
             if ($validated['status'] === 'in_use' && !empty($validated['assign']['user_id'])) {
                 $a = $validated['assign'];
                 AssetAssignment::create([
@@ -319,13 +313,11 @@ class AssetController extends Controller
                     'assigned_by' => auth()->id(),
                     'received_by' => $a['user_id'],
                 ]);
-                // Update hostname kalau diisi
                 if (!empty($a['hostname'])) {
                     $asset->update(['hostname' => $a['hostname']]);
                 }
             }
 
-            // 🆕 AssetLoan
             if ($validated['status'] === 'loaned' && !empty($validated['loan']['user_id'])) {
                 $l = $validated['loan'];
                 AssetLoan::create([
@@ -341,7 +333,6 @@ class AssetController extends Controller
                 ]);
             }
 
-            // 🆕 AssetMaintenance
             if ($validated['status'] === 'maintenance' && !empty($validated['maintenance']['issue'])) {
                 $m = $validated['maintenance'];
                 AssetMaintenance::create([
@@ -421,13 +412,10 @@ class AssetController extends Controller
             'condition_notes' => 'nullable|string',
             'notes' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
-
             'vendor_id' => 'nullable|exists:vendors,id',
             'invoice_number' => 'nullable|string|max:100',
             'monthly_cost' => 'nullable|numeric|min:0',
             'contract_end' => 'nullable|date',
-
-            // 🆕 Assign
             'assign' => 'nullable|array',
             'assign.user_id' => 'nullable|exists:users,id',
             'assign.location_id' => 'nullable|exists:locations,id',
@@ -436,8 +424,6 @@ class AssetController extends Controller
             'assign.assigned_at' => 'nullable|date',
             'assign.condition_on_assign' => 'nullable|integer|min:0|max:100',
             'assign.notes' => 'nullable|string',
-
-            // 🆕 Loan
             'loan' => 'nullable|array',
             'loan.user_id' => 'nullable|exists:users,id',
             'loan.loan_date' => 'nullable|date',
@@ -445,8 +431,6 @@ class AssetController extends Controller
             'loan.purpose' => 'nullable|string|max:255',
             'loan.condition_on_loan' => 'nullable|integer|min:0|max:100',
             'loan.notes' => 'nullable|string',
-
-            // 🆕 Maintenance
             'maintenance' => 'nullable|array',
             'maintenance.issue' => 'nullable|string|max:255',
             'maintenance.action' => 'nullable|string',
@@ -460,7 +444,6 @@ class AssetController extends Controller
             'maintenance.notes' => 'nullable|string',
         ]);
 
-        // 🆕 Validasi wajib
         if (
             $validated['status'] === 'in_use'
             && $asset->status !== 'in_use'
@@ -488,17 +471,14 @@ class AssetController extends Controller
 
             $newStatus = $validated['status'];
 
-            // 🆕 TENTUKAN current_user_id & current_location_id
             $currentUserId = null;
             $currentLocationId = null;
 
             if ($newStatus === 'in_use') {
-                // Pakai data assign baru kalau ada
                 if (!empty($validated['assign']['user_id'])) {
                     $currentUserId = $validated['assign']['user_id'];
                     $currentLocationId = $validated['assign']['location_id'] ?? null;
                 } else {
-                    // Pertahankan yang lama (kecuali user ubah status lain)
                     $currentUserId = $asset->current_user_id;
                     $currentLocationId = $asset->current_location_id;
                 }
@@ -511,7 +491,6 @@ class AssetController extends Controller
                     $currentLocationId = $asset->current_location_id;
                 }
             }
-            // else: available/retired/lost/maintenance → biarkan null
 
             $asset->update([
                 'asset_code' => $validated['asset_code'] ?? $asset->asset_code,
@@ -532,12 +511,10 @@ class AssetController extends Controller
                 'condition_notes' => $validated['condition_notes'] ?? null,
                 'photo_path' => $validated['photo_path'] ?? $asset->photo_path,
                 'notes' => $validated['notes'] ?? null,
-                // 🆕
                 'current_user_id' => $currentUserId,
                 'current_location_id' => $currentLocationId,
             ]);
 
-            // Ownership
             $ownership = $asset->ownership;
             $ownershipData = [
                 'vendor_id' => $validated['vendor_id'] ?? null,
@@ -556,11 +533,9 @@ class AssetController extends Controller
                 AssetOwnership::create(array_merge($ownershipData, ['asset_id' => $asset->id]));
             }
 
-            //  AssetAssignment — kalau status in_use + ada data assign
             if ($newStatus === 'in_use' && !empty($validated['assign']['user_id'])) {
                 $a = $validated['assign'];
 
-                // Tutup assignment lama
                 $asset->assignments()
                     ->whereNull('returned_at')
                     ->update(['returned_at' => now()]);
@@ -582,7 +557,6 @@ class AssetController extends Controller
                 }
             }
 
-            // 🆕 AssetLoan — kalau status loaned + ada data loan
             if ($newStatus === 'loaned' && !empty($validated['loan']['user_id'])) {
                 $l = $validated['loan'];
                 AssetLoan::create([
@@ -598,7 +572,6 @@ class AssetController extends Controller
                 ]);
             }
 
-            // 🆕 AssetMaintenance — kalau status maintenance + ada issue
             if (
                 $newStatus === 'maintenance'
                 && !empty($validated['maintenance']['issue'])
@@ -623,7 +596,6 @@ class AssetController extends Controller
             }
         });
 
-        // Build message
         $hasAssign = $validated['status'] === 'in_use' && !empty($validated['assign']['user_id']);
         $hasLoan = $validated['status'] === 'loaned' && !empty($validated['loan']['user_id']);
         $hasMaint = $validated['status'] === 'maintenance' && !empty($validated['maintenance']['issue']);
@@ -652,6 +624,7 @@ class AssetController extends Controller
             'category_id',
             'ownership_type',
             'status',
+            'pemakai_status',   //  tambahan
             'brand',
             'model',
             'location_id',
@@ -671,6 +644,15 @@ class AssetController extends Controller
             $query->where('ownership_type', $request->ownership_type);
         if ($request->filled('status'))
             $query->where('status', $request->status);
+        if ($request->filled('pemakai_status')) {
+            match ($request->pemakai_status) {
+                'perlu_ditarik' => $query->perluDitarik(30),
+                'sudah_pensiun' => $query->dipegangPensiunan(),
+                'akan_pensiun' => $query->akanDitarik(30),
+                default => null,
+            };
+        }
+
         if ($request->filled('brand'))
             $query->where('brand', $request->brand);
         if ($request->filled('model'))
@@ -699,10 +681,6 @@ class AssetController extends Controller
     }
 
     /**
-     * Halaman QR single aset (sudah ada).
-     */
-
-    /**
      * Halaman QR code untuk 1 aset.
      */
     public function qrCode(Asset $asset)
@@ -712,20 +690,17 @@ class AssetController extends Controller
 
     /**
      * Batch QR — cetak massal.
-     * Bisa dari: selected IDs (checkbox) atau filter.
      */
     public function qrBatch(Request $request)
     {
         $query = Asset::query();
 
-        // Kalau dari checkbox (ids[])
         if ($request->filled('ids')) {
             $ids = is_array($request->ids)
                 ? $request->ids
                 : explode(',', $request->ids);
             $query->whereIn('id', $ids);
         } else {
-            // Fallback: filter dari query string
             if ($request->filled('category_id'))
                 $query->where('category_id', $request->category_id);
             if ($request->filled('status'))
@@ -736,8 +711,15 @@ class AssetController extends Controller
                 $query->where('brand', $request->brand);
             if ($request->filled('model'))
                 $query->where('model', $request->model);
+            if ($request->filled('pemakai_status')) {
+                match ($request->pemakai_status) {
+                    'perlu_ditarik' => $query->perluDitarik(30),
+                    'sudah_pensiun' => $query->dipegangPensiunan(),
+                    'akan_pensiun' => $query->akanDitarik(30),
+                    default => null,
+                };
+            }
 
-            // Safety limit
             $query->limit(500);
         }
 

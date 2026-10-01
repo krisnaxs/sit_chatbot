@@ -31,6 +31,6 @@ class AssetTypeSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ Asset types seeded: ' . count($types));
+        $this->command->info(' Asset types seeded: ' . count($types));
     }
 }

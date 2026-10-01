@@ -174,7 +174,7 @@
                         </p>
                         @if ($loan->is_overdue && $loan->returned_at === null)
                             <p class="text-xs text-red-500 font-bold mt-0.5">
-                                ⚠️ Terlambat {{ $loan->due_date?->diffForHumans() }}
+                                Terlambat {{ $loan->due_date?->diffForHumans() }}
                             </p>
                         @elseif ($loan->due_date && $loan->returned_at === null)
                             <p class="text-xs text-gray-500 mt-0.5">

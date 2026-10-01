@@ -209,10 +209,6 @@ class AssetQueryService
     public function tryAnswer(string $pesan): ?array
     {
         $lower = Str::lower($pesan);
-
-        // ============================================================
-        // 1. SN/HOSTNAME PATTERN
-        // ============================================================
         if (preg_match('/\b([A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*)\b/i', $pesan, $m)) {
             $identifier = strtoupper($m[1]);
             $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang', 'dan', 'atau'];
@@ -227,10 +223,6 @@ class AssetQueryService
                 }
             }
         }
-
-        // ============================================================
-        // 2. "sn: xxx" EKSPLISIT
-        // ============================================================
         if (preg_match('/(?:sn|serial|hostname|asset_code)[\s:]+([A-Z0-9\-_]+)/i', $pesan, $m)) {
             $identifier = $m[1];
             $blacklist = ['nya', 'ini', 'itu', 'apa', 'siapa', 'mana', 'berapa', 'yang'];
@@ -238,10 +230,6 @@ class AssetQueryService
                 return $this->handleAssetLookup($identifier, $lower);
             }
         }
-
-        // ============================================================
-        // 3. SIS/SIAM HARDWARE (PRIORITAS TINGGI)
-        // ============================================================
         $isSisContext = $this->matchAny($lower, ['sis', 'siam', 'aplikasi', 'sistem', 'web', 'aplikasinya']);
 
         if ($isSisContext) {
@@ -255,7 +243,7 @@ class AssetQueryService
                     . "• Kamu pakai {$matchedHardware['title']} milik perangkat sendiri (laptop/HP).\n"
                     . "• {$matchedHardware['desc']}\n"
                     . "• Kalau {$matchedHardware['title']} perangkatmu bermasalah, itu masalah hardware — bukan masalah SIS/SIAM.\n\n"
-                    . "💡 Kalau butuh {$matchedHardware['title']} untuk kerja, ajukan permintaan ke IT Support atau cek stok di menu Aset/Consumable.",
+                    . " Kalau butuh {$matchedHardware['title']} untuk kerja, ajukan permintaan ke IT Support atau cek stok di menu Aset/Consumable.",
                     'database'
                 ];
             }
@@ -277,33 +265,18 @@ class AssetQueryService
                 ];
             }
         }
-
-        // ============================================================
-        // 4. KONSUMABLE UMUM (PRIORITAS SEBELUM CEK STATUS ASET)
-        // ============================================================
         if ($this->matchAny($lower, $this->consumableGeneralKeywords)) {
-            // Cek low stock?
             if ($this->matchAny($lower, ['stok rendah', 'stok habis', 'low stock', 'stok minim', 'habis', 'rendah', 'kosong', 'low'])) {
                 return $this->listLowStockConsumable();
             }
-
-            // Cek "siapa yang pakai"?
             if ($this->matchAny($lower, ['siapa', 'pakai', 'pemakai', 'gunakan', 'pengguna'])) {
                 return $this->listConsumableUsers($lower);
             }
-
-            // Cek "ready" / "tersedia"?
             if ($this->matchAny($lower, ['ready', 'tersedia', 'available', 'ada', 'stok ada'])) {
                 return $this->listAvailableConsumables();
             }
-
-            // Default: tampilkan semua konsumable
             return $this->listAllConsumables();
         }
-
-        // ============================================================
-        // 5. "Siapa yang pakai X?" — KHUSUS ADMIN/SUPPORT
-        // ============================================================
         if (
             $this->matchAny($lower, ['siapa', 'siapa saja', 'siapa aja', 'user', 'pegawai', 'karyawan']) &&
             $this->matchAny($lower, ['pakai', 'memakai', 'gunakan', 'menggunakan', 'pegang', 'pinjam'])
@@ -343,18 +316,10 @@ class AssetQueryService
                 'database'
             ];
         }
-
-        // ============================================================
-        // 6. CONSUMABLE SPESIFIK (keyboard, mouse, dll)
-        // ============================================================
         $consumableResult = $this->tryAnswerConsumable($lower);
         if ($consumableResult) {
             return $consumableResult;
         }
-
-        // ============================================================
-        // 7. QUERY ASSET
-        // ============================================================
         if (
             $this->matchAny($lower, ['berapa', 'ada berapa', 'jumlah', 'total']) &&
             $this->matchAny($lower, array_keys($this->statusMap))
@@ -623,9 +588,9 @@ class AssetQueryService
             $min = (int) ($c->stock_minimum ?? 0);
             $unit = $c->unit ?? 'pcs';
 
-            $status = '✅';
+            $status = '';
             if ($stok === 0) {
-                $status = '⚠️ Habis';
+                $status = ' Habis';
             } elseif ($stok <= $min) {
                 $status = '🟡 Rendah';
             }
@@ -787,7 +752,7 @@ class AssetQueryService
         foreach ($items as $c) {
             $stok = $c->stock_available ?? 0;
             $unit = $c->unit ?? 'pcs';
-            $status = $stok > 0 ? '✅ Tersedia' : '⚠️ Habis';
+            $status = $stok > 0 ? ' Tersedia' : ' Habis';
 
             $jawaban .= "• {$c->name}";
             if ($c->brand) {
@@ -811,7 +776,7 @@ class AssetQueryService
         $stockTotal = (int) ($c->stock_total ?? 0);
         $unit = $c->unit ?? 'pcs';
 
-        $status = $stockAvailable > 0 ? '✅ Tersedia' : '⚠️ Habis';
+        $status = $stockAvailable > 0 ? ' Tersedia' : ' Habis';
         $lowStock = $stockMinimum > 0 && $stockAvailable <= $stockMinimum;
 
         $jawaban = "📦 {$c->name}\n\n"
@@ -833,7 +798,7 @@ class AssetQueryService
         $jawaban .= "• Status: {$status}\n";
 
         if ($lowStock) {
-            $jawaban .= "\n⚠️ Stok rendah! Perlu segera restock.";
+            $jawaban .= "\n Stok rendah! Perlu segera restock.";
         }
 
         if (!empty($c->notes) && $this->isPrivileged()) {
@@ -884,7 +849,7 @@ class AssetQueryService
         if (!class_exists(\App\Models\ConsumableTransaction::class)) {
             return [
                 "📦 Consumable " . $consumables->pluck('name')->implode(', ') . " ada.\n\n"
-                . "⚠️ Tapi sistem belum mencatat siapa yang memakainya. "
+                . " Tapi sistem belum mencatat siapa yang memakainya. "
                 . "Data pemakai akan muncul kalau ada transaksi keluar/masuk.",
                 'database'
             ];
@@ -935,7 +900,7 @@ class AssetQueryService
         }
 
         if (!$hasData) {
-            $jawaban .= "\n⚠️ *Belum ada transaksi tercatat untuk consumable ini.*";
+            $jawaban .= "\n *Belum ada transaksi tercatat untuk consumable ini.*";
         }
 
         return [$jawaban, 'database'];
@@ -1250,10 +1215,10 @@ class AssetQueryService
         $items = (clone $q)->limit(10)->get();
 
         if ($items->isEmpty()) {
-            return ["Semua konsumable stoknya aman. ✅", 'database'];
+            return ["Semua konsumable stoknya aman. ", 'database'];
         }
 
-        $jawaban = "⚠️ {$total} konsumable stoknya rendah:\n\n";
+        $jawaban = " {$total} konsumable stoknya rendah:\n\n";
         foreach ($items as $c) {
             $jawaban .= "• {$c->name}: {$c->stock_available}/{$c->stock_minimum} {$c->unit}\n";
         }
@@ -1282,7 +1247,7 @@ class AssetQueryService
         $loans = (clone $q)->limit(10)->get();
 
         if ($loans->isEmpty()) {
-            return ["Tidak ada peminjaman yang terlambat. ✅", 'database'];
+            return ["Tidak ada peminjaman yang terlambat. ", 'database'];
         }
 
         $jawaban = "{$total} peminjaman terlambat:\n\n";
@@ -1782,7 +1747,7 @@ class AssetQueryService
             ->get();
 
         if ($assets->isEmpty()) {
-            return ["✅ Tidak ada garansi yang berakhir dalam 60 hari ke depan.", 'database'];
+            return [" Tidak ada garansi yang berakhir dalam 60 hari ke depan.", 'database'];
         }
 
         $total = Asset::whereNotNull('warranty_expire')
@@ -1790,7 +1755,7 @@ class AssetQueryService
             ->whereDate('warranty_expire', '<=', now()->addDays(60))
             ->count();
 
-        $lines = ["⚠️ {$total} Aset Garansi Berakhir < 60 Hari:\n"];
+        $lines = [" {$total} Aset Garansi Berakhir < 60 Hari:\n"];
         foreach ($assets as $a) {
             $days = $a->warranty_expire->diffInDays(now());
             $lines[] = "• {$a->serial_number} ({$a->brand} {$a->model}) — {$days} hari lagi";
@@ -1814,7 +1779,7 @@ class AssetQueryService
             ->get();
 
         if ($ownerships->isEmpty()) {
-            return ["✅ Tidak ada kontrak sewa yang berakhir dalam 30 hari ke depan.", 'database'];
+            return [" Tidak ada kontrak sewa yang berakhir dalam 30 hari ke depan.", 'database'];
         }
 
         $total = \App\Models\AssetOwnership::whereNotNull('contract_end')
@@ -1822,7 +1787,7 @@ class AssetQueryService
             ->whereDate('contract_end', '<=', now()->addDays(30))
             ->count();
 
-        $lines = ["⚠️ {$total} Kontrak Sewa Berakhir < 30 Hari:\n"];
+        $lines = [" {$total} Kontrak Sewa Berakhir < 30 Hari:\n"];
         foreach ($ownerships as $o) {
             $asset = $o->asset;
             if (!$asset) {
@@ -1851,7 +1816,7 @@ class AssetQueryService
             ->get();
 
         if ($oldAssets->isEmpty()) {
-            return ["✅ Tidak ada aset yang perlu dipensiunkan saat ini.", 'database'];
+            return [" Tidak ada aset yang perlu dipensiunkan saat ini.", 'database'];
         }
 
         $total = Asset::whereIn('status', ['available', 'in_use'])
@@ -2013,7 +1978,7 @@ class AssetQueryService
             }
 
             if ($consumable->stock_available <= $consumable->stock_minimum) {
-                $jawaban .= "\n⚠️ Stok rendah! Perlu segera restock.";
+                $jawaban .= "\n Stok rendah! Perlu segera restock.";
             }
 
             return [$jawaban, 'database'];

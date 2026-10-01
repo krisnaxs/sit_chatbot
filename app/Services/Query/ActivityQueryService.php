@@ -15,40 +15,30 @@ class ActivityQueryService
         if (strlen($lower) < 5) {
             return null;
         }
-
-        // "berapa log activity / aktivitas"
         if (
             $this->matchAny($lower, ['log', 'activity', 'aktivitas', 'aktifitas']) &&
             $this->matchAny($lower, ['berapa', 'jumlah', 'total'])
         ) {
             return $this->countActivities($lower);
         }
-
-        // "log aktivitas hari ini / kemarin / minggu ini"
         if (
             $this->matchAny($lower, ['log', 'activity', 'aktivitas', 'aktifitas']) &&
             $this->matchAny($lower, ['hari ini', 'today', 'kemarin', 'minggu ini', 'bulan ini'])
         ) {
             return $this->recentActivities($lower);
         }
-
-        // "siapa yang login"
         if (
             $this->matchAny($lower, ['login', 'masuk']) &&
             $this->matchAny($lower, ['siapa', 'terakhir', 'terbaru'])
         ) {
             return $this->recentLogins();
         }
-
-        // "aktivitas user [nama]"
         if (
             $this->matchAny($lower, ['aktivitas', 'activity', 'log', 'perbuatan']) &&
             $this->matchAny($lower, ['user', 'oleh', 'dari'])
         ) {
             return $this->activitiesByUser($lower);
         }
-
-        // "log hapus / tambah / update"
         if (
             $this->matchAny($lower, ['log', 'activity', 'aktivitas']) &&
             $this->matchAny($lower, ['hapus', 'tambah', 'update', 'ubah', 'edit'])
@@ -144,7 +134,6 @@ class ActivityQueryService
 
     private function activitiesByUser(string $lower): array
     {
-        // Extract nama user
         $nama = null;
         if (preg_match('/(?:user|oleh|dari)\s+([a-z]+(?:\s+[a-z]+)?)/i', $lower, $m)) {
             $nama = trim($m[1]);

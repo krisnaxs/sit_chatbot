@@ -102,7 +102,7 @@
             @endforeach
         </nav>
 
-        {{-- ═══ 🆕 MOBILE: Tombol + Dropdown Tab Menu ═══ --}}
+        {{-- ═══  MOBILE: Tombol + Dropdown Tab Menu ═══ --}}
         <div class="lg:hidden ml-3 relative" x-data="{ mobileTabOpen: false }">
             <button type="button" @click="mobileTabOpen = !mobileTabOpen"
                 class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl

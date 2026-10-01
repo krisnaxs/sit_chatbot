@@ -332,9 +332,6 @@
 
 @push('scripts')
     <script>
-        // ═══════════════════════════════════════════════════════════
-        //  DATA PENGAJUAN — di-inject dari Blade
-        // ═══════════════════════════════════════════════════════════
         const REQUESTS = {
             @foreach ($requests as $r)
                 {{ $r->id }}: {
@@ -360,10 +357,6 @@
                 },
             @endforeach
         };
-
-        // ═══════════════════════════════════════════════════════════
-        //  DETAIL MODAL
-        // ═══════════════════════════════════════════════════════════
         let currentRequestId = null;
 
         function openDetail(id) {
@@ -371,8 +364,6 @@
             if (!r) return;
 
             currentRequestId = id;
-
-            // Header color sesuai status
             const header = document.getElementById('detailHeader');
             const headerGradients = {
                 'pending': 'bg-gradient-to-br from-amber-500 to-orange-600',
@@ -381,12 +372,8 @@
                 'cancelled': 'bg-gradient-to-br from-gray-500 to-slate-600',
             };
             header.className = headerGradients[r.status] + ' px-6 py-5 text-white shrink-0';
-
-            // Header info
             document.getElementById('detailTitle').textContent = r.type_label;
             document.getElementById('detailSubtitle').textContent = r.request_number;
-
-            // Body info
             document.getElementById('detailType').textContent = r.type_icon + ' ' + r.type_label;
             document.getElementById('detailStatus').textContent = r.status_label;
             document.getElementById('detailItem').textContent = r.item_detail;
@@ -394,8 +381,6 @@
             document.getElementById('detailDepartment').textContent = r.department;
             document.getElementById('detailCreatedAt').textContent = r.created_at;
             document.getElementById('detailPurpose').textContent = r.purpose;
-
-            // Due date (hanya loan)
             const dueWrapper = document.getElementById('detailDueDateWrapper');
             if (r.due_date) {
                 dueWrapper.classList.remove('hidden');
@@ -403,8 +388,6 @@
             } else {
                 dueWrapper.classList.add('hidden');
             }
-
-            // Admin notes
             const adminWrapper = document.getElementById('detailAdminNotesWrapper');
             if (r.admin_notes) {
                 adminWrapper.classList.remove('hidden');
@@ -412,8 +395,6 @@
             } else {
                 adminWrapper.classList.add('hidden');
             }
-
-            // Rejection reason
             const rejectWrapper = document.getElementById('detailRejectionWrapper');
             if (r.rejection_reason) {
                 rejectWrapper.classList.remove('hidden');
@@ -421,8 +402,6 @@
             } else {
                 rejectWrapper.classList.add('hidden');
             }
-
-            // Processed info
             const processedWrapper = document.getElementById('detailProcessedWrapper');
             if (r.approved_at) {
                 processedWrapper.classList.remove('hidden');
@@ -431,16 +410,12 @@
             } else {
                 processedWrapper.classList.add('hidden');
             }
-
-            // Aksi batalkan (hanya kalau pending)
             const cancelWrapper = document.getElementById('detailCancelWrapper');
             if (r.is_pending) {
                 cancelWrapper.classList.remove('hidden');
             } else {
                 cancelWrapper.classList.add('hidden');
             }
-
-            // Show modal
             const modal = document.getElementById('detailModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -455,9 +430,6 @@
             currentRequestId = null;
         }
 
-        // ═══════════════════════════════════════════════════════════
-        //  CANCEL MODAL
-        // ═══════════════════════════════════════════════════════════
         function openCancel() {
             const id = currentRequestId;
             const r = REQUESTS[id];
@@ -478,16 +450,10 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             document.getElementById('cancelForm').reset();
-
-            // Kembali ke detail
             if (!document.getElementById('detailModal').classList.contains('hidden')) {
                 closeDetail();
             }
         }
-
-        // ═══════════════════════════════════════════════════════════
-        //  ESC HANDLER
-        // ═══════════════════════════════════════════════════════════
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 if (!document.getElementById('cancelModal').classList.contains('hidden')) {

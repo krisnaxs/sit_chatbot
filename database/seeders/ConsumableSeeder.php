@@ -60,7 +60,7 @@ class ConsumableSeeder extends Seeder
             Consumable::updateOrCreate(['name' => $d['name']], $d);
         }
 
-        $this->command->info('✅ Consumables: ' . count($data));
+        $this->command->info(' Consumables: ' . count($data));
     }
     private function seedConsumableTransactions(): void
     {
@@ -75,7 +75,7 @@ class ConsumableSeeder extends Seeder
         $hdd = Consumable::where('name', 'HDD External Seagate 1TB')->first();
 
         if (!$mouse || !$keyboard || !$hdd) {
-            $this->command->warn('⚠️  Consumable tidak lengkap — transactions dilewati.');
+            $this->command->warn('  Consumable tidak lengkap — transactions dilewati.');
             return;
         }
 
@@ -127,6 +127,6 @@ class ConsumableSeeder extends Seeder
             };
         }
 
-        $this->command->info("✅ Consumable Transactions: in={$inCount}, out={$outCount}, return={$returnCount}");
+        $this->command->info(" Consumable Transactions: in={$inCount}, out={$outCount}, return={$returnCount}");
     }
 }

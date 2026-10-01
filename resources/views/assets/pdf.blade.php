@@ -201,7 +201,7 @@
             width: 14%;
         }
 
-        /* 🆕 diperlebar */
+        /*  diperlebar */
         .col-status {
             width: 7%;
         }
@@ -304,7 +304,7 @@
                     <td>{{ $asset->serial_number }}</td>
                     <td>{{ $asset->brand }} {{ $asset->model }}</td>
                     <td>{{ $asset->category?->name ?? '-' }}</td>
-                    <td>{{ $asset->ownership_label_with_vendor }}</td> {{-- 🆕 GANTI --}}
+                    <td>{{ $asset->ownership_label_with_vendor }}</td> {{--  GANTI --}}
                     <td><span class="badge {{ $statusClass }}">{{ $asset->status_label }}</span></td>
                     <td>{{ $asset->purchase_date?->format('Y') ?? '-' }}</td>
                 </tr>

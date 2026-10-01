@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/AssetRequestController.php
 
 namespace App\Http\Controllers;
 
@@ -17,9 +16,6 @@ use Illuminate\Support\Facades\Log;
 
 class AssetRequestController extends Controller
 {
-    // ═══════════════════════════════════════════
-    //  USER SIDE — pengajuan
-    // ═══════════════════════════════════════════
 
     /**
      * Daftar pengajuan milik user sendiri.
@@ -54,7 +50,7 @@ class AssetRequestController extends Controller
      */
     public function create(Request $request)
     {
-        $type = $request->get('type', AssetRequest::TYPE_LOAN);   // 🆕 default: loan
+        $type = $request->get('type', AssetRequest::TYPE_LOAN);   //  default: loan
 
         $assets = Asset::whereIn('status', ['available', 'in_use'])
             ->orderBy('serial_number')
@@ -82,19 +78,11 @@ class AssetRequestController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|in:loan,consumable',   // 🆕 hapus 'assignment'
-
-            // Loan
+            'type' => 'required|in:loan,consumable',   //  hapus 'assignment'
             'asset_id' => 'required_if:type,loan|nullable|exists:assets,id',
-
-            // Consumable
             'consumable_id' => 'required_if:type,consumable|nullable|exists:consumables,id',
             'quantity' => 'required_if:type,consumable|nullable|integer|min:1',
-
-            // Loan
             'due_date' => 'nullable|date|after_or_equal:today',
-
-            // Umum
             'location_id' => 'nullable|exists:locations,id',
             'department_id' => 'nullable|exists:departments,id',
             'purpose' => 'required|string|max:500',
@@ -111,8 +99,6 @@ class AssetRequestController extends Controller
             'due_date.after_or_equal' => 'Tanggal kembali tidak boleh sebelum hari ini.',
             'needed_date.after_or_equal' => 'Tanggal dibutuhkan tidak boleh sebelum hari ini.',
         ]);
-
-        // Validasi stok consumable
         if ($validated['type'] === AssetRequest::TYPE_CONSUMABLE) {
             $consumable = Consumable::find($validated['consumable_id']);
             if ($consumable->stock_available < $validated['quantity']) {
@@ -179,10 +165,6 @@ class AssetRequestController extends Controller
             ->with('success', 'Pengajuan dibatalkan.');
     }
 
-    // ═══════════════════════════════════════════
-    //  ADMIN/SUPPORT SIDE — approval
-    // ═══════════════════════════════════════════
-
     /**
      * Daftar semua pengajuan untuk admin/support.
      */
@@ -236,18 +218,12 @@ class AssetRequestController extends Controller
      */
     public function approve(Request $request, AssetRequest $assetRequest)
     {
-        // Role check
         if (!auth()->user()->hasAnyRole(['admin', 'support'])) {
             abort(403);
         }
-
-        // Cek status
         if (!$assetRequest->isPending()) {
             return back()->with('error', 'Pengajuan ini sudah diproses.');
         }
-
-        // 🆕 Opsional: cegah self-approval (admin approve pengajuannya sendiri)
-        // Kalau mau mengizinkan, comment baris di bawah ini.
         if ($assetRequest->user_id === auth()->id()) {
             return back()->with('error', 'Anda tidak bisa menyetujui pengajuan Anda sendiri.');
         }
@@ -316,10 +292,6 @@ class AssetRequestController extends Controller
             ->route('requests.show', $assetRequest)
             ->with('success', 'Pengajuan ditolak.');
     }
-
-    // ═══════════════════════════════════════════
-    //  EXECUTORS (private)
-    // ═══════════════════════════════════════════
 
     /**
      * Eksekusi peminjaman aset.

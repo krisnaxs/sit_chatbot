@@ -45,8 +45,6 @@ class OllamaIntentParser
             }
 
             $content = $response->json('message.content', '');
-
-            // Sanitasi: buang markdown code fence kalau ada
             $content = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', trim($content));
 
             $parsed = json_decode($content, true);
@@ -57,8 +55,6 @@ class OllamaIntentParser
                 ]);
                 return null;
             }
-
-            // Normalisasi params
             if (!isset($parsed['params']) || !is_array($parsed['params'])) {
                 $parsed['params'] = [];
             }

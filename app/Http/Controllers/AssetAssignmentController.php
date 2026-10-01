@@ -32,7 +32,7 @@ class AssetAssignmentController extends Controller
                         $qa->where('serial_number', 'like', "%{$search}%")
                             ->orWhere('brand', 'like', "%{$search}%")
                             ->orWhere('model', 'like', "%{$search}%")
-                            ->orWhere('hostname', 'like', "%{$search}%");   // 🆕
+                            ->orWhere('hostname', 'like', "%{$search}%");   //
                     })
                     ->orWhereHas('user', function ($qu) use ($search) {
                         $qu->where('name', 'like', "%{$search}%");
@@ -77,7 +77,7 @@ class AssetAssignmentController extends Controller
                 $q->where('serial_number', 'like', "%{$request->search}%")
                     ->orWhere('brand', 'like', "%{$request->search}%")
                     ->orWhere('model', 'like', "%{$request->search}%")
-                    ->orWhere('hostname', 'like', "%{$request->search}%");   // 🆕
+                    ->orWhere('hostname', 'like', "%{$request->search}%");   //
             });
         }
 
@@ -148,14 +148,9 @@ class AssetAssignmentController extends Controller
     public function create(Request $request)
     {
         $asset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
-
-        // 🆕 Aset yang boleh di-assign: available ATAU in_use (untuk pindah user)
         $assetsQuery = Asset::whereIn('status', ['available', 'in_use'])
             ->orderBy('serial_number');
-
-        // 🆕 Kalau ada asset_id dari URL, pastikan aset itu termasuk (apapun statusnya)
         if ($asset) {
-            // Kalau aset dari URL statusnya bukan available/in_use, tetap tampilkan untuk pindah
             $assets = Asset::where(function ($q) use ($asset) {
                 $q->whereIn('status', ['available', 'in_use'])
                     ->orWhere('id', $asset->id);
@@ -197,14 +192,9 @@ class AssetAssignmentController extends Controller
 
         DB::transaction(function () use ($request, $validated) {
             $asset = Asset::findOrFail($validated['asset_id']);
-
-            // 🆕 TUTUP SEMUA ASSIGNMENT AKTIF untuk aset ini
-            // (baik pindah user baru, maupun assign ulang ke user yang sama)
             AssetAssignment::where('asset_id', $asset->id)
                 ->whereNull('returned_at')
                 ->update(['returned_at' => now()]);
-
-            // Buat assignment baru
             AssetAssignment::create([
                 'asset_id' => $validated['asset_id'],
                 'user_id' => $validated['user_id'],
@@ -216,8 +206,6 @@ class AssetAssignmentController extends Controller
                 'assigned_by' => auth()->id(),
                 'received_by' => $validated['user_id'],
             ]);
-
-            // Update asset
             $updateData = [
                 'status' => 'in_use',
                 'current_user_id' => $validated['user_id'],
@@ -244,7 +232,7 @@ class AssetAssignmentController extends Controller
         $validated = $request->validate([
             'returned_at' => 'required|date',
             'condition_on_return' => 'nullable|integer|min:0|max:100',
-            'hostname' => 'nullable|string|max:100',   // 🆕
+            'hostname' => 'nullable|string|max:100',   //
             'notes' => 'nullable|string',
         ]);
 

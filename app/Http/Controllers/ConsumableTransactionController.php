@@ -92,7 +92,7 @@ class ConsumableTransactionController extends Controller
             'users',
             'locations',
             'assets',
-            'defaultType'   // 🆕
+            'defaultType'   //
         ));
     }
 

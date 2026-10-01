@@ -129,6 +129,6 @@ class AssetSeeder extends Seeder
             ]);
         }
 
-        $this->command->info("✅ Assets: {$counter} unit (40 T14, 10 PC, 5 Printer)");
+        $this->command->info(" Assets: {$counter} unit (40 T14, 10 PC, 5 Printer)");
     }
 }

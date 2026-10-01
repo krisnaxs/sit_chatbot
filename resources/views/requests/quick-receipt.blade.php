@@ -8,7 +8,7 @@
     <link rel="icon" href="{{ asset('images/fav_icon.png') }}" type="image/png">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- 🆕 QR Code library --}}
+    {{--  QR Code library --}}
     <script src="{{ asset('js/qrcode.min.js') }}"></script>
 </head>
 
@@ -233,15 +233,9 @@
     </div>
 
     <script>
-        // Generate QR code
-        // ═══════════════════════════════════════════════════════════
-        //  GENERATE QR CODE — untuk "Scan cek status"
-        // ═══════════════════════════════════════════════════════════
         function generateQR() {
             const qrContainer = document.getElementById('qrcode');
             if (!qrContainer) return;
-
-            // Retry kalau library belum load
             if (typeof QRCode === 'undefined') {
                 console.warn('QRCode belum load, retry...');
                 setTimeout(generateQR, 200);
@@ -249,13 +243,10 @@
             }
 
             const url = '{{ route('requests.my') }}'; // URL lengkap dari route
-            console.log('✅ Generate QR untuk:', url);
+            console.log(' Generate QR untuk:', url);
 
             qrContainer.innerHTML = '';
-
-            // Detect library
             if (typeof QRCode.toCanvas === 'function') {
-                // 🅰️ Library 'qrcode' (soldair)
                 QRCode.toCanvas(qrContainer, url, {
                     width: 120,
                     margin: 2,
@@ -269,11 +260,10 @@
                         console.error('❌ QR error:', error);
                         qrContainer.innerHTML = '<p class="text-red-500 text-xs">QR gagal</p>';
                     } else {
-                        console.log('✅ QR berhasil');
+                        console.log(' QR berhasil');
                     }
                 });
             } else {
-                // 🅱️ Library 'qrcodejs' (davidshimjs)
                 new QRCode(qrContainer, {
                     text: url,
                     width: 120,
@@ -282,23 +272,19 @@
                     colorLight: '#ffffff',
                     correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.H : 2
                 });
-                console.log('✅ QR berhasil (qrcodejs)');
+                console.log(' QR berhasil (qrcodejs)');
             }
         }
-
-        // Panggil saat DOM ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', generateQR);
         } else {
             generateQR();
         }
 
-        // Download PDF via print
         function downloadPDF() {
             window.print();
         }
 
-        // Download PDF via print
         function downloadPDF() {
             window.print();
         }

@@ -53,8 +53,6 @@ class IntentExecutor
             ]);
             return null;
         }
-
-        // Handler khusus: list_asset_by_user punya format pesan sendiri
         if ($name === 'list_asset_by_user') {
             return $this->executeListAssetByUser($params);
         }

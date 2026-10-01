@@ -507,7 +507,7 @@
                 </div>
 
                 <p class="text-xs text-gray-500 text-center mb-6">
-                    ⚠️ User harus login ulang dengan password baru setelah direset.
+                    User harus login ulang dengan password baru setelah direset.
                 </p>
 
                 <div class="flex gap-2">
@@ -586,7 +586,6 @@
                     name: '',
                     action: ''
                 },
-                // state reset password
                 showResetModal: false,
                 resetTarget: {
                     id: null,
@@ -624,8 +623,6 @@
                     form.action = this.deleteTarget.action;
                     form.submit();
                 },
-
-                // reset password
                 confirmResetPassword() {
                     this.resetTarget = {
                         id: this.selectedUser.id,

@@ -517,32 +517,23 @@
     <script>
         function knowledgeManager() {
             return {
-                // ==== DELETE MODAL ====
                 showDeleteModal: false,
                 deleteTarget: {
                     id: null,
                     kata_kunci: '',
                     action: '',
                 },
-
-                // ==== ATTACHMENTS MODAL ====
                 showAttachmentsModal: false,
                 attachmentsTarget: {
                     id: null,
                     kata_kunci: '',
                     items: [],
                 },
-
-                // ==== TOAST ====
                 toast: {
                     show: false,
                     message: '',
                     type: 'success',
                 },
-
-                // ============================================================
-                // DELETE
-                // ============================================================
                 openDeleteModal(id, kata_kunci, action) {
                     this.deleteTarget = {
                         id,
@@ -558,10 +549,6 @@
                     form.action = this.deleteTarget.action;
                     form.submit();
                 },
-
-                // ============================================================
-                // ATTACHMENTS MODAL
-                // ============================================================
                 openAttachmentsModal(id, kata_kunci, items) {
                     this.attachmentsTarget = {
                         id,
@@ -570,10 +557,6 @@
                     };
                     this.showAttachmentsModal = true;
                 },
-
-                // ============================================================
-                // TOAST
-                // ============================================================
                 showToast(message, type = 'success') {
                     this.toast.message = message;
                     this.toast.type = type;
@@ -583,10 +566,6 @@
                         this.toast.show = false;
                     }, 3500);
                 },
-
-                // ============================================================
-                // INIT
-                // ============================================================
                 init() {
                     @if (session('success'))
                         this.showToast(@json(session('success')), 'success');
@@ -594,8 +573,6 @@
                     @if (session('error'))
                         this.showToast(@json(session('error')), 'error');
                     @endif
-
-                    // Search: auto-submit setelah 500ms
                     const searchInput = document.getElementById('searchInput');
                     const searchForm = document.getElementById('searchForm');
 

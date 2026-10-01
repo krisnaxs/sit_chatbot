@@ -182,7 +182,7 @@
     {{-- ═══════════════════════════════════════════════════════════ --}}
     <div class="max-w-[210mm] mx-auto mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-lg no-print">
         <p class="text-xs text-indigo-700 leading-relaxed">
-            <strong>💡 Info:</strong> Halaman ini dioptimalkan untuk <strong>kertas A4</strong>.
+            <strong> Info:</strong> Halaman ini dioptimalkan untuk <strong>kertas A4</strong>.
             Setiap lembar memuat <strong>hingga 25 QR</strong> (5 kolom × 5 baris).
             Saat print, pilih ukuran <strong>A4</strong>, orientasi <strong>Portrait</strong>,
             dan centang <strong>"Background graphics"</strong>.
@@ -237,8 +237,6 @@
                 document.querySelectorAll('.qr-target').forEach(el => {
                     const url = el.dataset.url;
                     if (!url) return;
-
-                    // 🔧 Clear dulu biar tidak double
                     el.innerHTML = '';
 
                     try {

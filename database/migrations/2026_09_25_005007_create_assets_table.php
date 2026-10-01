@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->string('asset_code')->unique();        // AST-2025-0001
             $table->string('serial_number')->unique();     // SN 123
-            $table->string('hostname')->nullable()->unique();  // 🆕 NB-IT-001 (unique)
+            $table->string('hostname')->nullable()->unique();  //  NB-IT-001 (unique)
             $table->string('brand')->nullable();           // Lenovo
             $table->string('model')->nullable();           // ThinkPad T14
             $table->foreignId('category_id')->constrained('asset_categories')->cascadeOnDelete();

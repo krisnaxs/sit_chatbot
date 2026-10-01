@@ -85,11 +85,6 @@ class CrossQueryService
         if (strlen($lower) < 5) {
             return null;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // 🆕 GUARD: Guest yang tanya tentang aset → wajib login
-        // CrossQueryService khusus handle "siapa pegang X" — sangat sensitif.
-        // ═══════════════════════════════════════════════════════════
         if (!auth()->check() && $this->isAssetRelated($pesan)) {
             return [
                 "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
@@ -123,21 +118,15 @@ class CrossQueryService
     protected function isAssetRelated(string $pesan): bool
     {
         $lower = Str::lower($pesan);
-
-        // 1️⃣ SN/hostname pattern (contoh: NB-T14-005, AST-2026-0001)
         if (preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan)) {
             return true;
         }
-
-        // 2️⃣ Keyword aset (word-boundary)
         foreach (self::ASSET_KEYWORDS as $kw) {
             $pattern = '/\b' . preg_quote($kw, '/') . '\b/i';
             if (preg_match($pattern, $lower)) {
                 return true;
             }
         }
-
-        // 3️⃣ Kombinasi: kata tanya + objek
         $questionWords = [
             'berapa',
             'jumlah',
@@ -180,10 +169,6 @@ class CrossQueryService
 
         return $hasQuestion && $hasObject;
     }
-
-    // ============================================================
-    // EXISTING METHODS
-    // ============================================================
 
     private function whoHoldsAsset(string $pesan): array
     {

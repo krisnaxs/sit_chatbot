@@ -191,7 +191,7 @@
 
                         @if ($consumable->is_low_stock)
                             <div class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                                ⚠️ Stok di bawah minimum ({{ $consumable->stock_minimum }}). Segera restock.
+                                Stok di bawah minimum ({{ $consumable->stock_minimum }}). Segera restock.
                             </div>
                         @endif
                     </div>

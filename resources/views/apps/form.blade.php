@@ -201,7 +201,7 @@
                         </div>
                     </div>
                     <p class="text-xs text-gray-500 mt-1.5">
-                        💡 Nama slide/kelompok tempat aplikasi ditampilkan di portal
+                        Nama slide/kelompok tempat aplikasi ditampilkan di portal
                     </p>
                     @error('slide')
                         <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
@@ -227,7 +227,7 @@
                                    transition">
                     </div>
                     <p class="text-xs text-gray-500 mt-1.5">
-                        💡 Urutan tampil aplikasi dalam satu slide (kecil = depan)
+                        Urutan tampil aplikasi dalam satu slide (kecil = depan)
                     </p>
                 </div>
 

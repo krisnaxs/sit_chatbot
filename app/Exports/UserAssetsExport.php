@@ -12,6 +12,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -147,8 +148,6 @@ class UserAssetsExport implements
         $totalAssets = $user->currentAssets->count();
         $outTrx = $user->consumableTransactions->where('type', 'out');
         $totalLoans = $user->activeLoans->count();
-
-        // Kalau tidak punya aset, pinjaman, & konsumabel
         if ($totalAssets === 0 && $outTrx->isEmpty() && $totalLoans === 0) {
             $rows[] = [
                 $userNumber,
@@ -168,8 +167,6 @@ class UserAssetsExport implements
             $rowCount = 1;
         } else {
             $isFirst = true;
-
-            // ── Baris ASET ──
             foreach ($user->currentAssets as $asset) {
                 $rows[] = [
                     $isFirst ? $userNumber : '',
@@ -189,8 +186,6 @@ class UserAssetsExport implements
                 $isFirst = false;
                 $rowCount++;
             }
-
-            // ── Baris PINJAMAN AKTIF ──
             foreach ($user->activeLoans as $loan) {
                 $rows[] = [
                     $isFirst ? $userNumber : '',
@@ -206,15 +201,13 @@ class UserAssetsExport implements
                     $loan->asset?->category?->name ?? '-',
                     '1 unit',
                     'Dipinjam (' . ($loan->loan_date?->format('d M Y') ?? '-') . ')'
-                    . ($loan->is_overdue ? ' ⚠️ TERLAMBAT' : ''),
+                    . ($loan->is_overdue ? 'TERLAMBAT' : ''),
                     $loan->asset?->currentLocation?->full_name ?? '-',
                     'Jatuh tempo: ' . ($loan->due_date?->format('d M Y') ?? '-'),
                 ];
                 $isFirst = false;
                 $rowCount++;
             }
-
-            // ── Baris KONSUMABEL ──
             foreach ($outTrx as $trx) {
                 $rows[] = [
                     $isFirst ? $userNumber : '',
@@ -235,9 +228,7 @@ class UserAssetsExport implements
                 $rowCount++;
             }
         }
-
-        // Simpan boundary grup
-        $startRow = $this->currentRow + 2;
+        $startRow = 5 + $this->currentRow;
         $endRow = $startRow + $rowCount - 1;
         $this->groupBoundaries[] = ['start' => $startRow, 'end' => $endRow];
         $this->currentRow += $rowCount;
@@ -264,18 +255,12 @@ class UserAssetsExport implements
         ];
     }
 
-    public function styles(Worksheet $sheet): array
+    /**
+     * styles() kosong — semua di registerEvents()
+     */
+    public function styles(Worksheet $sheet): ?array
     {
-        return [
-            1 => [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '4F46E5'],
-                ],
-                'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
-            ],
-        ];
+        return [];
     }
 
     public function registerEvents(): array
@@ -283,12 +268,52 @@ class UserAssetsExport implements
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $lastColumn = 'M'; // No .. Keterangan
-    
-                // Border + zebra per user
+                $lastColumn = 'M'; // A..M (13 kolom)
+                $sheet->insertNewRowBefore(1, 3);
+                $sheet->mergeCells("A1:{$lastColumn}1");
+                $sheet->setCellValue('A1', 'LAPORAN USER & ASET — SIAM');
+                $sheet->getStyle('A1')->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1E293B']],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                    ],
+                ]);
+                $sheet->getRowDimension(1)->setRowHeight(28);
+                $sheet->mergeCells("A2:{$lastColumn}2");
+                $waktu = now()->format('d/m/Y H:i') . ' WIB';
+                $subtitle = "Diexport pada: {$waktu}";
+
+                $filterInfo = $this->buildFilterInfo();
+                if ($filterInfo) {
+                    $subtitle .= "  •  Filter: {$filterInfo}";
+                }
+
+                $sheet->setCellValue('A2', $subtitle);
+                $sheet->getStyle('A2')->applyFromArray([
+                    'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '64748B']],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                    ],
+                ]);
+                $sheet->getRowDimension(2)->setRowHeight(18);
+                $sheet->getRowDimension(3)->setRowHeight(6);
+                $headerRange = "A4:{$lastColumn}4";
+                $sheet->getStyle($headerRange)->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '4F46E5'], // indigo
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                    ],
+                ]);
+                $sheet->getRowDimension(4)->setRowHeight(24);
                 foreach ($this->groupBoundaries as $index => $group) {
                     $range = "A{$group['start']}:{$lastColumn}{$group['end']}";
-
                     $sheet->getStyle($range)->applyFromArray([
                         'borders' => [
                             'outline' => [
@@ -301,8 +326,6 @@ class UserAssetsExport implements
                             ],
                         ],
                     ]);
-
-                    // Zebra per user
                     if ($index % 2 === 0) {
                         $sheet->getStyle($range)->getFill()
                             ->setFillType(Fill::FILL_SOLID)
@@ -313,17 +336,61 @@ class UserAssetsExport implements
                             ->getStartColor()->setRGB('F8FAFC');
                     }
                 }
-
-                // Freeze header
-                $sheet->freezePane('A2');
-                $sheet->getRowDimension(1)->setRowHeight(24);
-
-                // Alignment center untuk kolom No & Qty
+                $sheet->freezePane('A5');
                 $highestRow = $sheet->getHighestRow();
-                $sheet->getStyle("A2:A{$highestRow}")->getAlignment()->setHorizontal('center');
-                $sheet->getStyle("J2:J{$highestRow}")->getAlignment()->setHorizontal('center');
+                $sheet->setAutoFilter("A4:{$lastColumn}{$highestRow}");
+                $sheet->getStyle("A5:A{$highestRow}")->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+
+                $sheet->getStyle("J5:J{$highestRow}")->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("F5:F{$highestRow}")->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+                for ($row = 5; $row <= $highestRow; $row++) {
+                    $namaUser = $sheet->getCell("B{$row}")->getValue();
+                    if (!empty($namaUser)) {
+                        $sheet->getStyle("B{$row}")->getFont()->setBold(true);
+                    }
+                }
             },
         ];
+    }
+
+    protected function buildFilterInfo(): string
+    {
+        $parts = [];
+
+        if (!empty($this->filters['search'])) {
+            $parts[] = 'Cari: "' . $this->filters['search'] . '"';
+        }
+
+        if (!empty($this->filters['department_id'])) {
+            $dept = \App\Models\Department::find($this->filters['department_id']);
+            if ($dept) {
+                $parts[] = 'Departemen: ' . $dept->name;
+            }
+        }
+
+        if (!empty($this->filters['location_id'])) {
+            $loc = \App\Models\Location::find($this->filters['location_id']);
+            if ($loc) {
+                $parts[] = 'Lokasi: ' . $loc->full_name;
+            }
+        }
+
+        if (!empty($this->filters['has_asset'])) {
+            $label = match ($this->filters['has_asset']) {
+                'yes' => 'Punya Aset',
+                'no' => 'Tidak Punya Aset',
+                default => $this->filters['has_asset'],
+            };
+            $parts[] = $label;
+        }
+
+        return implode(' | ', $parts);
     }
 
     public function title(): string

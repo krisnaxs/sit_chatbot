@@ -1,7 +1,4 @@
 @php
-    // ═══════════════════════════════════════════════════════
-    // HELPER FUNCTIONS — Activity Log Display
-    // ═══════════════════════════════════════════════════════
 
     if (!function_exists('activityFieldLabel')) {
         function activityFieldLabel(string $field): string

@@ -183,35 +183,24 @@ class ActivityDisplay
      */
     public static function resolve(string $field, $value): string
     {
-        // 1. Cek enum dulu
         if (isset(static::$enumLabels[$field][$value])) {
             return static::$enumLabels[$field][$value];
         }
-
-        // 2. Skip kalau memang bukan relasi
         if (in_array($field, static::$skipResolve)) {
             return static::formatValue($value);
         }
-
-        // 3. Kalau bukan ID di mapping, format biasa
         if (!isset(static::$idResolvers[$field])) {
             return static::formatValue($value);
         }
-
-        // 4. Null / kosong
         if (is_null($value) || $value === '' || $value === 0 || $value === '0') {
             return '(kosong)';
         }
-
-        // 5. Resolve ID → nama
         $modelClass = static::$idResolvers[$field];
         $record = $modelClass::find($value);
 
         if (!$record) {
             return static::formatValue($value);
         }
-
-        // 6. Cari nama dengan prioritas
         $name = null;
 
         if (isset($record->name) && !empty($record->name)) {

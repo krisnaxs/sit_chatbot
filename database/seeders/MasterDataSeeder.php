@@ -36,7 +36,7 @@ class MasterDataSeeder extends Seeder
             Department::updateOrCreate(['code' => $d['code']], $d);
         }
 
-        $this->command->info('✅ Departments: ' . count($data));
+        $this->command->info(' Departments: ' . count($data));
     }
     private function seedLocations(): void
     {
@@ -56,7 +56,7 @@ class MasterDataSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ Locations: ' . count($data));
+        $this->command->info(' Locations: ' . count($data));
     }
     private function seedUsers(): void
     {
@@ -105,7 +105,7 @@ class MasterDataSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ Users: ' . count($users) . ' pegawai');
+        $this->command->info(' Users: ' . count($users) . ' pegawai');
     }
     private function seedVendors(): void
     {
@@ -119,7 +119,7 @@ class MasterDataSeeder extends Seeder
             Vendor::updateOrCreate(['name' => $v['name']], $v);
         }
 
-        $this->command->info('✅ Vendors: ' . count($data));
+        $this->command->info(' Vendors: ' . count($data));
     }
     private function seedCategories(): void
     {
@@ -137,7 +137,7 @@ class MasterDataSeeder extends Seeder
             AssetCategory::updateOrCreate(['code' => $c['code']], $c);
         }
 
-        $this->command->info('✅ Categories: ' . count($data));
+        $this->command->info(' Categories: ' . count($data));
     }
     private function seedAssetTypes(): void
     {
@@ -157,6 +157,6 @@ class MasterDataSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ Asset Types: ' . count($data));
+        $this->command->info(' Asset Types: ' . count($data));
     }
 }

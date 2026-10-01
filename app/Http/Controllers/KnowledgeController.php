@@ -41,10 +41,6 @@ class KnowledgeController extends Controller
      */
     private const MAX_FILE_SIZE_KB = 512000;
 
-    // ============================================================
-    // INDEX
-    // ============================================================
-
 
     public function index(Request $request)
     {
@@ -57,7 +53,6 @@ class KnowledgeController extends Controller
                 $q->where('kata_kunci', 'like', "%{$search}%")
                     ->orWhere('jawaban', 'like', "%{$search}%")
                     ->orWhere('file_name', 'like', "%{$search}%")
-                    // 🆕 Cari juga di nama lampiran
                     ->orWhereHas('attachments', function ($sub) use ($search) {
                         $sub->where('file_name', 'like', "%{$search}%");
                     });
@@ -71,10 +66,6 @@ class KnowledgeController extends Controller
         return view('knowledge.index', compact('items'));
     }
 
-    // ============================================================
-    // CREATE
-    // ============================================================
-
     /**
      * Form tambah knowledge — HANYA ADMIN & SUPPORT.
      */
@@ -83,10 +74,6 @@ class KnowledgeController extends Controller
         $this->authorizeEditor();
         return view('knowledge.create');
     }
-
-    // ============================================================
-    // STORE
-    // ============================================================
 
     /**
      * Simpan knowledge baru + banyak lampiran.
@@ -98,10 +85,6 @@ class KnowledgeController extends Controller
         $data = $request->validate([
             'kata_kunci' => ['required', 'string', 'max:255'],
             'jawaban' => ['required', 'string'],
-
-            // ============================================================
-            // MULTIPLE FILES — TANPA BATAS JUMLAH
-            // ============================================================
             'files' => ['nullable', 'array'],
             'files.*' => [
                 'file',
@@ -122,13 +105,10 @@ class KnowledgeController extends Controller
         DB::beginTransaction();
 
         try {
-            // 1) Buat knowledge dulu
             $knowledge = Knowledge::create([
                 'kata_kunci' => $data['kata_kunci'],
                 'jawaban' => $data['jawaban'],
             ]);
-
-            // 2) Simpan semua lampiran
             $uploadedCount = 0;
             $failedFiles = [];
 
@@ -157,9 +137,6 @@ class KnowledgeController extends Controller
                     }
                 }
             }
-
-            // 3) Sinkronkan kolom lama (biar view lama tetap jalan)
-            //    Pakai lampiran PERTAMA sebagai representasi.
             $this->syncLegacyColumns($knowledge);
 
             DB::commit();
@@ -182,10 +159,6 @@ class KnowledgeController extends Controller
         }
     }
 
-    // ============================================================
-    // SHOW
-    // ============================================================
-
     /**
      * Detail (redirect ke edit).
      */
@@ -193,10 +166,6 @@ class KnowledgeController extends Controller
     {
         return redirect()->route('knowledge.edit', $knowledge);
     }
-
-    // ============================================================
-    // EDIT
-    // ============================================================
 
     /**
      * Form edit knowledge — HANYA ADMIN & SUPPORT.
@@ -207,10 +176,6 @@ class KnowledgeController extends Controller
         $knowledge->load('attachments');
         return view('knowledge.edit', compact('knowledge'));
     }
-
-    // ============================================================
-    // UPDATE
-    // ============================================================
 
     /**
      * Update knowledge + tambah / hapus lampiran.
@@ -233,8 +198,6 @@ class KnowledgeController extends Controller
                     }
                 },
             ],
-
-            // ID lampiran lama yang mau dihapus
             'remove_attachments' => ['nullable', 'array'],
             'remove_attachments.*' => ['integer'],
         ], [
@@ -245,8 +208,6 @@ class KnowledgeController extends Controller
         DB::beginTransaction();
 
         try {
-            // 1) Hapus lampiran lama yang dipilih user
-            //    HANYA yang memang milik knowledge ini (proteksi IDOR)
             if (!empty($data['remove_attachments'])) {
                 $toDelete = KnowledgeAttachment::where('knowledge_id', $knowledge->id)
                     ->whereIn('id', $data['remove_attachments'])
@@ -257,8 +218,6 @@ class KnowledgeController extends Controller
                     $att->delete();
                 }
             }
-
-            // 2) Upload lampiran baru (bisa banyak)
             $uploadedCount = 0;
             $failedFiles = [];
 
@@ -287,13 +246,9 @@ class KnowledgeController extends Controller
                     }
                 }
             }
-
-            // 3) Update teks
             $knowledge->kata_kunci = $data['kata_kunci'];
             $knowledge->jawaban = $data['jawaban'];
             $knowledge->save();
-
-            // 4) Sinkronkan kolom lama (file pertama / null kalau habis)
             $this->syncLegacyColumns($knowledge);
 
             DB::commit();
@@ -322,10 +277,6 @@ class KnowledgeController extends Controller
         }
     }
 
-    // ============================================================
-    // DESTROY
-    // ============================================================
-
     /**
      * Hapus knowledge — HANYA ADMIN.
      */
@@ -336,15 +287,10 @@ class KnowledgeController extends Controller
         DB::beginTransaction();
 
         try {
-            // 1) Hapus semua file lampiran
             foreach ($knowledge->attachments as $att) {
                 $this->deleteFile($att->file_path);
             }
-
-            // 2) Hapus folder knowledge ini (kalau masih ada sisa file)
             Storage::disk('public')->deleteDirectory('knowledge/' . $knowledge->id);
-
-            // 3) Hapus record knowledge (cascade hapus attachments di DB)
             $knowledge->delete();
 
             DB::commit();
@@ -362,10 +308,6 @@ class KnowledgeController extends Controller
         }
     }
 
-    // ============================================================
-    // DESTROY SINGLE ATTACHMENT
-    // ============================================================
-
     /**
      * Hapus 1 lampiran saja (dipakai di form edit / tombol hapus per-file).
      */
@@ -377,14 +319,8 @@ class KnowledgeController extends Controller
 
         try {
             $knowledge = $attachment->knowledge;
-
-            // Hapus file fisik
             $this->deleteFile($attachment->file_path);
-
-            // Hapus record
             $attachment->delete();
-
-            // Sinkronkan kolom lama
             if ($knowledge) {
                 $this->syncLegacyColumns($knowledge);
             }
@@ -401,10 +337,6 @@ class KnowledgeController extends Controller
         }
     }
 
-    // ============================================================
-    // PRIVATE HELPERS
-    // ============================================================
-
     /**
      * Simpan file fisik dengan nama unik.
      * Return: path relatif (contoh: "knowledge/12/namafile_ab12cd34.pdf")
@@ -414,11 +346,7 @@ class KnowledgeController extends Controller
         $originalName = $file->getClientOriginalName();
         $extension = $file->getClientOriginalExtension();
         $baseName = pathinfo($originalName, PATHINFO_FILENAME);
-
-        // Sanitasi nama file (buang karakter aneh)
         $safeName = Str::slug($baseName) ?: 'file';
-
-        // Tambah random suffix biar tidak tabrakan
         $fileName = $safeName . '_' . Str::random(8) . '.' . $extension;
 
         return $file->storeAs('knowledge/' . $knowledgeId, $fileName, 'public');
@@ -470,10 +398,6 @@ class KnowledgeController extends Controller
 
         return $msg;
     }
-
-    // ============================================================
-    // AUTHORIZATION
-    // ============================================================
 
     /**
      * 🔒 Hanya admin & support.

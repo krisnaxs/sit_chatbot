@@ -57,7 +57,7 @@ class ActivityLogController extends Controller
     }
 
     /**
-     * 🆕 Tampilkan detail satu log.
+     *  Tampilkan detail satu log.
      */
     public function show(Activity $activity)
     {

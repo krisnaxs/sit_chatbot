@@ -97,7 +97,7 @@
             background-color: #f8fafc;
         }
 
-        /* 🆕 Kolom Keluar — highlight amber */
+        /*  Kolom Keluar — highlight amber */
         table.data td.keluar {
             background-color: #FEF3C7;
             color: #92400E;
@@ -199,7 +199,7 @@
             width: 7%;
         }
 
-        /* 🆕 */
+        /*  */
 
         .col-min {
             width: 6%;
@@ -271,7 +271,7 @@
                 <th class="col-unit">Unit</th>
                 <th class="col-total">Total</th>
                 <th class="col-tersedia">Tersedia</th>
-                <th class="col-keluar">Keluar</th> {{-- 🆕 --}}
+                <th class="col-keluar">Keluar</th> {{--  --}}
                 <th class="col-min">Min</th>
                 <th class="col-harga">Harga</th>
                 <th class="col-status">Status</th>
@@ -301,14 +301,14 @@
                     <td>{{ $c->unit }}</td>
                     <td>{{ $c->stock_total }}</td>
                     <td>{{ $c->stock_available }}</td>
-                    <td class="keluar">{{ $keluar }}</td> {{-- 🆕 --}}
+                    <td class="keluar">{{ $keluar }}</td> {{--  --}}
                     <td>{{ $c->stock_minimum }}</td>
                     <td>{{ $c->last_price ? number_format($c->last_price, 0, ',', '.') : '-' }}</td>
                     <td><span class="badge {{ $statusClass }}">{{ $statusLabel }}</span></td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="12" style="text-align:center;padding:20px;color:#94a3b8;"> {{-- 🆕 dari 11 ke 12 --}}
+                    <td colspan="12" style="text-align:center;padding:20px;color:#94a3b8;"> {{--  dari 11 ke 12 --}}
                         Tidak ada data konsumable.
                     </td>
                 </tr>

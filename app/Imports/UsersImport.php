@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Department;
 use App\Models\Location;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -53,25 +54,30 @@ class UsersImport implements
             $this->skipCount++;
             return null;
         }
+
         $departmentId = null;
         if (!empty($row['department_code'])) {
             $code = strtolower(trim($row['department_code']));
             $departmentId = $this->departmentCache[$code] ?? null;
         }
+
         $locationId = null;
         if (!empty($row['location_code'])) {
             $locKey = strtolower(trim($row['location_code']));
             $locationId = $this->locationCache[$locKey] ?? null;
         }
+
         $isActive = true;
         if (isset($row['is_active'])) {
             $val = trim((string) $row['is_active']);
             $isActive = in_array($val, ['1', 'true', 'ya', 'yes', 'aktif'], true);
         }
+
         $role = strtolower(trim($row['role'] ?? 'user'));
         if (!in_array($role, ['admin', 'support', 'user'])) {
             $role = 'user';
         }
+        $waktuPensiun = $this->parseWaktuPensiun($row['waktu_pensiun'] ?? null);
 
         $this->successCount++;
         $this->existingEmails[$email] = true;
@@ -88,7 +94,41 @@ class UsersImport implements
             'location_id' => $locationId,
             'role' => $role,
             'is_active' => $isActive,
+            'waktu_pensiun' => $waktuPensiun, //  tambahan
         ]);
+    }
+
+    /**
+     * Parse nilai waktu_pensiun dari Excel.
+     *
+     * Mendukung:
+     * - Format tanggal Excel (numeric serial) → auto-convert
+     * - String: "2026-12-31", "31/12/2026", "31-12-2026"
+     * - String: "31 Desember 2026", "December 31, 2026"
+     * - Kosong / null / "-" / "tidak ada" → null
+     */
+    protected function parseWaktuPensiun($value): ?string
+    {
+        if ($value === null || $value === '' || $value === '-') {
+            return null;
+        }
+
+        $value = trim((string) $value);
+        if (in_array(strtolower($value), ['tidak ada', 'n/a', 'na', 'none', '-', 'null'], true)) {
+            return null;
+        }
+        if (is_numeric($value) && (int) $value > 1000 && (int) $value < 100000) {
+            try {
+                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((int) $value)
+                    ->format('Y-m-d');
+            } catch (\Exception $e) {
+            }
+        }
+        try {
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     public function rules(): array
@@ -104,6 +144,7 @@ class UsersImport implements
             'location_code' => ['nullable', 'max:255'],
             'position' => ['nullable', 'max:100'],
             'is_active' => ['nullable'],
+            'waktu_pensiun' => ['nullable'], //  tambahan (bebas format, di-parse di model())
         ];
     }
 

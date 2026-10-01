@@ -13,7 +13,7 @@
 
     @stack('styles')
 
-    {{-- 🆕 WAJIB: sembunyikan elemen x-cloak sebelum Alpine init --}}
+    {{--  WAJIB: sembunyikan elemen x-cloak sebelum Alpine init --}}
     <style>
         [x-cloak] {
             display: none !important;
@@ -37,7 +37,7 @@
         </main>
     </div>
 
-    {{-- 🆕 WAJIB: render section modals (untuk requests/my & approval) --}}
+    {{--  WAJIB: render section modals (untuk requests/my & approval) --}}
     @yield('modals')
 
     <script>

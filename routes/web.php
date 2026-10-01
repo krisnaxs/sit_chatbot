@@ -27,6 +27,7 @@ use App\Http\Controllers\AssetRequestController;
 use App\Http\Controllers\MyAssetController;
 use App\Http\Controllers\QuickRequestController;
 use App\Http\Controllers\AssetPublicController;
+use App\Http\Controllers\SettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,7 +59,7 @@ Route::get('/login', function () {
 
 /*
 |────────────────────────────────────────────────────────────
-| 🆕 CHATBOT — PUBLIC (guest boleh akses)
+|  CHATBOT — PUBLIC (guest boleh akses)
 |────────────────────────────────────────────────────────────
 */
 Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
@@ -69,8 +70,6 @@ Route::post('/chat/send', [ChatController::class, 'send'])
 Route::get('/request/quick', [QuickRequestController::class, 'index'])->name('requests.quick');
 Route::post('/request/quick', [QuickRequestController::class, 'store'])->name('requests.quick.store');
 Route::get('/request/quick/receipt/{assetRequest}', [QuickRequestController::class, 'receipt'])->name('requests.quick.receipt');
-
-// Route publik — pakai SN
 Route::get('/a/{serial}', [AssetPublicController::class, 'show'])
     ->where('serial', '.*')
     ->middleware('throttle:60,1')
@@ -78,38 +77,25 @@ Route::get('/a/{serial}', [AssetPublicController::class, 'show'])
 
 
 Route::middleware(['auth'])->group(function () {
-
-    // ─── Apps ───
     Route::get('/apps', [AppController::class, 'index'])->name('apps.index');
     Route::get('/apps/create', [AppController::class, 'create'])->name('apps.create');
     Route::post('/apps', [AppController::class, 'store'])->name('apps.store');
     Route::get('/apps/{app}/edit', [AppController::class, 'edit'])->name('apps.edit');
     Route::put('/apps/{app}', [AppController::class, 'update'])->name('apps.update');
     Route::delete('/apps/{app}', [AppController::class, 'destroy'])->name('apps.destroy');
-
-    // ─── Chatbot ───
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/ai/ask', [\App\Http\Controllers\AiAssetController::class, 'ask'])->name('ai.ask');
-
-    // ─── Knowledge ───
     Route::middleware(['role:admin,support'])->group(function () {
         Route::get('/knowledge/pending', [PendingKnowledgeController::class, 'index'])->name('knowledge.pending');
         Route::post('/knowledge/pending/{pending}/approve', [PendingKnowledgeController::class, 'approve'])->name('knowledge.pending.approve');
         Route::delete('/knowledge/pending/{pending}/reject', [PendingKnowledgeController::class, 'reject'])->name('knowledge.pending.reject');
         Route::delete('/knowledge/pending/clear', [PendingKnowledgeController::class, 'clear'])->name('knowledge.pending.clear');
     });
-
-    // 2. Letakkan route resource (yang memiliki parameter/wildcard) di bawah
     Route::delete(
         '/knowledge/attachments/{attachment}',
         [KnowledgeController::class, 'destroyAttachment']
     )->name('knowledge.attachments.destroy');
-
-    // Resource utama (di bawah, biar wildcard {knowledge} tidak menangkap 'attachments')
     Route::resource('knowledge', KnowledgeController::class);
-
-
-    // ─── Users ───
     Route::middleware(['role:admin'])->group(function () {
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -126,6 +112,19 @@ Route::middleware(['auth'])->group(function () {
         Route::put('users/{user}/reset-password', [UserController::class, 'resetPassword'])
             ->name('users.reset-password');
     });
+    Route::middleware(['role:admin,support'])
+        ->prefix('siam/settings')
+        ->name('settings.')
+        ->group(function () {
+            Route::get('/', [SettingController::class, 'index'])->name('index');
+            Route::get('whatsapp', [SettingController::class, 'whatsapp'])->name('whatsapp');
+            Route::put('whatsapp', [SettingController::class, 'updateWhatsapp'])->name('whatsapp.update');
+            Route::post('whatsapp/test-connection', [SettingController::class, 'testWhatsapp'])->name('whatsapp.test');
+            Route::post('whatsapp/test-send', [SettingController::class, 'testSend'])->name('whatsapp.test-send');
+            Route::get('email', [SettingController::class, 'email'])->name('email');
+            Route::put('email', [SettingController::class, 'updateEmail'])->name('email.update');
+            Route::post('email/test', [SettingController::class, 'testEmail'])->name('email.test');
+        });
     Route::middleware(['role:admin,support'])->group(function () {
         Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
         Route::get('/activity/{activity}', [ActivityLogController::class, 'show'])->name('activity.show');
@@ -152,53 +151,34 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['role:admin,support'])
         ->group(function () {
             Route::get('/dashboard', [SiamDashboardController::class, 'index'])->name('dashboard');
-
-            // Master Data
             Route::resource('categories', AssetCategoryController::class);
             Route::resource('vendors', VendorController::class);
             Route::resource('departments', DepartmentController::class);
             Route::resource('locations', LocationController::class);
             Route::resource('asset-types', AssetTypeController::class);
-
-            // Aset
             Route::get('assets/export/excel', [AssetController::class, 'exportExcel'])->name('assets.export.excel');
             Route::get('assets/export/pdf', [AssetController::class, 'exportPdf'])->name('assets.export.pdf');
             Route::get('assets/{asset}/qr', [AssetController::class, 'qrCode'])
                 ->name('assets.qr');
-            // Batch QR — cetak massal
             Route::get('assets/qr-batch', [AssetController::class, 'qrBatch'])
                 ->name('assets.qr.batch');
-
-            // QR by SN (untuk preview dari index, tanpa buka detail)
             Route::get('assets/qr-preview/{asset}', [AssetController::class, 'qrPreview'])
                 ->name('assets.qr.preview');
             Route::resource('assets', AssetController::class);
-
-            // Serah Terima
             Route::resource('assignments', AssetAssignmentController::class)->except(['edit', 'update']);
             Route::post('assignments/{assignment}/return', [AssetAssignmentController::class, 'returnAsset'])->name('assignments.return');
-
-            // Peminjaman
             Route::resource('loans', AssetLoanController::class)->except(['edit', 'update']);
             Route::post('loans/{loan}/return', [AssetLoanController::class, 'returnAsset'])->name('loans.return');
-
-            // Perbaikan
             Route::resource('maintenances', AssetMaintenanceController::class);
             Route::post('maintenances/{maintenance}/complete', [AssetMaintenanceController::class, 'complete'])->name('maintenances.complete');
-
-            // Konsumable
             Route::get('consumables/export/excel', [ConsumableController::class, 'exportExcel'])->name('consumables.export.excel');
             Route::get('consumables/export/pdf', [ConsumableController::class, 'exportPdf'])->name('consumables.export.pdf');
             Route::resource('consumables', ConsumableController::class);
-
-            // Transaksi Konsumable
             Route::get('consumable-transactions/export/excel', [ConsumableTransactionController::class, 'exportExcel'])->name('consumable-transactions.export.excel');
             Route::get('consumable-transactions/export/pdf', [ConsumableTransactionController::class, 'exportPdf'])->name('consumable-transactions.export.pdf');
             Route::resource('consumable-transactions', ConsumableTransactionController::class)
                 ->except(['edit', 'update'])
                 ->parameters(['consumable-transactions' => 'transaction']);
-
-            // User & Aset
             Route::get('user-assets', [UserAssetController::class, 'index'])->name('user-assets.index');
             Route::get('user-assets/export/excel', [UserAssetController::class, 'exportExcel'])->name('user-assets.export.excel');
             Route::get('user-assets/export/pdf', [UserAssetController::class, 'exportPdf'])->name('user-assets.export.pdf');

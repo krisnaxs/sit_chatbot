@@ -56,6 +56,85 @@
             @endif
 
             {{-- ============================================================ --}}
+            {{--  BANNER PENGINGAT PENSIUN (BARU) --}}
+            {{-- ============================================================ --}}
+            @if ($user->waktu_pensiun)
+                @php
+                    $sisaHari = (int) now()->diffInDays($user->waktu_pensiun, false);
+                    $jumlahAset = $user->currentAssets->count();
+                @endphp
+
+                @if ($user->is_pensiun)
+                    {{-- Sudah pensiun --}}
+                    <div class="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600 shrink-0 mt-0.5" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div class="flex-1 text-sm text-red-800">
+                            <div class="font-bold mb-1">
+                                User sudah pensiun sejak {{ $user->waktu_pensiun->format('d M Y') }}
+                                ({{ abs($sisaHari) }} hari lalu)
+                            </div>
+                            @if ($jumlahAset > 0)
+                                <div>
+                                    Masih ada <strong>{{ $jumlahAset }} aset</strong> yang dipegang.
+                                    Segera tarik aset tersebut!
+                                </div>
+                            @else
+                                <div class="text-red-700">
+                                    ✓ Semua aset sudah ditarik. Tidak ada yang perlu dilakukan.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @elseif($sisaHari <= 30)
+                    {{-- Akan pensiun dalam 30 hari --}}
+                    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600 shrink-0 mt-0.5"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="flex-1 text-sm text-amber-800">
+                            <div class="font-bold mb-1">
+                                ⏳ User akan pensiun pada {{ $user->waktu_pensiun->format('d M Y') }}
+                                ({{ $sisaHari }} hari lagi)
+                            </div>
+                            @if ($jumlahAset > 0)
+                                <div>
+                                    User masih memegang <strong>{{ $jumlahAset }} aset</strong>.
+                                    Pastikan aset ditarik sebelum tanggal pensiun.
+                                </div>
+                            @else
+                                <div class="text-amber-700">
+                                    ✓ Tidak ada aset yang dipegang saat ini.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @else
+                    {{-- Masih lama, info saja --}}
+                    <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 shrink-0 mt-0.5" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="flex-1 text-sm text-blue-800">
+                            <div class="font-bold mb-1">Jadwal pensiun tercatat</div>
+                            <div>
+                                User akan pensiun pada <strong>{{ $user->waktu_pensiun->format('d M Y') }}</strong>
+                                ({{ $sisaHari }} hari lagi).
+                                Pengingat aset akan muncul 30 hari sebelum tanggal tersebut.
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @endif
+
+            {{-- ============================================================ --}}
             {{-- KARTU PROFIL --}}
             {{-- ============================================================ --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -93,6 +172,21 @@
                                     <span
                                         class="px-2.5 py-0.5 text-xs rounded-full font-bold bg-red-100 text-red-700 border border-red-200">
                                         NONAKTIF
+                                    </span>
+                                @endif
+
+                                {{--  Badge status pensiun (BARU) --}}
+                                @if ($user->is_pensiun)
+                                    <span
+                                        class="px-2.5 py-0.5 text-xs rounded-full font-bold bg-red-100 text-red-700 border border-red-200
+                                               inline-flex items-center gap-1">
+                                        PENSIUN
+                                    </span>
+                                @elseif($user->waktu_pensiun && now()->diffInDays($user->waktu_pensiun, false) <= 30)
+                                    <span
+                                        class="px-2.5 py-0.5 text-xs rounded-full font-bold bg-amber-100 text-amber-700 border border-amber-200
+                                               inline-flex items-center gap-1">
+                                        ⏳ AKAN PENSIUN
                                     </span>
                                 @endif
                             </div>
@@ -166,6 +260,22 @@
                             <dt class="text-gray-500 text-xs uppercase tracking-wider">Terdaftar</dt>
                             <dd class="font-medium">{{ $user->created_at?->format('d M Y') ?? '-' }}</dd>
                         </div>
+
+                        {{--  Waktu Pensiun (BARU) --}}
+                        <div>
+                            <dt class="text-gray-500 text-xs uppercase tracking-wider">Waktu Pensiun</dt>
+                            <dd class="font-medium">
+                                @if ($user->waktu_pensiun)
+                                    <span
+                                        class="inline-flex items-center gap-1
+                                        @if ($user->is_pensiun) text-red-700 @else text-amber-700 @endif">
+                                        {{ $user->waktu_pensiun->format('d M Y') }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </dd>
+                        </div>
                     </dl>
                 </div>
             </div>
@@ -204,6 +314,19 @@
                             ({{ $user->currentAssets->count() }})
                         </span>
                     </h2>
+
+                    {{--  Peringatan kalau user akan/sudah pensiun & masih pegang aset --}}
+                    @if (
+                        $user->waktu_pensiun &&
+                            $user->currentAssets->count() > 0 &&
+                            !$user->is_pensiun &&
+                            now()->diffInDays($user->waktu_pensiun, false) <= 30)
+                        <span
+                            class="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold
+                                     border border-amber-200 inline-flex items-center gap-1">
+                            Perlu Ditarik
+                        </span>
+                    @endif
                 </div>
 
                 @if ($user->currentAssets->isEmpty())
@@ -669,7 +792,7 @@
                         </div>
 
                         <p class="text-xs text-gray-500 text-center">
-                            ⚠️ User harus login ulang dengan password baru setelah direset.
+                            User harus login ulang dengan password baru setelah direset.
                         </p>
                     </div>
 

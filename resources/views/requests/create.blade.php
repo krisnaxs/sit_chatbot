@@ -336,7 +336,6 @@
 
 @push('scripts')
     <script>
-        // Searchable dropdown (dipakai untuk Aset & Konsumable)
         function searchableSelect(options) {
             return {
                 open: false,
@@ -376,8 +375,6 @@
                 }
             }
         }
-
-        // Toggle field sesuai tipe pengajuan (loan/consumable)
         document.addEventListener('DOMContentLoaded', () => {
             const radios = document.querySelectorAll('input[name="type"]');
 

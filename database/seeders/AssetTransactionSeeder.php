@@ -36,7 +36,7 @@ class AssetTransactionSeeder extends Seeder
             ->get();
 
         if ($laptops->count() < 7) {
-            $this->command->warn('⚠️  Laptop T14 kurang dari 7 unit — assignments dilewati.');
+            $this->command->warn('  Laptop T14 kurang dari 7 unit — assignments dilewati.');
             return;
         }
 
@@ -83,7 +83,7 @@ class AssetTransactionSeeder extends Seeder
             }
         }
 
-        $this->command->info('✅ Assignments: ' . count($assignments) . ' records');
+        $this->command->info(' Assignments: ' . count($assignments) . ' records');
     }
     private function seedLoans(): void
     {
@@ -105,7 +105,7 @@ class AssetTransactionSeeder extends Seeder
             ->get();
 
         if ($loanableAssets->count() < 4) {
-            $this->command->warn('⚠️  Asset untuk loan kurang — loans dilewati.');
+            $this->command->warn('  Asset untuk loan kurang — loans dilewati.');
             return;
         }
 
@@ -139,7 +139,7 @@ class AssetTransactionSeeder extends Seeder
             }
         }
 
-        $this->command->info('✅ Loans: ' . count($data) . ' records');
+        $this->command->info(' Loans: ' . count($data) . ' records');
     }
     private function seedMaintenances(): void
     {
@@ -152,7 +152,7 @@ class AssetTransactionSeeder extends Seeder
             ->get();
 
         if ($assets->count() < 5) {
-            $this->command->warn('⚠️  Asset untuk maintenance kurang — dilewati.');
+            $this->command->warn('  Asset untuk maintenance kurang — dilewati.');
             return;
         }
 
@@ -186,7 +186,7 @@ class AssetTransactionSeeder extends Seeder
             }
         }
 
-        $this->command->info('✅ Maintenances: ' . count($data) . ' records');
+        $this->command->info(' Maintenances: ' . count($data) . ' records');
     }
     private function seedMovements(): void
     {
@@ -198,7 +198,7 @@ class AssetTransactionSeeder extends Seeder
             ->get();
 
         if ($assignments->isEmpty()) {
-            $this->command->warn('⚠️  Tidak ada assignment — movements dilewati.');
+            $this->command->warn('  Tidak ada assignment — movements dilewati.');
             return;
         }
 
@@ -272,6 +272,6 @@ class AssetTransactionSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('✅ Movements: generated');
+        $this->command->info(' Movements: generated');
     }
 }

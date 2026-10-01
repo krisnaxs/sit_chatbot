@@ -199,7 +199,7 @@ class SiamDashboardController extends Controller
                 ];
             })
             ->sortByDesc('total')
-            ->take(15)   // 🆕 batasi biar chart tidak terlalu padat
+            ->take(15)
             ->values();
 
         $modelBreakdownLabels = $modelBreakdown->pluck('model')->toArray();
@@ -259,6 +259,51 @@ class SiamDashboardController extends Controller
             ->whereDate('warranty_expire', '<=', now()->addDays(60))
             ->limit(10)
             ->get();
+        $assetsPerluDitarik = (clone $assetBaseQuery)
+            ->whereNotNull('current_user_id')
+            ->whereHas('currentUser', function ($q) {
+                $q->whereNotNull('waktu_pensiun')
+                    ->where('waktu_pensiun', '<=', now()->addDays(30));
+            })
+            ->with(['currentUser', 'category', 'currentLocation'])
+            ->get()
+            ->sortBy(fn($a) => $a->currentUser->waktu_pensiun)
+            ->values();
+
+        $usersAkanPensiun = User::whereNotNull('waktu_pensiun')
+            ->where('waktu_pensiun', '>=', now())
+            ->where('waktu_pensiun', '<=', now()->addDays(30))
+            ->withCount('currentAssets')
+            ->with('department', 'location')
+            ->orderBy('waktu_pensiun')
+            ->get();
+
+        $usersSudahPensiun = User::whereNotNull('waktu_pensiun')
+            ->where('waktu_pensiun', '<', now())
+            ->withCount('currentAssets')
+            ->orderByDesc('waktu_pensiun')
+            ->limit(10)
+            ->get();
+        if ($hasFilter) {
+            $filteredAssetIds = $assetIds;
+            $assetsPerluDitarik = $assetsPerluDitarik
+                ->filter(fn($a) => $filteredAssetIds->contains($a->id))
+                ->values();
+        }
+
+        $pensiunStats = [
+            'aset_perlu_ditarik' => $assetsPerluDitarik->count(),
+            'user_akan_pensiun' => $usersAkanPensiun->count(),
+            'user_sudah_pensiun' => $usersSudahPensiun->count(),
+            'total_aset_dipegang' => $assetsPerluDitarik->sum(fn($a) => 1),
+            'pensiun_bulan_ini' => User::whereNotNull('waktu_pensiun')
+                ->whereMonth('waktu_pensiun', now()->month)
+                ->whereYear('waktu_pensiun', now()->year)
+                ->count(),
+            'pensiun_30_hari' => User::akanPensiun(30)->count(),
+            'pensiun_90_hari' => User::akanPensiun(90)->count(),
+        ];
+
         $lowStockConsumables = Consumable::whereColumn('stock_available', '<=', 'stock_minimum')
             ->orderBy('stock_available')
             ->limit(10)
@@ -428,6 +473,10 @@ class SiamDashboardController extends Controller
             'filterBrands',
             'filterModels',
             'filterYears',
+            'assetsPerluDitarik',
+            'usersAkanPensiun',
+            'usersSudahPensiun',
+            'pensiunStats',
         ));
     }
 }

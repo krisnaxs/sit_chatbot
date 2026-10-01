@@ -24,10 +24,6 @@ class KnowledgeAttachment extends Model
         'file_size' => 'integer',
     ];
 
-    // ============================================================
-    // RELASI
-    // ============================================================
-
     /**
      * Induk knowledge.
      */
@@ -35,10 +31,6 @@ class KnowledgeAttachment extends Model
     {
         return $this->belongsTo(Knowledge::class, 'knowledge_id', 'id');
     }
-
-    // ============================================================
-    // ACCESSOR
-    // ============================================================
 
     /**
      * URL publik file.

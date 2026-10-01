@@ -9,7 +9,6 @@ class QueryRouter
 {
 
     private const ASSET_KEYWORDS = [
-        // Aset fisik
         'aset',
         'asset',
         'laptop',
@@ -29,13 +28,11 @@ class QueryRouter
         'harddisk',
         'ssd',
         'flashdisk',
-        // Konsumable
         'konsumable',
         'consumable',
         'stok',
         'stock',
         'atk',
-        // Field aset
         'sn',
         'serial',
         'hostname',
@@ -48,14 +45,12 @@ class QueryRouter
         'tipe',
         'garansi',
         'warranty',
-        // Ownership
         'hak milik',
         'sewa',
         'lease',
         'owned',
         'leased',
         'rental',
-        // Pemegang
         'pemegang',
         'pegang',
         'dipegang',
@@ -64,7 +59,6 @@ class QueryRouter
         'dipegang siapa',
         'yang pakai',
         'yang pegang',
-        // Aksi pada aset
         'pinjam',
         'peminjaman',
         'loan',
@@ -75,16 +69,13 @@ class QueryRouter
         'hilang',
         'pensiun',
         'retired',
-        // Lokasi
         'lokasi aset',
         'ruangan aset',
         'gedung aset',
-        // Assignment
         'serah terima',
         'assignment',
         'di-assign',
         'diassign',
-        // User & vendor (sensitif)
         'user',
         'pegawai',
         'karyawan',
@@ -98,11 +89,6 @@ class QueryRouter
     public function tryAnswer(string $pesan): ?array
     {
         $user = auth()->user();
-
-        // ═══════════════════════════════════════════════════════════
-        // 🆕 GUARD: Guest yang tanya tentang aset → wajib login
-        // Lapisan pertahanan terakhir sebelum menyentuh database.
-        // ═══════════════════════════════════════════════════════════
         if (!$user && $this->isAssetRelated($pesan)) {
             return [
                 "🔒 Maaf, untuk mengakses data aset kamu harus login terlebih dahulu.\n\n"
@@ -126,15 +112,11 @@ class QueryRouter
             app(ReportQueryService::class),
             app(ActivityQueryService::class),
         ];
-
-        // 🆕 Inject user ke service yang butuh
         foreach ($services as $service) {
             if (method_exists($service, 'setUser')) {
                 $service->setUser($user);
             }
         }
-
-        // 🆕 Paksa koneksi read-only selama query service AI berjalan
         $original = DB::getDefaultConnection();
         DB::setDefaultConnection('ai_readonly');
 
@@ -146,36 +128,25 @@ class QueryRouter
                 }
             }
         } finally {
-            // Selalu restore — apapun yang terjadi
             DB::setDefaultConnection($original);
         }
 
         return null;
     }
 
-    // ============================================================
-    // 🆕 GUARD HELPERS
-    // ============================================================
-
 
     protected function isAssetRelated(string $pesan): bool
     {
         $lower = Str::lower($pesan);
-
-        // 1️⃣ SN/hostname pattern (contoh: NB-T14-005, AST-2026-0001)
         if (preg_match('/\b[A-Z]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]+)*\b/i', $pesan)) {
             return true;
         }
-
-        // 2️⃣ Keyword aset (word-boundary)
         foreach (self::ASSET_KEYWORDS as $kw) {
             $pattern = '/\b' . preg_quote($kw, '/') . '\b/i';
             if (preg_match($pattern, $lower)) {
                 return true;
             }
         }
-
-        // 3️⃣ Kombinasi: kata tanya + objek
         $questionWords = [
             'berapa',
             'jumlah',

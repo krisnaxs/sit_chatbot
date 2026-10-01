@@ -71,7 +71,7 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
             'Satuan',
             'Stok Total',
             'Stok Tersedia',
-            'Jumlah Keluar',    // 🆕
+            'Jumlah Keluar',    //
             'Stok Minimum',
             'Harga Terakhir (Rp)',
             'Status',
@@ -100,7 +100,7 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
             $c->unit ?? '-',
             $c->stock_total,
             $c->stock_available,
-            $jumlahKeluar,                                       // 🆕
+            $jumlahKeluar,                                       //
             $c->stock_minimum,
             $c->last_price ? number_format($c->last_price, 0, ',', '.') : '-',
             $status,
@@ -123,7 +123,7 @@ class ConsumablesExport implements FromQuery, WithHeadings, WithMapping, ShouldA
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $lastCol = 'M'; // 🆕 13 kolom (A-M)
+                $lastCol = 'M'; //  13 kolom (A-M)
                 $sheet->insertNewRowBefore(1, 3);
                 $sheet->mergeCells("A1:{$lastCol}1");
                 $sheet->setCellValue('A1', 'STOK KONSUMABLE — SIAM');

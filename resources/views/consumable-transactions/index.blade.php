@@ -432,7 +432,7 @@
                     <strong class="text-gray-800" x-text="selected?.consumable_name"></strong>
                     (<span x-text="selected?.type_label"></span>)?
                     <br>
-                    <span class="text-xs text-amber-600 font-semibold">⚠️ Stok akan dikembalikan otomatis.</span>
+                    <span class="text-xs text-amber-600 font-semibold"> Stok akan dikembalikan otomatis.</span>
                 </p>
                 <div class="flex gap-2">
                     <button type="button" @click="showDeleteModal = false"

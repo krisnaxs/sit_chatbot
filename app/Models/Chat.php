@@ -61,10 +61,6 @@ class Chat extends Model
         };
     }
 
-    // ============================================================
-    // ACCESSOR (opsional, untuk kemudahan)
-    // ============================================================
-
     /**
      * URL file publik (kolom lama).
      */

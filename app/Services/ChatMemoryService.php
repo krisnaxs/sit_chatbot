@@ -18,7 +18,6 @@ class ChatMemoryService
      */
     public function remember(string $type, array $data, int $ttlMinutes = 30, ?string $label = null): ChatContext
     {
-        // Paksa 'type' & '_type' ada di dalam data
         $data['type'] = $data['type'] ?? $type;
         $data['_type'] = $data['_type'] ?? $type;
 
@@ -63,7 +62,7 @@ class ChatMemoryService
     }
 
     /**
-     * 🆕 Cari context pertama yang cocok dari daftar type.
+     *  Cari context pertama yang cocok dari daftar type.
      *
      * Contoh: recallFirstOf(['asset_by_status', 'list_asset_by_status'])
      */

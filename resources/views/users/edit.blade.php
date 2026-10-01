@@ -51,6 +51,37 @@
                 </div>
             </div>
 
+            {{--  BANNER STATUS PENSIUN (BARU) --}}
+            @if ($user->waktu_pensiun)
+                <div
+                    class="mb-6 p-3 rounded-xl border flex items-start gap-2
+                    @if ($user->is_pensiun) bg-red-50 border-red-200
+                    @else
+                        bg-amber-50 border-amber-200 @endif">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 shrink-0 mt-0.5
+                        @if ($user->is_pensiun) text-red-600 @else text-amber-600 @endif"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div
+                        class="text-xs
+                        @if ($user->is_pensiun) text-red-800 @else text-amber-800 @endif">
+                        @if ($user->is_pensiun)
+                            <span class="font-semibold">⚠ User sudah pensiun</span>
+                            sejak <strong>{{ $user->waktu_pensiun->format('d M Y') }}</strong>
+                            ({{ abs((int) now()->diffInDays($user->waktu_pensiun, false)) }} hari lalu).
+                        @else
+                            <span class="font-semibold">⏳ User akan pensiun</span>
+                            pada <strong>{{ $user->waktu_pensiun->format('d M Y') }}</strong>
+                            ({{ (int) now()->diffInDays($user->waktu_pensiun, false) }} hari lagi).
+                            Pastikan aset yang dipegang sudah ditarik sebelum tanggal tersebut.
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             {{-- FORM --}}
             <form action="{{ route('users.update', $user) }}" method="POST" class="space-y-5">
                 @csrf
@@ -165,6 +196,45 @@
                         @error('location_id')
                             <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
+                    </div>
+
+                    {{--  WAKTU PENSIUN (BARU) --}}
+                    <div class="mt-4">
+                        <label class="block font-semibold text-sm text-gray-700 mb-2">
+                            Waktu Pensiun
+                            <span class="text-gray-400 font-normal text-xs">(opsional)</span>
+                        </label>
+                        <input type="date" name="waktu_pensiun"
+                            value="{{ old('waktu_pensiun', $user->waktu_pensiun?->format('Y-m-d')) }}"
+                            class="w-full border rounded-xl px-3 py-2.5 text-sm
+                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   @error('waktu_pensiun') border-red-400 bg-red-50 @else border-gray-200 @enderror">
+                        @error('waktu_pensiun')
+                            <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p>
+                        @enderror
+
+                        @if ($user->waktu_pensiun)
+                            <div class="mt-2 flex items-center gap-2">
+                                <span class="text-xs text-gray-500">Status saat ini:</span>
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold
+                                    @if ($user->is_pensiun) bg-red-100 text-red-700
+                                    @else
+                                        bg-amber-100 text-amber-700 @endif">
+                                    {{ $user->status_pensiun_label }}
+                                </span>
+                                <a href="#"
+                                    onclick="event.preventDefault(); if(confirm('Hapus jadwal pensiun user ini?')) { document.getElementById('hapus-pensiun-form').submit(); }"
+                                    class="text-xs text-red-600 hover:text-red-800 hover:underline ml-auto">
+                                    Hapus jadwal
+                                </a>
+                            </div>
+                        @endif
+
+                        <p class="text-xs text-gray-500 mt-1.5">
+                            Kosongkan jika user belum punya jadwal pensiun.
+                            Sistem akan menampilkan pengingat aset 30 hari sebelum tanggal ini.
+                        </p>
                     </div>
                 </div>
 
@@ -284,6 +354,25 @@
                     </a>
                 </div>
             </form>
+
+            {{-- Hidden form: hapus jadwal pensiun --}}
+            @if ($user->waktu_pensiun)
+                <form id="hapus-pensiun-form" action="{{ route('users.update', $user) }}" method="POST"
+                    class="hidden">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="name" value="{{ $user->name }}">
+                    <input type="hidden" name="email" value="{{ $user->email }}">
+                    <input type="hidden" name="nip" value="{{ $user->nip }}">
+                    <input type="hidden" name="phone" value="{{ $user->phone }}">
+                    <input type="hidden" name="department_id" value="{{ $user->department_id }}">
+                    <input type="hidden" name="position" value="{{ $user->position }}">
+                    <input type="hidden" name="location_id" value="{{ $user->location_id }}">
+                    <input type="hidden" name="role" value="{{ $user->role }}">
+                    <input type="hidden" name="is_active" value="{{ $user->is_active ? 1 : 0 }}">
+                    <input type="hidden" name="waktu_pensiun" value="">
+                </form>
+            @endif
         </div>
 
         {{-- TOAST ERROR --}}

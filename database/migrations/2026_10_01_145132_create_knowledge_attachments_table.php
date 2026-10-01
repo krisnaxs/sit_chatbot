@@ -10,7 +10,6 @@ return new class extends Migration {
         Schema::create('knowledge_attachments', function (Blueprint $table) {
             $table->id(); // id attachment sendiri (bigint unsigned, tidak masalah)
 
-            // ✅ knowledge_id HARUS int unsigned, cocok dengan knowledge.id
             $table->unsignedInteger('knowledge_id');
             $table->foreign('knowledge_id')
                 ->references('id')

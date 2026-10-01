@@ -341,7 +341,7 @@
                                                                 </div>
                                                                 @if ($ln->is_overdue)
                                                                     <div class="text-[10px] text-red-600 font-bold mt-0.5">
-                                                                        ⚠️ Terlambat</div>
+                                                                        Terlambat</div>
                                                                 @endif
                                                             </div>
                                                         @endforeach
