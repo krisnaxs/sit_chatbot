@@ -43,7 +43,7 @@
                             <th class="px-4 py-3 text-left w-16">#</th>
                             <th class="px-4 py-3 text-left">Kode</th>
                             <th class="px-4 py-3 text-left">Nama</th>
-                            <th class="px-4 py-3 text-center">Konsumable</th>
+                            <th class="px-4 py-3 text-center">Fitur</th>
                             <th class="px-4 py-3 text-right">Jumlah Aset</th>
                             <th class="px-4 py-3 text-center">Status</th>
                         </tr>
@@ -57,6 +57,7 @@
                                     'code' => $c->code,
                                     'description' => $c->description,
                                     'is_consumable' => $c->is_consumable,
+                                    'is_agent_monitored' => (bool) $c->is_agent_monitored,
                                     'is_active' => $c->is_active,
                                     'assets_count' => $c->assets_count,
                                     'routes' => [
@@ -75,13 +76,32 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ $c->name }}</td>
+
+                                {{-- Kolom FITUR --}}
                                 <td class="px-4 py-3 text-center">
-                                    @if ($c->is_consumable)
-                                        <span class="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700">Ya</span>
-                                    @else
-                                        <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">Tidak</span>
-                                    @endif
+                                    <div class="flex flex-wrap gap-1 justify-center">
+                                        @if ($c->is_consumable)
+                                            <span
+                                                class="px-1.5 py-0.5 text-[10px] rounded bg-amber-100 text-amber-700 font-semibold">
+                                                Konsumable
+                                            </span>
+                                        @endif
+
+                                        @if ($c->is_agent_monitored)
+                                            <span
+                                                class="px-1.5 py-0.5 text-[10px] rounded bg-indigo-100 text-indigo-700 font-semibold inline-flex items-center gap-1">
+                                                🖥 Agent
+                                            </span>
+                                        @endif
+
+                                        @if (!$c->is_consumable && !$c->is_agent_monitored)
+                                            <span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 text-gray-500">
+                                                Reguler
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
+
                                 <td class="px-4 py-3 text-right">{{ $c->assets_count ?? 0 }}</td>
                                 <td class="px-4 py-3 text-center">
                                     @if ($c->is_active)
@@ -138,7 +158,7 @@
                 <div class="bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-5 text-white">
                     <div class="flex items-start justify-between">
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span
                                     class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold font-mono"
                                     x-text="selected?.code"></span>
@@ -167,6 +187,13 @@
                         <div>
                             <div class="text-xs text-gray-500">Konsumable</div>
                             <div class="text-xs font-medium" x-text="selected?.is_consumable ? 'Ya' : 'Tidak'"></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">Monitor via Agent</div>
+                            <div class="text-xs font-medium">
+                                <span x-show="selected?.is_agent_monitored" class="text-indigo-600">🖥 Ya</span>
+                                <span x-show="!selected?.is_agent_monitored" class="text-gray-500">Tidak</span>
+                            </div>
                         </div>
                         <div>
                             <div class="text-xs text-gray-500">Jumlah Aset</div>

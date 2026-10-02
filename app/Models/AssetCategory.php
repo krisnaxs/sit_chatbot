@@ -13,6 +13,7 @@ class AssetCategory extends Model
         'name',
         'code',
         'is_consumable',
+        'is_agent_monitored',   // ← BARU
         'description',
         'is_active',
     ];
@@ -21,9 +22,14 @@ class AssetCategory extends Model
     {
         return [
             'is_consumable' => 'boolean',
+            'is_agent_monitored' => 'boolean',   // ← BARU
             'is_active' => 'boolean',
         ];
     }
+
+    // ============================================================
+    // RELASI
+    // ============================================================
 
     public function assets()
     {
@@ -34,6 +40,10 @@ class AssetCategory extends Model
     {
         return $this->hasMany(Consumable::class, 'category_id');
     }
+
+    // ============================================================
+    // SCOPES
+    // ============================================================
 
     public function scopeActive($query)
     {
@@ -48,5 +58,13 @@ class AssetCategory extends Model
     public function scopeNonConsumable($query)
     {
         return $query->where('is_consumable', false);
+    }
+
+    /**
+     * Scope: kategori yang dimonitor agent (laptop, PC, server).
+     */
+    public function scopeAgentMonitored($query)
+    {
+        return $query->where('is_agent_monitored', true);
     }
 }

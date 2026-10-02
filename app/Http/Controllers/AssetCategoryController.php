@@ -27,9 +27,15 @@ class AssetCategoryController extends Controller
             'name' => 'required|string|max:100',
             'code' => 'required|string|max:20|unique:asset_categories,code',
             'is_consumable' => 'boolean',
+            'is_agent_monitored' => 'boolean',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
+
+        // Convert checkbox ke boolean
+        $validated['is_consumable'] = $request->boolean('is_consumable');
+        $validated['is_agent_monitored'] = $request->boolean('is_agent_monitored');
+        $validated['is_active'] = $request->boolean('is_active', true);
 
         AssetCategory::create($validated);
 
@@ -48,9 +54,15 @@ class AssetCategoryController extends Controller
             'name' => 'required|string|max:100',
             'code' => 'required|string|max:20|unique:asset_categories,code,' . $category->id,
             'is_consumable' => 'boolean',
+            'is_agent_monitored' => 'boolean',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
+
+        // Convert checkbox ke boolean
+        $validated['is_consumable'] = $request->boolean('is_consumable');
+        $validated['is_agent_monitored'] = $request->boolean('is_agent_monitored');
+        $validated['is_active'] = $request->boolean('is_active', true);
 
         $category->update($validated);
 

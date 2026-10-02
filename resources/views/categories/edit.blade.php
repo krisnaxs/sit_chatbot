@@ -44,17 +44,35 @@
                     </div>
                 </div>
 
-                <div>
+                <div class="space-y-3">
                     <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" name="is_consumable" value="1" @checked(old('is_consumable', $category->is_consumable))>
-                        <span>Konsumable</span>
+                        <input type="checkbox" name="is_consumable" value="1"
+                            class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                            @checked(old('is_consumable', $category->is_consumable))>
+                        <span class="font-semibold text-gray-700">Konsumable</span>
                     </label>
-                </div>
 
-                <div>
+                    {{-- Monitor via Agent --}}
+                    <label
+                        class="flex items-start gap-3 cursor-pointer select-none p-4 rounded-xl bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition">
+                        <input type="checkbox" name="is_agent_monitored" value="1"
+                            class="mt-0.5 w-5 h-5 rounded border-gray-300 text-indigo-600
+                                   focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer"
+                            @checked(old('is_agent_monitored', $category->is_agent_monitored))>
+                        <div>
+                            <span class="text-sm font-semibold text-indigo-900">🖥 Monitor via Agent</span>
+                            <p class="text-xs text-indigo-700 mt-0.5">
+                                Centang jika kategori ini bisa di-install agent (laptop, PC, server).
+                                Aset dalam kategori ini akan muncul di halaman <strong>Monitoring</strong>.
+                            </p>
+                        </div>
+                    </label>
+
                     <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $category->is_active))>
-                        <span>Aktif</span>
+                        <input type="checkbox" name="is_active" value="1"
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            @checked(old('is_active', $category->is_active))>
+                        <span class="font-semibold text-gray-700">Aktif</span>
                     </label>
                 </div>
 

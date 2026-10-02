@@ -970,6 +970,98 @@ class AssetController extends Controller
             ->route('siam.assets.index')
             ->with('success', "{$count} aset berhasil ditambahkan sekaligus.");
     }
+    /**
+     * Halaman monitoring realtime semua aset agent-monitored.
+     */
+    public function monitoring(Request $request)
+    {
+        // === Base query: HANYA kategori agent-monitored ===
+        $baseQuery = Asset::with(['category', 'currentUser', 'currentLocation'])
+            ->whereHas('category', fn($q) => $q->where('is_agent_monitored', true));
+
+        // === Filter ===
+        if ($request->filled('category_id')) {
+            $baseQuery->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('status')) {
+            match ($request->status) {
+                'online' => $baseQuery->where('last_seen_at', '>=', now()->subMinutes(10)),
+                'idle' => $baseQuery->whereBetween('last_seen_at', [
+                    now()->subMinutes(60),
+                    now()->subMinutes(10),
+                ]),
+                'offline' => $baseQuery->where('last_seen_at', '<', now()->subMinutes(60))
+                    ->whereNotNull('last_seen_at'),
+                'never' => $baseQuery->whereNull('last_seen_at'),
+                default => null,
+            };
+        }
+
+        if ($request->filled('wifi')) {
+            $baseQuery->where('last_wifi_ssid', $request->wifi);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $baseQuery->where(function ($q) use ($search) {
+                $q->where('hostname', 'like', "%{$search}%")
+                    ->orWhere('asset_code', 'like', "%{$search}%")
+                    ->orWhere('serial_number', 'like', "%{$search}%")
+                    ->orWhere('last_ip', 'like', "%{$search}%")
+                    ->orWhere('last_logged_user', 'like', "%{$search}%")
+                    ->orWhereHas('currentUser', fn($uq) => $uq->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        // === Sort: yang baru heartbeat di atas, yang belum install di bawah ===
+        $baseQuery->orderByRaw('last_seen_at IS NULL ASC')
+            ->orderByDesc('last_seen_at');
+
+        $assets = $baseQuery->paginate($request->get('per_page', 30))->withQueryString();
+
+        // === Stats ===
+        $statsBase = Asset::whereHas('category', fn($q) => $q->where('is_agent_monitored', true));
+        $now = now();
+
+        $stats = [
+            'total' => (clone $statsBase)->count(),
+            'online' => (clone $statsBase)->where('last_seen_at', '>=', $now->copy()->subMinutes(10))->count(),
+            'idle' => (clone $statsBase)->whereBetween('last_seen_at', [
+                $now->copy()->subMinutes(60),
+                $now->copy()->subMinutes(10),
+            ])->count(),
+            'offline' => (clone $statsBase)->where('last_seen_at', '<', $now->copy()->subMinutes(60))
+                ->whereNotNull('last_seen_at')->count(),
+            'never' => (clone $statsBase)->whereNull('last_seen_at')->count(),
+        ];
+
+        // === Coverage ===
+        $coverage = $stats['total'] > 0
+            ? round(($stats['total'] - $stats['never']) / $stats['total'] * 100, 1)
+            : 0;
+
+        // === Filter options ===
+        $categories = \App\Models\AssetCategory::where('is_agent_monitored', true)
+            ->where('is_consumable', false)
+            ->orderBy('name')
+            ->get();
+
+        $wifiList = Asset::whereHas('category', fn($q) => $q->where('is_agent_monitored', true))
+            ->select('last_wifi_ssid')
+            ->whereNotNull('last_wifi_ssid')
+            ->distinct()
+            ->orderBy('last_wifi_ssid')
+            ->pluck('last_wifi_ssid');
+
+        return view('assets.monitoring', compact(
+            'assets',
+            'stats',
+            'coverage',
+            'categories',
+            'wifiList'
+        ));
+    }
 
     public function exportExcel(Request $request)
     {

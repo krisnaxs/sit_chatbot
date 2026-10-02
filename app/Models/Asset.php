@@ -32,6 +32,18 @@ class Asset extends Model
         'current_location_id',
         'photo_path',
         'notes',
+
+        // === Agent Tracking ===
+        'last_seen_at',
+        'last_ip',
+        'last_mac',
+        'last_wifi_ssid',
+        'last_wifi_bssid',
+        'last_logged_user',
+        'last_uptime_hours',
+        'last_cpu_temp',
+        'agent_version',
+        'agent_status',
     ];
 
     protected function casts(): array
@@ -41,6 +53,10 @@ class Asset extends Model
             'purchase_date' => 'date',
             'warranty_expire' => 'date',
             'purchase_price' => 'decimal:2',
+
+            // === Agent Tracking ===
+            'last_seen_at' => 'datetime',
+            'last_cpu_temp' => 'decimal:1',
         ];
     }
 
@@ -69,6 +85,10 @@ class Asset extends Model
 
         return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
+
+    // ============================================================
+    // RELASI EXISTING
+    // ============================================================
 
     public function category()
     {
@@ -135,6 +155,34 @@ class Asset extends Model
         return $this->hasMany(ConsumableTransaction::class);
     }
 
+    // ============================================================
+    // RELASI AGENT (BARU)
+    // ============================================================
+
+    public function agentToken()
+    {
+        return $this->hasOne(AgentToken::class);
+    }
+
+    public function agentLogs()
+    {
+        return $this->hasMany(AssetAgentLog::class)->latest('reported_at');
+    }
+
+    public function latestAgentLog()
+    {
+        return $this->hasOne(AssetAgentLog::class)->latestOfMany('reported_at');
+    }
+
+    public function pendingAgent()
+    {
+        return $this->hasOne(PendingAgent::class);
+    }
+
+    // ============================================================
+    // SCOPES EXISTING
+    // ============================================================
+
     public function scopeStatus($query, string $status)
     {
         return $query->where('status', $status);
@@ -189,6 +237,7 @@ class Asset extends Model
                     ->where('waktu_pensiun', '<=', now()->addDays($hari));
             });
     }
+
     /**
      * Scope: aset yang dipegang user yang SUDAH pensiun.
      */
@@ -213,6 +262,62 @@ class Asset extends Model
                     ->where('waktu_pensiun', '<=', now()->addDays($hari));
             });
     }
+
+    // ============================================================
+    // SCOPES AGENT (BARU)
+    // ============================================================
+
+    /**
+     * Scope: hanya aset yang kategorinya agent-monitored.
+     */
+    public function scopeAgentMonitored($query)
+    {
+        return $query->whereHas('category', function ($q) {
+            $q->where('is_agent_monitored', true);
+        });
+    }
+
+    /**
+     * Scope: aset yang sedang online (heartbeat < 10 menit).
+     */
+    public function scopeAgentOnline($query)
+    {
+        return $query->whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', now()->subMinutes(10));
+    }
+
+    /**
+     * Scope: aset yang idle (heartbeat 10-60 menit).
+     */
+    public function scopeAgentIdle($query)
+    {
+        return $query->whereNotNull('last_seen_at')
+            ->whereBetween('last_seen_at', [
+                now()->subMinutes(60),
+                now()->subMinutes(10),
+            ]);
+    }
+
+    /**
+     * Scope: aset yang offline (heartbeat > 60 menit).
+     */
+    public function scopeAgentOffline($query)
+    {
+        return $query->whereNotNull('last_seen_at')
+            ->where('last_seen_at', '<', now()->subMinutes(60));
+    }
+
+    /**
+     * Scope: aset yang belum install agent.
+     */
+    public function scopeAgentNeverReported($query)
+    {
+        return $query->whereNull('last_seen_at');
+    }
+
+    // ============================================================
+    // ACCESSORS EXISTING
+    // ============================================================
 
     public function getFullNameAttribute(): string
     {
@@ -349,7 +454,7 @@ class Asset extends Model
             $sisa === 0 => 'Pensiun hari ini',
             $sisa <= 7 => "Pensiun {$sisa} hari lagi",
             $sisa <= 30 => "Pensiun {$sisa} hari lagi",
-            default => null, // lebih dari 30 hari, tidak perlu ditampilkan
+            default => null,
         };
     }
 
@@ -365,11 +470,80 @@ class Asset extends Model
         }
 
         return match (true) {
-            $sisa < 0 => 'red',      // sudah pensiun
-            $sisa === 0 => 'red',      // hari ini
-            $sisa <= 7 => 'orange',   // mendesak
-            $sisa <= 30 => 'yellow',   // perhatian
+            $sisa < 0 => 'red',
+            $sisa === 0 => 'red',
+            $sisa <= 7 => 'orange',
+            $sisa <= 30 => 'yellow',
             default => null,
         };
+    }
+
+    // ============================================================
+    // ACCESSORS AGENT (BARU)
+    // ============================================================
+
+    /**
+     * Cek apakah aset sedang online (heartbeat < 10 menit).
+     */
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at
+            && $this->last_seen_at->diffInMinutes(now()) < 10;
+    }
+
+    /**
+     * Cek apakah aset sedang idle (heartbeat 10-60 menit).
+     */
+    public function isIdle(): bool
+    {
+        if (!$this->last_seen_at)
+            return false;
+        $min = $this->last_seen_at->diffInMinutes(now());
+        return $min >= 10 && $min < 60;
+    }
+
+    /**
+     * Cek apakah aset sedang offline (heartbeat > 60 menit).
+     */
+    public function isOffline(): bool
+    {
+        return $this->last_seen_at
+            && $this->last_seen_at->diffInMinutes(now()) >= 60;
+    }
+
+    /**
+     * Cek apakah aset ini sudah pernah install agent.
+     */
+    public function hasAgent(): bool
+    {
+        return !is_null($this->last_seen_at);
+    }
+
+    /**
+     * Label status agent (untuk badge di view).
+     */
+    public function getAgentStatusLabelAttribute(): string
+    {
+        if (!$this->hasAgent())
+            return 'Belum Install';
+        if ($this->isOnline())
+            return 'Online';
+        if ($this->isIdle())
+            return 'Idle';
+        return 'Offline';
+    }
+
+    /**
+     * Warna badge status agent.
+     */
+    public function getAgentStatusColorAttribute(): string
+    {
+        if (!$this->hasAgent())
+            return 'gray';
+        if ($this->isOnline())
+            return 'green';
+        if ($this->isIdle())
+            return 'yellow';
+        return 'red';
     }
 }

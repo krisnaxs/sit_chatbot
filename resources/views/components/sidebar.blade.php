@@ -10,6 +10,7 @@
             request()->routeIs('admin.qr-generator') => 'master',
             request()->routeIs('settings.*') => 'master',
             request()->routeIs('siam.backup.*') => 'master',
+            request()->routeIs('siam.agent-registry.*') => 'master',
             request()->routeIs('requests.*') => auth()->user()->role === 'user' ? 'my-assets' : 'siam',
             request()->routeIs('admin.requests.*') => 'siam',
             request()->routeIs('my-assets.*') => auth()->user()->role === 'user' ? 'my-assets' : 'siam',
@@ -343,6 +344,24 @@
                         </span>
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Daftar
                             Aset</span>
+                    </a>
+                    {{-- Monitoring Agent --}}
+                    <a href="{{ route('siam.assets.monitoring') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+        {{ request()->routeIs('siam.assets.monitoring') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span
+                            class="relative w-7 h-7 rounded-md flex items-center justify-center shrink-0
+        {{ request()->routeIs('siam.assets.monitoring') ? 'bg-emerald-100' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
+                            Monitoring
+                        </span>
                     </a>
 
                     {{-- Serah Terima --}}
@@ -739,11 +758,11 @@
                             <a href="{{ route('siam.backup.index') }}"
                                 :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
                                 class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
-                {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                                {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
 
                                 <span
                                     class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-100' : 'bg-gray-100' }}">
+                                {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-100' : 'bg-gray-100' }}">
 
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -754,6 +773,44 @@
 
                                 <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
                                     Backup Data
+                                </span>
+                            </a>
+                        @endif
+                        {{-- 🆕 AGENT REGISTRY (admin & support) --}}
+                        @if (auth()->user()->hasAnyRole(['admin', 'support']) && Route::has('siam.agent-registry.index'))
+                            <a href="{{ route('siam.agent-registry.index') }}"
+                                :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
+                                class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                                {{ request()->routeIs('siam.agent-registry.*') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+
+                                <span
+                                    class="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                    {{ request()->routeIs('siam.agent-registry.*') ? 'bg-emerald-100' : 'bg-gray-100' }}">
+
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+
+                                    @php $pendingAgentCount = \App\Models\PendingAgent::pending()->count(); @endphp
+                                    @if ($pendingAgentCount > 0)
+                                        <span
+                                            class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full
+                                                bg-rose-500 text-white text-[9px] font-bold
+                                                flex items-center justify-center ring-2 ring-white">
+                                            {{ $pendingAgentCount > 99 ? '99+' : $pendingAgentCount }}
+                                        </span>
+                                    @endif
+                                </span>
+
+                                <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
+                                    Agent Registry
+                                    @if ($pendingAgentCount > 0)
+                                        <span class="ml-1 text-[10px] text-rose-500 font-bold">
+                                            ({{ $pendingAgentCount }})
+                                        </span>
+                                    @endif
                                 </span>
                             </a>
                         @endif

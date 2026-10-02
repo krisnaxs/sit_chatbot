@@ -29,6 +29,7 @@ use App\Http\Controllers\QuickRequestController;
 use App\Http\Controllers\AssetPublicController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\AgentRegistryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -177,6 +178,9 @@ Route::middleware(['auth'])->group(function () {
                 ->name('assets.qr.batch');
             Route::get('assets/qr-preview/{asset}', [AssetController::class, 'qrPreview'])
                 ->name('assets.qr.preview');
+
+            Route::get('assets/monitoring', [AssetController::class, 'monitoring'])
+                ->name('assets.monitoring');
             Route::resource('assets', AssetController::class);
             Route::resource('assignments', AssetAssignmentController::class)->except(['edit', 'update']);
             Route::post('assignments/{assignment}/return', [AssetAssignmentController::class, 'returnAsset'])->name('assignments.return');
@@ -196,7 +200,33 @@ Route::middleware(['auth'])->group(function () {
             Route::get('user-assets/export/excel', [UserAssetController::class, 'exportExcel'])->name('user-assets.export.excel');
             Route::get('user-assets/export/pdf', [UserAssetController::class, 'exportPdf'])->name('user-assets.export.pdf');
 
+            // === AGENT REGISTRY ===
+            Route::prefix('agent-registry')
+                ->name('agent-registry.')
+                ->middleware(['role:admin,support'])
+                ->group(function () {
+                Route::get('/', [AgentRegistryController::class, 'index'])->name('index');
+
+                // Approve & Reject
+                Route::post('/{pending}/approve', [AgentRegistryController::class, 'approve'])->name('approve');
+                Route::post('/{pending}/reject', [AgentRegistryController::class, 'reject'])->name('reject');
+
+                // Hapus permanen (yang sudah di-reject)
+                Route::delete('/{pending}/force-delete', [AgentRegistryController::class, 'forceDelete'])->name('force-delete');
+
+                // Bersihkan
+                Route::delete('/clear', [AgentRegistryController::class, 'clear'])->name('clear');
+                Route::delete('/clear-rejected', [AgentRegistryController::class, 'clearRejected'])->name('clear-rejected');
+
+                // Token actions
+                Route::post('/tokens/{token}/revoke', [AgentRegistryController::class, 'revokeToken'])->name('tokens.revoke');
+                Route::post('/tokens/{token}/activate', [AgentRegistryController::class, 'activateToken'])->name('tokens.activate');
+                Route::post('/tokens/{token}/regenerate', [AgentRegistryController::class, 'regenerateToken'])->name('tokens.regenerate');
+            });
+
+
         });
+
 
     /*
     |────────────────────────────────────────────────────────────
