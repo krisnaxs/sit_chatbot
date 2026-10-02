@@ -101,6 +101,16 @@ class AgentRegistryController extends Controller
      */
     public function approve(Request $request, PendingAgent $pending)
     {
+        // === GUARD: sudah di-reject ===
+        if ($pending->rejected_at) {
+            return back()->with('error', "Agent {$pending->hostname} sudah di-reject, tidak bisa di-approve.");
+        }
+
+        // === GUARD: sudah di-approve ===
+        if ($pending->approved_at) {
+            return back()->with('error', "Agent {$pending->hostname} sudah di-approve sebelumnya.");
+        }
+
         $validated = $request->validate([
             'asset_id' => 'required|exists:assets,id',
         ]);
@@ -150,6 +160,16 @@ class AgentRegistryController extends Controller
      */
     public function reject(Request $request, PendingAgent $pending)
     {
+        // === GUARD: sudah di-reject ===
+        if ($pending->rejected_at) {
+            return back()->with('error', "Agent {$pending->hostname} sudah di-reject sebelumnya.");
+        }
+
+        // === GUARD: sudah di-approve ===
+        if ($pending->approved_at) {
+            return back()->with('error', "Agent {$pending->hostname} sudah di-approve, tidak bisa di-reject.");
+        }
+
         $validated = $request->validate([
             'reason' => 'nullable|string|max:200',
         ]);

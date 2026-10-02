@@ -126,19 +126,25 @@
                                         </div>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <div class="inline-flex gap-2">
-                                            <button type="button"
-                                                onclick="openApproveModal({{ $p->id }}, '{{ $p->hostname }}', '{{ $p->serial_number }}')"
-                                                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium">
-                                                Approve
-                                            </button>
+                                        @if ($p->rejected_at)
+                                            <span class="text-xs text-red-600 font-semibold">Sudah di-reject</span>
+                                        @elseif ($p->approved_at)
+                                            <span class="text-xs text-emerald-600 font-semibold">Sudah di-approve</span>
+                                        @else
+                                            <div class="inline-flex gap-2">
+                                                <button type="button"
+                                                    onclick="openApproveModal({{ $p->id }}, '{{ $p->hostname }}', '{{ $p->serial_number }}')"
+                                                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium">
+                                                    Approve
+                                                </button>
 
-                                            <button type="button"
-                                                onclick="openRejectModal({{ $p->id }}, '{{ $p->hostname }}')"
-                                                class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-medium">
-                                                Reject
-                                            </button>
-                                        </div>
+                                                <button type="button"
+                                                    onclick="openRejectModal({{ $p->id }}, '{{ $p->hostname }}')"
+                                                    class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-medium">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -202,7 +208,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <form method="POST" action="{{ route('siam.agent-registry.force-delete', $r) }}"
-                                            onsubmit="return confirm('Hapus permanen device ini?')">
+                                            onsubmit="return confirm('Hapus permanen device {{ $r->hostname }} dari blacklist?')">
                                             @csrf @method('DELETE')
                                             <button type="submit"
                                                 class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-medium">

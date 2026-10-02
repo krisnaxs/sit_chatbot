@@ -7,13 +7,23 @@ use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $departments = Department::withCount('users')
-            ->orderBy('name')
-            ->paginate(25);
+        $search = $request->input('search');
 
-        return view('departments.index', compact('departments'));
+        $departments = Department::withCount('users')
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('departments.index', compact('departments', 'search'));
     }
 
     public function create()

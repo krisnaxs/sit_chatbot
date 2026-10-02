@@ -35,6 +35,70 @@
                 </a>
             </div>
 
+            {{-- SEARCH & FILTER --}}
+            <form method="GET" action="{{ route('siam.locations.index') }}"
+                class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div class="flex flex-col sm:flex-row gap-2">
+                    {{-- Input Search --}}
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input type="text" name="search" value="{{ $search ?? '' }}"
+                            placeholder="Cari gedung, lantai, ruang, divisi, atau catatan..."
+                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm
+                                   focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    </div>
+
+                    {{-- Filter Status --}}
+                    <select name="status"
+                        class="px-3 py-2 border border-gray-300 rounded-lg text-sm
+                               focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <option value="">Semua Status</option>
+                        <option value="active" {{ ($status ?? '') === 'active' ? 'selected' : '' }}>Aktif</option>
+                        <option value="inactive" {{ ($status ?? '') === 'inactive' ? 'selected' : '' }}>Nonaktif</option>
+                    </select>
+
+                    {{-- Buttons --}}
+                    <div class="flex gap-2">
+                        <button type="submit"
+                            class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700
+                                   text-sm font-medium transition">
+                            Cari
+                        </button>
+                        @if (!empty($search) || !empty($status))
+                            <a href="{{ route('siam.locations.index') }}"
+                                class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300
+                                       text-sm font-medium transition inline-flex items-center">
+                                Reset
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Info hasil pencarian --}}
+                @if (!empty($search) || !empty($status))
+                    <div class="mt-3 text-xs text-gray-500 flex flex-wrap gap-2 items-center">
+                        <span>Menampilkan hasil:</span>
+                        @if (!empty($search))
+                            <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold">
+                                keyword: "{{ $search }}"
+                            </span>
+                        @endif
+                        @if (!empty($status))
+                            <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold">
+                                status: {{ $status === 'active' ? 'Aktif' : 'Nonaktif' }}
+                            </span>
+                        @endif
+                        <span>— <strong>{{ $locations->total() }}</strong> data ditemukan</span>
+                    </div>
+                @endif
+            </form>
+
             {{-- TABEL --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto">
@@ -123,23 +187,46 @@
                                         <div class="flex flex-col items-center gap-3">
                                             <div
                                                 class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
-                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                    stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
+                                                @if (!empty($search) || !empty($status))
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                        stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                    </svg>
+                                                @else
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                        stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                @endif
                                             </div>
                                             <div>
-                                                <p class="font-semibold text-gray-900">Belum ada lokasi</p>
-                                                <p class="text-sm text-gray-500 mt-1">Tambahkan lokasi pertama</p>
+                                                @if (!empty($search) || !empty($status))
+                                                    <p class="font-semibold text-gray-900">Tidak ada hasil ditemukan</p>
+                                                    <p class="text-sm text-gray-500 mt-1">
+                                                        Coba ubah kata kunci atau filter status
+                                                    </p>
+                                                @else
+                                                    <p class="font-semibold text-gray-900">Belum ada lokasi</p>
+                                                    <p class="text-sm text-gray-500 mt-1">Tambahkan lokasi pertama</p>
+                                                @endif
                                             </div>
-                                            <a href="{{ route('siam.locations.create') }}"
-                                                class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
-                                                + Tambah lokasi
-                                            </a>
+                                            @if (!empty($search) || !empty($status))
+                                                <a href="{{ route('siam.locations.index') }}"
+                                                    class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
+                                                    ← Kembali ke semua lokasi
+                                                </a>
+                                            @else
+                                                <a href="{{ route('siam.locations.create') }}"
+                                                    class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
+                                                    + Tambah lokasi
+                                                </a>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

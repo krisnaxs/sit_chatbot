@@ -35,6 +35,49 @@
                 </a>
             </div>
 
+            {{-- SEARCH BAR --}}
+            <form method="GET" action="{{ route('siam.departments.index') }}"
+                class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input type="text" name="search" value="{{ $search ?? '' }}"
+                            placeholder="Cari kode, nama, atau deskripsi departemen..."
+                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm
+                                   focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit"
+                            class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700
+                                   text-sm font-medium transition">
+                            Cari
+                        </button>
+                        @if (!empty($search))
+                            <a href="{{ route('siam.departments.index') }}"
+                                class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300
+                                       text-sm font-medium transition inline-flex items-center">
+                                Reset
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Info hasil pencarian --}}
+                @if (!empty($search))
+                    <div class="mt-3 text-xs text-gray-500">
+                        Menampilkan hasil untuk:
+                        <span class="font-semibold text-indigo-600">"{{ $search }}"</span>
+                        — <span class="font-semibold">{{ $departments->total() }}</span> data ditemukan
+                    </div>
+                @endif
+            </form>
+
             {{-- TABEL --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto">
@@ -102,21 +145,46 @@
                                         <div class="flex flex-col items-center gap-3">
                                             <div
                                                 class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
-                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                    stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                </svg>
+                                                @if (!empty($search))
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                        stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                    </svg>
+                                                @else
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                        stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                    </svg>
+                                                @endif
                                             </div>
                                             <div>
-                                                <p class="font-semibold text-gray-900">Belum ada departemen</p>
-                                                <p class="text-sm text-gray-500 mt-1">Tambahkan departemen pertama</p>
+                                                @if (!empty($search))
+                                                    <p class="font-semibold text-gray-900">Tidak ada hasil ditemukan</p>
+                                                    <p class="text-sm text-gray-500 mt-1">
+                                                        Tidak ada departemen yang cocok dengan
+                                                        <span
+                                                            class="font-semibold text-indigo-600">"{{ $search }}"</span>
+                                                    </p>
+                                                @else
+                                                    <p class="font-semibold text-gray-900">Belum ada departemen</p>
+                                                    <p class="text-sm text-gray-500 mt-1">Tambahkan departemen pertama</p>
+                                                @endif
                                             </div>
-                                            <a href="{{ route('siam.departments.create') }}"
-                                                class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
-                                                + Tambah departemen
-                                            </a>
+                                            @if (!empty($search))
+                                                <a href="{{ route('siam.departments.index') }}"
+                                                    class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
+                                                    ← Kembali ke semua departemen
+                                                </a>
+                                            @else
+                                                <a href="{{ route('siam.departments.create') }}"
+                                                    class="mt-2 text-sm text-indigo-600 hover:underline font-semibold">
+                                                    + Tambah departemen
+                                                </a>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

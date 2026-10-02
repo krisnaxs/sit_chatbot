@@ -8,7 +8,7 @@
             request()->routeIs('activity.*') => 'master',
             request()->routeIs('admin.qr-code') => 'master',
             request()->routeIs('admin.qr-generator') => 'master',
-            request()->routeIs('settings.*') => 'master',
+            request()->routeIs('settings.*', 'siam.settings', 'siam.settings.*') => 'master',
             request()->routeIs('siam.backup.*') => 'master',
             request()->routeIs('siam.agent-registry.*') => 'master',
             request()->routeIs('requests.*') => auth()->user()->role === 'user' ? 'my-assets' : 'siam',
@@ -48,49 +48,27 @@
                    flex flex-col
                    transform transition-all duration-300 ease-out
                    pointer-events-auto">
-            {{-- HEADER SIDEBAR — tanpa logo (logo di header utama)
-            <div :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : 'justify-between'"
-                class="flex items-center px-4 py-3.5 border-b border-gray-100 gap-2 shrink-0">
-                --}}
-
-            {{-- Hanya teks judul tab, tanpa logo
-                <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                    class="font-bold text-gray-800 text-sm whitespace-nowrap">
-                    Menu
-                </span>
-                --}}
-
-            {{-- Tombol close — hanya mobile
-                <button type="button" @click="$store.sidebar.close()"
-                    class="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 transition shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            --}}
 
             {{-- NAVIGATION --}}
-            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+            <nav class="flex-1 p-2 space-y-0.5 overflow-y-auto">
 
                 {{-- ════════════════════════════════════════════════════════ --}}
                 {{-- TAB: PORTAL --}}
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'portal')
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Portal
                     </p>
 
                     {{-- Portal --}}
                     <a href="{{ route('portal') }}" :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('portal') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('portal') ? 'bg-blue-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -101,12 +79,12 @@
 
                     {{-- Aplikasi --}}
                     <a href="{{ route('apps.index') }}" :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('apps.*') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('apps.*') ? 'bg-violet-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -121,18 +99,18 @@
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'chatbot')
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Chatbot
                     </p>
 
                     {{-- Dashboard --}}
                     <a href="{{ route('dashboard') }}" :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('dashboard') ? 'bg-indigo-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -145,12 +123,12 @@
                     {{-- Knowledge --}}
                     <a href="{{ route('knowledge.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('knowledge.index', 'knowledge.create', 'knowledge.edit') ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('knowledge.index', 'knowledge.create', 'knowledge.edit') ? 'bg-amber-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -166,19 +144,19 @@
                         @php $pendingCount = \App\Models\PendingKnowledge::where('status', 'pending')->count(); @endphp
                         <a href="{{ route('knowledge.pending') }}"
                             :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                            class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                            class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                                   {{ request()->routeIs('knowledge.pending*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <span
-                                class="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                class="relative w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                         {{ request()->routeIs('knowledge.pending*') ? 'bg-orange-100' : 'bg-gray-100' }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                 </svg>
                                 @if ($pendingCount > 0)
                                     <span
-                                        class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
+                                        class="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full
                                                  bg-rose-500 text-white text-[9px] font-bold
                                                  flex items-center justify-center ring-2 ring-white">
                                         {{ $pendingCount > 99 ? '99+' : $pendingCount }}
@@ -197,12 +175,12 @@
                     {{-- Chatbot --}}
                     <a href="{{ route('chat.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('chat.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('chat.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -213,28 +191,25 @@
                 @endif
 
                 {{-- ════════════════════════════════════════════════════════ --}}
-                {{-- TAB: SIAM --}}
-                {{-- ════════════════════════════════════════════════════════ --}}
-                {{-- ════════════════════════════════════════════════════════ --}}
                 {{-- TAB: SIAM — KHUSUS ADMIN/SUPPORT --}}
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if (
                     $tab === 'siam' &&
                         auth()->user()->hasAnyRole(['admin', 'support']))
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-1 pb-0.5 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Aset Manajemen
                     </p>
 
                     {{-- Dashboard --}}
                     <a href="{{ route('siam.dashboard') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
     {{ request()->routeIs('siam.dashboard') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
     {{ request()->routeIs('siam.dashboard') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -246,20 +221,20 @@
 
                     {{-- ════════════ MASTER DATA ════════════ --}}
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Master Data
                     </p>
 
                     {{-- Kategori --}}
                     <a href="{{ route('siam.categories.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
     {{ request()->routeIs('siam.categories.*') ? 'bg-slate-100 text-slate-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
      {{ request()->routeIs('siam.categories.*') ? 'bg-slate-200' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
@@ -271,13 +246,13 @@
                     {{-- Brand & Model --}}
                     <a href="{{ route('siam.asset-types.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
     {{ request()->routeIs('siam.asset-types.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
     {{ request()->routeIs('siam.asset-types.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                             </svg>
@@ -289,13 +264,13 @@
                     {{-- Konsumable --}}
                     <a href="{{ route('siam.consumables.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
             {{ request()->routeIs('siam.consumables.*') ? 'bg-lime-50 text-lime-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
         {{ request()->routeIs('siam.consumables.*') ? 'bg-lime-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                             </svg>
@@ -306,20 +281,20 @@
 
                     {{-- ════════════ TRANSAKSI ════════════ --}}
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Transaksi
                     </p>
 
                     {{-- User & Aset --}}
                     <a href="{{ route('siam.user-assets.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
             {{ request()->routeIs('siam.user-assets.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
         {{ request()->routeIs('siam.user-assets.*') ? 'bg-indigo-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
@@ -329,15 +304,20 @@
                     </a>
 
                     {{-- Daftar Aset --}}
+                    @php
+                        $isAssetsMenu =
+                            request()->routeIs('siam.assets.*') &&
+                            !request()->routeIs('siam.assets.monitoring', 'siam.assets.map');
+                    @endphp
                     <a href="{{ route('siam.assets.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
-                    {{ request()->routeIs('siam.assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
+                    {{ $isAssetsMenu ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
-                     {{ request()->routeIs('siam.assets.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
+                     {{ $isAssetsMenu ? 'bg-cyan-100' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
@@ -345,16 +325,17 @@
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Daftar
                             Aset</span>
                     </a>
+
                     {{-- Monitoring Agent --}}
                     <a href="{{ route('siam.assets.monitoring') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
         {{ request()->routeIs('siam.assets.monitoring') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="relative w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="relative w-6 h-6 rounded-md flex items-center justify-center shrink-0
         {{ request()->routeIs('siam.assets.monitoring') ? 'bg-emerald-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
@@ -363,16 +344,17 @@
                             Monitoring
                         </span>
                     </a>
+
                     {{-- Peta Aset --}}
                     <a href="{{ route('siam.assets.map') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
         {{ request()->routeIs('siam.assets.map') ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="relative w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="relative w-6 h-6 rounded-md flex items-center justify-center shrink-0
         {{ request()->routeIs('siam.assets.map') ? 'bg-purple-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -383,16 +365,17 @@
                             Peta Aset
                         </span>
                     </a>
+
                     {{-- Serah Terima --}}
                     <a href="{{ route('siam.assignments.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
                     {{ request()->routeIs('siam.assignments.*') ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                      {{ request()->routeIs('siam.assignments.*') ? 'bg-teal-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
@@ -404,13 +387,13 @@
                     {{-- Peminjaman --}}
                     <a href="{{ route('siam.loans.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
                             {{ request()->routeIs('siam.loans.*') ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                         {{ request()->routeIs('siam.loans.*') ? 'bg-amber-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
@@ -422,13 +405,13 @@
                     {{-- Transaksi Konsumable --}}
                     <a href="{{ route('siam.consumable-transactions.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
                                          {{ request()->routeIs('siam.consumable-transactions.*') ? 'bg-pink-50 text-pink-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                               {{ request()->routeIs('siam.consumable-transactions.*') ? 'bg-pink-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
@@ -440,13 +423,13 @@
                     {{-- Perbaikan --}}
                     <a href="{{ route('siam.maintenances.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
                      {{ request()->routeIs('siam.maintenances.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                           {{ request()->routeIs('siam.maintenances.*') ? 'bg-orange-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -459,21 +442,21 @@
 
                     {{-- ════════════ APPROVAL PENGAJUAN (ADMIN/SUPPORT) ════════════ --}}
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Approval
                     </p>
 
                     <a href="{{ route('admin.requests.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
                             {{ request()->routeIs('admin.requests.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
 
                         <span
-                            class="relative w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="relative w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                 {{ request()->routeIs('admin.requests.*') ? 'bg-indigo-100' : 'bg-gray-100' }}">
 
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                             </svg>
@@ -496,22 +479,22 @@
                         </span>
                     </a>
 
-                    {{-- ════════════ PENGAJUAN SAYA (semua role bisa buat pengajuan sendiri) ════════════ --}}
+                    {{-- ════════════ ASET SAYA (semua role) ════════════ --}}
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Aset Saya
                     </p>
 
-                    {{--  Aset yang Saya Pegang --}}
+                    {{-- Aset yang Saya Pegang --}}
                     <a href="{{ route('my-assets.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
     {{ request()->routeIs('my-assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
         {{ request()->routeIs('my-assets.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
@@ -522,13 +505,13 @@
 
                     <a href="{{ route('requests.my') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
                         {{ request()->routeIs('requests.my', 'requests.show') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                             {{ request()->routeIs('requests.my', 'requests.show') ? 'bg-blue-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -543,20 +526,20 @@
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'my-assets' && auth()->user()->role === 'user')
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-1 pb-0.5 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Aset Saya
                     </p>
 
                     {{-- Aset yang Saya Pegang --}}
                     <a href="{{ route('my-assets.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
         {{ request()->routeIs('my-assets.*') ? 'bg-cyan-50 text-cyan-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
             {{ request()->routeIs('my-assets.*') ? 'bg-cyan-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
@@ -567,20 +550,20 @@
 
                     {{-- ════════════ PENGAJUAN ════════════ --}}
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Pengajuan
                     </p>
 
                     {{-- Pengajuan Saya --}}
                     <a href="{{ route('requests.my') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-all
         {{ request()->routeIs('requests.my', 'requests.show') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
             {{ request()->routeIs('requests.my', 'requests.show') ? 'bg-blue-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -588,23 +571,6 @@
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Pengajuan
                             Saya</span>
                     </a>
-
-                    {{-- Buat Pengajuan
-                    <a href="{{ route('requests.create') }}"
-                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
-                                    {{ request()->routeIs('requests.create') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                        <span
-                            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
-                                    {{ request()->routeIs('requests.create') ? 'bg-emerald-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                        </span>
-                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Buat
-                            Pengajuan</span>
-                    </a> --}}
                 @endif
 
                 {{-- ════════════════════════════════════════════════════════ --}}
@@ -612,7 +578,7 @@
                 {{-- ════════════════════════════════════════════════════════ --}}
                 @if ($tab === 'master')
                     <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1 whitespace-nowrap">
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                         Master Data
                     </p>
 
@@ -620,12 +586,12 @@
                     @if (auth()->user()->isAdmin())
                         <a href="{{ route('users.index') }}"
                             :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                            class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                            class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                                   {{ request()->routeIs('users.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <span
-                                class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                         {{ request()->routeIs('users.*') ? 'bg-indigo-100' : 'bg-gray-100' }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -639,13 +605,13 @@
                     {{-- Departemen --}}
                     <a href="{{ route('siam.departments.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('siam.departments.*') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('siam.departments.*') ? 'bg-violet-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
@@ -657,13 +623,13 @@
                     {{-- Lokasi --}}
                     <a href="{{ route('siam.locations.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('siam.locations.*') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('siam.locations.*') ? 'bg-emerald-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -676,13 +642,13 @@
                     {{-- Vendor --}}
                     <a href="{{ route('siam.vendors.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                               {{ request()->routeIs('siam.vendors.*') ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('siam.vendors.*') ? 'bg-orange-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
@@ -690,16 +656,16 @@
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">Vendor</span>
                     </a>
 
-                    {{-- Activity Log (admin & support) --}}
+                    {{-- Activity Log --}}
                     @if (auth()->user()->hasAnyRole(['admin', 'support']))
                         <a href="{{ route('activity.index') }}"
                             :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                            class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                            class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                                   {{ request()->routeIs('activity.*') ? 'bg-rose-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <span
-                                class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                         {{ request()->routeIs('activity.*') ? 'bg-rose-100' : 'bg-gray-100' }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -710,16 +676,16 @@
                         </a>
                     @endif
 
-                    {{--  QR Code Pengajuan --}}
+                    {{-- QR Code Pengajuan --}}
                     <a href="{{ route('admin.qr-code') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                          {{ request()->routeIs('admin.qr-code') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                         {{ request()->routeIs('admin.qr-code') ? 'bg-indigo-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                             </svg>
@@ -728,16 +694,16 @@
                             Pengajuan</span>
                     </a>
 
-                    {{--  QR Code Generator --}}
+                    {{-- QR Code Generator --}}
                     <a href="{{ route('admin.qr-generator') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                        class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                        class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                         {{ request()->routeIs('admin.qr-generator') ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <span
-                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                      {{ request()->routeIs('admin.qr-generator') ? 'bg-violet-100' : 'bg-gray-100' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                             </svg>
@@ -745,22 +711,23 @@
                         <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">QR Code
                             Generator</span>
                     </a>
+
                     {{-- ════════════ PENGATURAN (admin & support) ════════════ --}}
                     @if (auth()->user()->hasAnyRole(['admin', 'support']))
                         <p :class="$store.sidebar.collapsed ? 'lg:hidden' : ''"
-                            class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-0.5 whitespace-nowrap">
+                            class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2.5 pt-2 pb-0.5 whitespace-nowrap">
                             Pengaturan
                         </p>
 
                         {{-- Pengaturan Sistem --}}
                         <a href="{{ route('settings.index') }}"
                             :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                            class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                            class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
               {{ request()->routeIs('settings.*') ? 'bg-slate-100 text-slate-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <span
-                                class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                     {{ request()->routeIs('settings.*') ? 'bg-slate-200' : 'bg-gray-100' }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -772,18 +739,19 @@
                                 Pengaturan Sistem
                             </span>
                         </a>
-                        {{-- 🆕 BACKUP DATA (letakkan DI SINI, tepat setelah Pengaturan Sistem) --}}
+
+                        {{-- Backup Data --}}
                         @if (auth()->user()->isAdmin())
                             <a href="{{ route('siam.backup.index') }}"
                                 :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                                class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                                class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                                 {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
 
                                 <span
-                                    class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                    class="w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                 {{ request()->routeIs('siam.backup.*') ? 'bg-indigo-100' : 'bg-gray-100' }}">
 
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -795,18 +763,19 @@
                                 </span>
                             </a>
                         @endif
-                        {{-- 🆕 AGENT REGISTRY (admin & support) --}}
+
+                        {{-- Agent Registry --}}
                         @if (auth()->user()->hasAnyRole(['admin', 'support']) && Route::has('siam.agent-registry.index'))
                             <a href="{{ route('siam.agent-registry.index') }}"
                                 :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
-                                class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all
+                                class="group relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all
                                 {{ request()->routeIs('siam.agent-registry.*') ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
 
                                 <span
-                                    class="relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                    class="relative w-6 h-6 rounded-md flex items-center justify-center shrink-0
                                     {{ request()->routeIs('siam.agent-registry.*') ? 'bg-emerald-100' : 'bg-gray-100' }}">
 
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
@@ -840,6 +809,4 @@
 
         </aside>
     </div>
-
-
 @endauth
