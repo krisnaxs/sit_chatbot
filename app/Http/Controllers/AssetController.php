@@ -973,29 +973,24 @@ class AssetController extends Controller
     /**
      * Halaman monitoring realtime semua aset agent-monitored.
      */
+    /**
+     * Halaman monitoring realtime semua aset agent-monitored.
+     */
     public function monitoring(Request $request)
     {
-        // === Base query: HANYA kategori agent-monitored ===
+        // ============================================================
+        // === QUERY DASAR (dipakai untuk CARD + TABEL) ===
+        // ============================================================
         $baseQuery = Asset::with(['category', 'currentUser', 'currentLocation'])
             ->whereHas('category', fn($q) => $q->where('is_agent_monitored', true));
 
-        // === Filter ===
+        // Filter yang MENGARUHI card & tabel
         if ($request->filled('category_id')) {
             $baseQuery->where('category_id', $request->category_id);
         }
 
-        if ($request->filled('status')) {
-            match ($request->status) {
-                'online' => $baseQuery->where('last_seen_at', '>=', now()->subMinutes(10)),
-                'idle' => $baseQuery->whereBetween('last_seen_at', [
-                    now()->subMinutes(60),
-                    now()->subMinutes(10),
-                ]),
-                'offline' => $baseQuery->where('last_seen_at', '<', now()->subMinutes(60))
-                    ->whereNotNull('last_seen_at'),
-                'never' => $baseQuery->whereNull('last_seen_at'),
-                default => null,
-            };
+        if ($request->filled('asset_status')) {
+            $baseQuery->where('status', $request->asset_status);
         }
 
         if ($request->filled('wifi')) {
@@ -1014,27 +1009,55 @@ class AssetController extends Controller
             });
         }
 
-        // === Sort: yang baru heartbeat di atas, yang belum install di bawah ===
-        $baseQuery->orderByRaw('last_seen_at IS NULL ASC')
-            ->orderByDesc('last_seen_at');
-
-        $assets = $baseQuery->paginate($request->get('per_page', 30))->withQueryString();
-
-        // === Stats ===
-        $statsBase = Asset::whereHas('category', fn($q) => $q->where('is_agent_monitored', true));
+        // ============================================================
+        // === STATS (dihitung dari baseQuery — IKUT TERFILTER) ===
+        // ============================================================
         $now = now();
 
         $stats = [
-            'total' => (clone $statsBase)->count(),
-            'online' => (clone $statsBase)->where('last_seen_at', '>=', $now->copy()->subMinutes(10))->count(),
-            'idle' => (clone $statsBase)->whereBetween('last_seen_at', [
+            'total' => (clone $baseQuery)->count(),
+            'online' => (clone $baseQuery)->where('last_seen_at', '>=', $now->copy()->subMinutes(10))->count(),
+            'idle' => (clone $baseQuery)->whereBetween('last_seen_at', [
                 $now->copy()->subMinutes(60),
                 $now->copy()->subMinutes(10),
             ])->count(),
-            'offline' => (clone $statsBase)->where('last_seen_at', '<', $now->copy()->subMinutes(60))
+            'offline' => (clone $baseQuery)->where('last_seen_at', '<', $now->copy()->subMinutes(60))
                 ->whereNotNull('last_seen_at')->count(),
-            'never' => (clone $statsBase)->whereNull('last_seen_at')->count(),
+            'never' => (clone $baseQuery)->whereNull('last_seen_at')->count(),
         ];
+
+        $lifecycleStats = [
+            'available' => (clone $baseQuery)->where('status', 'available')->count(),
+            'in_use' => (clone $baseQuery)->where('status', 'in_use')->count(),
+            'loaned' => (clone $baseQuery)->where('status', 'loaned')->count(),
+            'maintenance' => (clone $baseQuery)->where('status', 'maintenance')->count(),
+            'retired' => (clone $baseQuery)->where('status', 'retired')->count(),
+            'lost' => (clone $baseQuery)->where('status', 'lost')->count(),
+        ];
+
+        // ============================================================
+        // === QUERY TABEL (baseQuery + filter agent-status) ===
+        // ============================================================
+        $tableQuery = clone $baseQuery;
+
+        if ($request->filled('status')) {
+            match ($request->status) {
+                'online' => $tableQuery->where('last_seen_at', '>=', now()->subMinutes(10)),
+                'idle' => $tableQuery->whereBetween('last_seen_at', [
+                    now()->subMinutes(60),
+                    now()->subMinutes(10),
+                ]),
+                'offline' => $tableQuery->where('last_seen_at', '<', now()->subMinutes(60))
+                    ->whereNotNull('last_seen_at'),
+                'never' => $tableQuery->whereNull('last_seen_at'),
+                default => null,
+            };
+        }
+
+        $tableQuery->orderByRaw('last_seen_at IS NULL ASC')
+            ->orderByDesc('last_seen_at');
+
+        $assets = $tableQuery->paginate($request->get('per_page', 30))->withQueryString();
 
         // === Coverage ===
         $coverage = $stats['total'] > 0
@@ -1057,6 +1080,7 @@ class AssetController extends Controller
         return view('assets.monitoring', compact(
             'assets',
             'stats',
+            'lifecycleStats',
             'coverage',
             'categories',
             'wifiList'

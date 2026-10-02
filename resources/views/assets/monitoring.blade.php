@@ -88,7 +88,7 @@
                 </div>
             </div>
 
-            {{-- STATISTIK --}}
+            {{-- STATISTIK AGENT --}}
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <a href="{{ route('siam.assets.monitoring', ['status' => 'online']) }}"
                     class="bg-white rounded-lg shadow p-4 border-l-4 border-emerald-500 hover:shadow-md transition
@@ -127,10 +127,53 @@
                 </a>
             </div>
 
+            {{-- STATISTIK STATUS ASET (lifecycle) --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Status Aset</h2>
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+                    <a href="{{ route('siam.assets.monitoring', array_merge(request()->except('asset_status', 'page'), ['asset_status' => 'available'])) }}"
+                        class="rounded-lg p-3 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition
+                            {{ request('asset_status') === 'available' ? 'ring-2 ring-emerald-400' : '' }}">
+                        <div class="text-xs text-emerald-700 font-semibold">Tersedia</div>
+                        <div class="text-xl font-bold text-emerald-700">{{ $lifecycleStats['available'] }}</div>
+                    </a>
+                    <a href="{{ route('siam.assets.monitoring', array_merge(request()->except('asset_status', 'page'), ['asset_status' => 'in_use'])) }}"
+                        class="rounded-lg p-3 border border-blue-200 bg-blue-50 hover:bg-blue-100 transition
+                            {{ request('asset_status') === 'in_use' ? 'ring-2 ring-blue-400' : '' }}">
+                        <div class="text-xs text-blue-700 font-semibold">Dipakai</div>
+                        <div class="text-xl font-bold text-blue-700">{{ $lifecycleStats['in_use'] }}</div>
+                    </a>
+                    <a href="{{ route('siam.assets.monitoring', array_merge(request()->except('asset_status', 'page'), ['asset_status' => 'loaned'])) }}"
+                        class="rounded-lg p-3 border border-cyan-200 bg-cyan-50 hover:bg-cyan-100 transition
+                            {{ request('asset_status') === 'loaned' ? 'ring-2 ring-cyan-400' : '' }}">
+                        <div class="text-xs text-cyan-700 font-semibold">Dipinjam</div>
+                        <div class="text-xl font-bold text-cyan-700">{{ $lifecycleStats['loaned'] }}</div>
+                    </a>
+                    <a href="{{ route('siam.assets.monitoring', array_merge(request()->except('asset_status', 'page'), ['asset_status' => 'maintenance'])) }}"
+                        class="rounded-lg p-3 border border-orange-200 bg-orange-50 hover:bg-orange-100 transition
+                            {{ request('asset_status') === 'maintenance' ? 'ring-2 ring-orange-400' : '' }}">
+                        <div class="text-xs text-orange-700 font-semibold">Perbaikan</div>
+                        <div class="text-xl font-bold text-orange-700">{{ $lifecycleStats['maintenance'] }}</div>
+                    </a>
+                    <a href="{{ route('siam.assets.monitoring', array_merge(request()->except('asset_status', 'page'), ['asset_status' => 'retired'])) }}"
+                        class="rounded-lg p-3 border border-gray-300 bg-gray-100 hover:bg-gray-200 transition
+                            {{ request('asset_status') === 'retired' ? 'ring-2 ring-gray-400' : '' }}">
+                        <div class="text-xs text-gray-700 font-semibold">Pensiun</div>
+                        <div class="text-xl font-bold text-gray-700">{{ $lifecycleStats['retired'] }}</div>
+                    </a>
+                    <a href="{{ route('siam.assets.monitoring', array_merge(request()->except('asset_status', 'page'), ['asset_status' => 'lost'])) }}"
+                        class="rounded-lg p-3 border border-red-200 bg-red-50 hover:bg-red-100 transition
+                            {{ request('asset_status') === 'lost' ? 'ring-2 ring-red-400' : '' }}">
+                        <div class="text-xs text-red-700 font-semibold">Hilang</div>
+                        <div class="text-xl font-bold text-red-700">{{ $lifecycleStats['lost'] }}</div>
+                    </a>
+                </div>
+            </div>
+
             {{-- FILTER --}}
             <div class="bg-white rounded-lg shadow p-4">
                 <form method="GET" action="{{ route('siam.assets.monitoring') }}"
-                    class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-3">
 
                     <div class="lg:col-span-2">
                         <label class="block text-xs text-gray-500 mb-1">Cari (Hostname / SN / IP / User)</label>
@@ -167,10 +210,23 @@
                         <label class="block text-xs text-gray-500 mb-1">Status Agent</label>
                         <select name="status" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="">Semua</option>
-                            <option value="online" @selected(request('status') === 'online')>🟢 Online</option>
-                            <option value="idle" @selected(request('status') === 'idle')>🟡 Idle</option>
-                            <option value="offline" @selected(request('status') === 'offline')>🔴 Offline</option>
-                            <option value="never" @selected(request('status') === 'never')>⚫ Belum Install</option>
+                            <option value="online" @selected(request('status') === 'online')>Online</option>
+                            <option value="idle" @selected(request('status') === 'idle')>Idle</option>
+                            <option value="offline" @selected(request('status') === 'offline')>Offline</option>
+                            <option value="never" @selected(request('status') === 'never')>Belum Install</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Status Aset</label>
+                        <select name="asset_status" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <option value="">Semua</option>
+                            <option value="available" @selected(request('asset_status') === 'available')>Tersedia</option>
+                            <option value="in_use" @selected(request('asset_status') === 'in_use')>Dipakai</option>
+                            <option value="loaned" @selected(request('asset_status') === 'loaned')>Dipinjam</option>
+                            <option value="maintenance" @selected(request('asset_status') === 'maintenance')>Perbaikan</option>
+                            <option value="retired" @selected(request('asset_status') === 'retired')>Pensiun</option>
+                            <option value="lost" @selected(request('asset_status') === 'lost')>Hilang</option>
                         </select>
                     </div>
 
@@ -206,7 +262,8 @@
                                 <th class="px-3 py-2 text-center">Suhu</th>
                                 <th class="px-3 py-2 text-center">Uptime</th>
                                 <th class="px-3 py-2 text-left">Terakhir</th>
-                                <th class="px-3 py-2 text-left">Status</th>
+                                <th class="px-3 py-2 text-left">Status Aset</th>
+                                <th class="px-3 py-2 text-left">Status Agent</th>
                                 <th class="px-3 py-2 text-center w-20">Aksi</th>
                             </tr>
                         </thead>
@@ -220,12 +277,6 @@
                                         'red' => 'bg-red-100 text-red-700 border-red-200',
                                         default => 'bg-slate-100 text-slate-600 border-slate-200',
                                     };
-                                    $agentIcon = match ($asset->agent_status_color) {
-                                        'green' => '🟢',
-                                        'yellow' => '🟡',
-                                        'red' => '🔴',
-                                        default => '⚫',
-                                    };
 
                                     $rowBg = match (true) {
                                         !$asset->hasAgent() => 'bg-slate-50/50',
@@ -234,28 +285,50 @@
                                         default => 'bg-red-50/30',
                                     };
 
+                                    // === STATUS ASET (lifecycle) ===
+                                    $lifecycle = match ($asset->status) {
+                                        'available' => [
+                                            'label' => 'Tersedia',
+                                            'color' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                        ],
+                                        'in_use' => [
+                                            'label' => 'Dipakai',
+                                            'color' => 'bg-blue-100 text-blue-700 border-blue-200',
+                                        ],
+                                        'loaned' => [
+                                            'label' => 'Dipinjam',
+                                            'color' => 'bg-cyan-100 text-cyan-700 border-cyan-200',
+                                        ],
+                                        'maintenance' => [
+                                            'label' => 'Perbaikan',
+                                            'color' => 'bg-orange-100 text-orange-700 border-orange-200',
+                                        ],
+                                        'retired' => [
+                                            'label' => 'Pensiun',
+                                            'color' => 'bg-gray-200 text-gray-700 border-gray-300',
+                                        ],
+                                        'lost' => [
+                                            'label' => 'Hilang',
+                                            'color' => 'bg-red-100 text-red-700 border-red-200',
+                                        ],
+                                        default => [
+                                            'label' => ucfirst($asset->status ?? '-'),
+                                            'color' => 'bg-gray-100 text-gray-700 border-gray-200',
+                                        ],
+                                    };
+
                                     // Sumber lokasi badge
                                     $sourceBadge = match ($asset->location_source) {
                                         'windows_api' => [
-                                            'icon' => '🪟',
                                             'label' => 'Windows API',
                                             'color' => 'bg-blue-100 text-blue-700',
                                         ],
                                         'bssid' => [
-                                            'icon' => '📡',
                                             'label' => 'WiFi BSSID',
                                             'color' => 'bg-purple-100 text-purple-700',
                                         ],
-                                        'manual' => [
-                                            'icon' => '✍️',
-                                            'label' => 'Manual',
-                                            'color' => 'bg-gray-100 text-gray-700',
-                                        ],
-                                        'browser' => [
-                                            'icon' => '🌐',
-                                            'label' => 'Browser',
-                                            'color' => 'bg-cyan-100 text-cyan-700',
-                                        ],
+                                        'manual' => ['label' => 'Manual', 'color' => 'bg-gray-100 text-gray-700'],
+                                        'browser' => ['label' => 'Browser', 'color' => 'bg-cyan-100 text-cyan-700'],
                                         default => null,
                                     };
 
@@ -271,7 +344,7 @@
                                         'category' => $asset->category?->name,
                                         'ownership_label' => $asset->ownership_label,
                                         'status' => $asset->status,
-                                        'status_label' => $asset->status_label,
+                                        'status_label' => $lifecycle['label'],
                                         'condition_percent' => $asset->condition_percent,
                                         'current_user' => $asset->currentUser?->name,
                                         'current_location' => $asset->currentLocation?->full_name,
@@ -290,7 +363,6 @@
                                         'agent_version' => $asset->agent_version,
                                         'agent_status_label' => $agentStatus,
                                         'agent_status_color' => $asset->agent_status_color,
-                                        'agent_icon' => $agentIcon,
 
                                         // Koordinat
                                         'last_lat' => $asset->last_lat ? (float) $asset->last_lat : null,
@@ -410,9 +482,7 @@
                                                 {{ $asset->currentLocation->room }}
                                             </div>
                                         @elseif ($asset->last_lat && $asset->last_lng)
-                                            <div class="text-indigo-600 font-semibold flex items-center gap-1">
-                                                📍 GPS
-                                            </div>
+                                            <div class="text-indigo-600 font-semibold">GPS</div>
                                             <div class="text-[10px] text-gray-500 font-mono">
                                                 {{ number_format($asset->last_lat, 4) }},
                                                 {{ number_format($asset->last_lng, 4) }}
@@ -428,7 +498,7 @@
                                         @if ($sourceBadge)
                                             <span
                                                 class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-semibold {{ $sourceBadge['color'] }}">
-                                                {{ $sourceBadge['icon'] }} {{ $sourceBadge['label'] }}
+                                                {{ $sourceBadge['label'] }}
                                             </span>
                                         @else
                                             <span class="text-gray-400 italic">-</span>
@@ -484,12 +554,21 @@
                                         @endif
                                     </td>
 
-                                    {{-- Status --}}
+                                    {{-- STATUS ASET --}}
                                     <td class="px-3 py-2 cursor-pointer"
                                         @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         <span
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-semibold border {{ $agentColor }}">
-                                            {{ $agentIcon }} {{ $agentStatus }}
+                                            class="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full font-semibold border {{ $lifecycle['color'] }}">
+                                            {{ $lifecycle['label'] }}
+                                        </span>
+                                    </td>
+
+                                    {{-- STATUS AGENT --}}
+                                    <td class="px-3 py-2 cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full font-semibold border {{ $agentColor }}">
+                                            {{ $agentStatus }}
                                         </span>
                                     </td>
 
@@ -529,7 +608,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="15" class="px-3 py-12 text-center">
+                                    <td colspan="16" class="px-3 py-12 text-center">
                                         <svg xmlns="http://www.w3.org/2000/svg"
                                             class="h-16 w-16 text-gray-300 mx-auto mb-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -572,11 +651,13 @@
                                     x-text="selectedAsset?.category"></span>
                                 <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
                                     x-text="selectedAsset?.ownership_label"></span>
-                                <span
-                                    class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-bold inline-flex items-center gap-1">
-                                    <span x-text="selectedAsset?.agent_icon"></span>
-                                    <span x-text="selectedAsset?.agent_status_label"></span>
-                                </span>
+
+                                {{-- Status Aset selalu tampil --}}
+                                <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-bold"
+                                    x-text="'Status: ' + (selectedAsset?.status_label ?? '-')"></span>
+
+                                <span class="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm font-semibold"
+                                    x-text="'Agent: ' + (selectedAsset?.agent_status_label ?? '-')"></span>
                             </div>
                             <h3 class="text-xl font-bold truncate"
                                 x-text="selectedAsset ? selectedAsset.brand + ' ' + selectedAsset.model : ''"></h3>
@@ -624,6 +705,24 @@
                                 <div class="text-xs font-medium"
                                     x-text="selectedAsset?.condition_percent !== null ? selectedAsset.condition_percent + '%' : '-'">
                                 </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Status Aset</div>
+                                <div class="text-xs font-semibold"
+                                    :class="{
+                                        'text-emerald-700': selectedAsset?.status === 'available',
+                                        'text-blue-700': selectedAsset?.status === 'in_use',
+                                        'text-cyan-700': selectedAsset?.status === 'loaned',
+                                        'text-orange-700': selectedAsset?.status === 'maintenance',
+                                        'text-gray-700': selectedAsset?.status === 'retired',
+                                        'text-red-700 font-bold': selectedAsset?.status === 'lost',
+                                    }"
+                                    x-text="selectedAsset?.status_label ?? '-'">
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-500">Status Agent</div>
+                                <div class="text-xs font-medium" x-text="selectedAsset?.agent_status_label ?? '-'"></div>
                             </div>
                         </div>
 
@@ -673,7 +772,6 @@
                                 <div class="text-xs font-mono" x-text="selectedAsset?.agent_version ?? '-'"></div>
                             </div>
 
-                            {{-- 🆕 OS --}}
                             <div class="col-span-2">
                                 <div class="text-xs text-gray-500">Operating System</div>
                                 <div class="text-xs" x-text="selectedAsset?.last_os ?? selectedAsset?.os ?? '-'"></div>
