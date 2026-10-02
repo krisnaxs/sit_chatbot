@@ -4,12 +4,14 @@ namespace Database\Seeders;
 
 use App\Models\Asset;
 use App\Models\AssetAssignment;
+use App\Models\AssetCategory;
 use App\Models\AssetLoan;
 use App\Models\AssetMaintenance;
 use App\Models\AssetMovement;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class AssetTransactionSeeder extends Seeder
 {
@@ -20,23 +22,39 @@ class AssetTransactionSeeder extends Seeder
         $this->seedMaintenances();
         $this->seedMovements();
     }
+
+    // ============================================================
+    // 1. ASSIGNMENTS
+    // ============================================================
     private function seedAssignments(): void
     {
+        if (AssetAssignment::exists()) {
+            $this->command->warn('  Assignments sudah ada — skip.');
+            return;
+        }
+
         $admin = User::where('email', 'admin@admin.com')->first();
-        $support = User::where('email', 'support@admin.com')->first();
+        $ruslan = User::where('email', 'ruslan@gmail.com')->first();   // ← support
         $budi = User::where('email', 'budi.santoso@perusahaan.com')->first();
         $siti = User::where('email', 'siti.aminah@perusahaan.com')->first();
         $andi = User::where('email', 'andi.wijaya@perusahaan.com')->first();
         $dewi = User::where('email', 'dewi.lestari@perusahaan.com')->first();
         $rudi = User::where('email', 'rudi.hartono@perusahaan.com')->first();
 
-        $laptops = Asset::where('hostname', 'like', 'NB-T14-%')
+        if (!$admin || !$budi || !$siti || !$andi || !$dewi || !$rudi) {
+            $this->command->error('❌ User tidak lengkap. Jalankan UserSeeder dulu.');
+            return;
+        }
+
+        $laptopCategoryId = AssetCategory::where('code', 'LPT')->value('id');
+
+        $laptops = Asset::where('category_id', $laptopCategoryId)
             ->orderBy('id')
             ->limit(10)
             ->get();
 
-        if ($laptops->count() < 7) {
-            $this->command->warn('  Laptop T14 kurang dari 7 unit — assignments dilewati.');
+        if ($laptops->count() < 8) {
+            $this->command->warn('  Laptop T14 kurang dari 8 unit — assignments dilewati.');
             return;
         }
 
@@ -46,53 +64,75 @@ class AssetTransactionSeeder extends Seeder
             ['asset' => $laptops[2], 'user' => $andi, 'days_ago' => 120, 'returned' => null],
             ['asset' => $laptops[3], 'user' => $dewi, 'days_ago' => 90, 'returned' => null],
             ['asset' => $laptops[4], 'user' => $rudi, 'days_ago' => 60, 'returned' => null],
-            ['asset' => $laptops[5], 'user' => $support, 'days_ago' => 200, 'returned' => 30],
+            ['asset' => $laptops[5], 'user' => $ruslan, 'days_ago' => 200, 'returned' => 30],
             ['asset' => $laptops[6], 'user' => $dewi, 'days_ago' => 300, 'returned' => 150],
             ['asset' => $laptops[6], 'user' => $budi, 'days_ago' => 150, 'returned' => 30],
         ];
 
-        foreach ($assignments as $a) {
-            if (!$a['asset'] || !$a['user']) {
-                continue;
-            }
+        $created = 0;
 
-            $assignedAt = now()->subDays($a['days_ago']);
-            $returnedAt = $a['returned'] ? now()->subDays($a['returned']) : null;
+        DB::transaction(function () use ($assignments, $admin, &$created) {
+            foreach ($assignments as $a) {
+                if (!$a['asset'] || !$a['user']) {
+                    continue;
+                }
 
-            AssetAssignment::create([
-                'asset_id' => $a['asset']->id,
-                'hostname' => $a['asset']->hostname,
-                'user_id' => $a['user']->id,
-                'location_id' => $a['user']->location_id,
-                'department_id' => $a['user']->department_id,
-                'assigned_at' => $assignedAt,
-                'returned_at' => $returnedAt,
-                'assigned_by' => $admin?->id,
-                'received_by' => $a['user']->id,
-                'condition_on_assign' => 100,
-                'condition_on_return' => $returnedAt ? rand(70, 95) : null,
-                'notes' => 'BAST-2026-' . str_pad(rand(1, 999), 4, '0', STR_PAD_LEFT),
-            ]);
+                $assignedAt = now()->subDays($a['days_ago']);
+                $returnedAt = $a['returned'] ? now()->subDays($a['returned']) : null;
 
-            if ($returnedAt === null) {
-                $a['asset']->update([
-                    'status' => 'in_use',
-                    'current_user_id' => $a['user']->id,
-                    'current_location_id' => $a['user']->location_id,
+                AssetAssignment::create([
+                    'asset_id' => $a['asset']->id,
+                    'hostname' => $a['asset']->hostname,
+                    'user_id' => $a['user']->id,
+                    'location_id' => $a['user']->location_id,
+                    'department_id' => $a['user']->department_id,
+                    'assigned_at' => $assignedAt,
+                    'returned_at' => $returnedAt,
+                    'assigned_by' => $admin->id,
+                    'received_by' => $a['user']->id,
+                    'condition_on_assign' => 100,
+                    'condition_on_return' => $returnedAt ? rand(70, 95) : null,
+                    'notes' => 'BAST-2026-' . str_pad(rand(1, 999), 4, '0', STR_PAD_LEFT),
                 ]);
-            }
-        }
 
-        $this->command->info(' Assignments: ' . count($assignments) . ' records');
+                if ($returnedAt === null) {
+                    $a['asset']->update([
+                        'status' => 'in_use',
+                        'current_user_id' => $a['user']->id,
+                        'current_location_id' => $a['user']->location_id,
+                    ]);
+                }
+
+                $created++;
+            }
+        });
+
+        $this->command->info(" Assignments: {$created} records");
     }
+
+    // ============================================================
+    // 2. LOANS
+    // ============================================================
     private function seedLoans(): void
     {
+        if (AssetLoan::exists()) {
+            $this->command->warn('  Loans sudah ada — skip.');
+            return;
+        }
+
         $admin = User::where('email', 'admin@admin.com')->first();
         $siti = User::where('email', 'siti.aminah@perusahaan.com')->first();
         $andi = User::where('email', 'andi.wijaya@perusahaan.com')->first();
         $dewi = User::where('email', 'dewi.lestari@perusahaan.com')->first();
 
-        $loanableAssets = Asset::where('hostname', 'like', 'NB-T14-%')
+        if (!$admin || !$siti || !$andi || !$dewi) {
+            $this->command->error('❌ User tidak lengkap. Jalankan UserSeeder dulu.');
+            return;
+        }
+
+        $laptopCategoryId = AssetCategory::where('code', 'LPT')->value('id');
+
+        $loanableAssets = Asset::where('category_id', $laptopCategoryId)
             ->whereNotIn('id', function ($q) {
                 $q->select('asset_id')->from('asset_assignments')->whereNull('returned_at');
             })
@@ -116,37 +156,50 @@ class AssetTransactionSeeder extends Seeder
             ['asset' => $loanableAssets[3], 'user' => $siti, 'loan' => 60, 'due' => 30, 'returned' => 25, 'status' => 'returned', 'purpose' => 'Meeting bulanan'],
         ];
 
-        foreach ($data as $d) {
-            AssetLoan::create([
-                'asset_id' => $d['asset']->id,
-                'user_id' => $d['user']->id,
-                'loan_date' => now()->subDays($d['loan']),
-                'due_date' => now()->addDays($d['due']),
-                'returned_at' => $d['returned'] ? now()->subDays($d['returned']) : null,
-                'purpose' => $d['purpose'],
-                'approved_by' => $admin?->id,
-                'status' => $d['status'],
-                'condition_on_loan' => 100,
-                'condition_on_return' => $d['returned'] ? rand(80, 95) : null,
-                'notes' => 'Loan-' . strtoupper($d['status']),
-            ]);
-
-            if (in_array($d['status'], ['approved', 'borrowed', 'overdue'])) {
-                $d['asset']->update([
-                    'status' => 'loaned',
-                    'current_user_id' => $d['user']->id,
+        DB::transaction(function () use ($data, $admin) {
+            foreach ($data as $d) {
+                AssetLoan::create([
+                    'asset_id' => $d['asset']->id,
+                    'user_id' => $d['user']->id,
+                    'loan_date' => now()->subDays($d['loan']),
+                    'due_date' => now()->addDays($d['due']),
+                    'returned_at' => $d['returned'] ? now()->subDays($d['returned']) : null,
+                    'purpose' => $d['purpose'],
+                    'approved_by' => $admin->id,
+                    'status' => $d['status'],
+                    'condition_on_loan' => 100,
+                    'condition_on_return' => $d['returned'] ? rand(80, 95) : null,
+                    'notes' => 'Loan-' . strtoupper($d['status']),
                 ]);
+
+                if (in_array($d['status'], ['borrowed', 'overdue'])) {
+                    $d['asset']->update([
+                        'status' => 'loaned',
+                        'current_user_id' => $d['user']->id,
+                    ]);
+                }
             }
-        }
+        });
 
         $this->command->info(' Loans: ' . count($data) . ' records');
     }
+
+    // ============================================================
+    // 3. MAINTENANCES
+    // ============================================================
     private function seedMaintenances(): void
     {
+        if (AssetMaintenance::exists()) {
+            $this->command->warn('  Maintenances sudah ada — skip.');
+            return;
+        }
+
         $mitraVendor = Vendor::where('name', 'CV Mitra Office Supply')->first();
         $sewaVendor = Vendor::where('name', 'PT Sewa Komputer Indonesia')->first();
 
-        $assets = Asset::where('hostname', 'like', 'NB-T14-%')
+        $laptopCategoryId = AssetCategory::where('code', 'LPT')->value('id');
+
+        $assets = Asset::where('category_id', $laptopCategoryId)
             ->orderBy('id')
             ->limit(5)
             ->get();
@@ -164,32 +217,43 @@ class AssetTransactionSeeder extends Seeder
             ['asset' => $assets[4], 'vendor' => $sewaVendor, 'type' => 'corrective', 'issue' => 'Layar berkedip-kedip', 'action' => 'Pengecekan kabel fleksibel LCD', 'tech' => 'Tim Vendor Sewa', 'cost' => 0, 'start' => 2, 'end' => null, 'status' => 'open', 'cond_b' => 65, 'cond_a' => null],
         ];
 
-        foreach ($data as $d) {
-            AssetMaintenance::create([
-                'asset_id' => $d['asset']->id,
-                'vendor_id' => $d['vendor']?->id,
-                'type' => $d['type'],
-                'issue' => $d['issue'],
-                'action' => $d['action'],
-                'technician' => $d['tech'],
-                'cost' => $d['cost'],
-                'start_date' => now()->subDays($d['start']),
-                'end_date' => $d['end'] !== null ? now()->subDays($d['end']) : null,
-                'status' => $d['status'],
-                'condition_before' => $d['cond_b'],
-                'condition_after' => $d['cond_a'],
-                'notes' => 'Maintenance ' . $d['type'],
-            ]);
+        DB::transaction(function () use ($data) {
+            foreach ($data as $d) {
+                AssetMaintenance::create([
+                    'asset_id' => $d['asset']->id,
+                    'vendor_id' => $d['vendor']?->id,
+                    'type' => $d['type'],
+                    'issue' => $d['issue'],
+                    'action' => $d['action'],
+                    'technician' => $d['tech'],
+                    'cost' => $d['cost'],
+                    'start_date' => now()->subDays($d['start']),
+                    'end_date' => $d['end'] !== null ? now()->subDays($d['end']) : null,
+                    'status' => $d['status'],
+                    'condition_before' => $d['cond_b'],
+                    'condition_after' => $d['cond_a'],
+                    'notes' => 'Maintenance ' . $d['type'],
+                ]);
 
-            if (in_array($d['status'], ['open', 'in_progress'])) {
-                $d['asset']->update(['status' => 'maintenance']);
+                if (in_array($d['status'], ['open', 'in_progress'])) {
+                    $d['asset']->update(['status' => 'maintenance']);
+                }
             }
-        }
+        });
 
         $this->command->info(' Maintenances: ' . count($data) . ' records');
     }
+
+    // ============================================================
+    // 4. MOVEMENTS
+    // ============================================================
     private function seedMovements(): void
     {
+        if (AssetMovement::exists()) {
+            $this->command->warn('  Movements sudah ada — skip.');
+            return;
+        }
+
         $admin = User::where('email', 'admin@admin.com')->first();
 
         $assignments = AssetAssignment::with('asset', 'user')
@@ -202,75 +266,77 @@ class AssetTransactionSeeder extends Seeder
             return;
         }
 
-        foreach ($assignments as $a) {
-            AssetMovement::create([
-                'asset_id' => $a->asset_id,
-                'movable_type' => User::class,
-                'movable_id' => $a->user_id,
-                'from_location_id' => null,
-                'to_location_id' => $a->location_id,
-                'type' => 'assign',
-                'reference_table' => 'asset_assignments',
-                'reference_id' => $a->id,
-                'moved_at' => $a->assigned_at,
-                'moved_by' => $admin?->id,
-                'notes' => "Assign ke {$a->user?->name}",
-            ]);
-
-            if ($a->returned_at) {
+        DB::transaction(function () use ($assignments, $admin) {
+            foreach ($assignments as $a) {
                 AssetMovement::create([
                     'asset_id' => $a->asset_id,
                     'movable_type' => User::class,
                     'movable_id' => $a->user_id,
-                    'from_location_id' => $a->location_id,
-                    'to_location_id' => null,
-                    'type' => 'return',
+                    'from_location_id' => null,
+                    'to_location_id' => $a->location_id,
+                    'type' => 'assign',
                     'reference_table' => 'asset_assignments',
                     'reference_id' => $a->id,
-                    'moved_at' => $a->returned_at,
+                    'moved_at' => $a->assigned_at,
                     'moved_by' => $admin?->id,
-                    'notes' => "Return dari {$a->user?->name}",
+                    'notes' => "Assign ke {$a->user?->name}",
+                ]);
+
+                if ($a->returned_at) {
+                    AssetMovement::create([
+                        'asset_id' => $a->asset_id,
+                        'movable_type' => User::class,
+                        'movable_id' => $a->user_id,
+                        'from_location_id' => $a->location_id,
+                        'to_location_id' => null,
+                        'type' => 'return',
+                        'reference_table' => 'asset_assignments',
+                        'reference_id' => $a->id,
+                        'moved_at' => $a->returned_at,
+                        'moved_by' => $admin?->id,
+                        'notes' => "Return dari {$a->user?->name}",
+                    ]);
+                }
+            }
+
+            $loans = AssetLoan::whereIn('status', ['approved', 'borrowed', 'overdue'])
+                ->orderBy('id')
+                ->get();
+
+            foreach ($loans as $loan) {
+                AssetMovement::create([
+                    'asset_id' => $loan->asset_id,
+                    'movable_type' => User::class,
+                    'movable_id' => $loan->user_id,
+                    'from_location_id' => null,
+                    'to_location_id' => null,
+                    'type' => 'loan',
+                    'reference_table' => 'asset_loans',
+                    'reference_id' => $loan->id,
+                    'moved_at' => $loan->loan_date,
+                    'moved_by' => $admin?->id,
+                    'notes' => "Loan: {$loan->purpose}",
                 ]);
             }
-        }
 
-        $loans = AssetLoan::whereIn('status', ['approved', 'borrowed', 'overdue'])
-            ->orderBy('id')
-            ->get();
+            $maintenances = AssetMaintenance::orderBy('id')->get();
 
-        foreach ($loans as $loan) {
-            AssetMovement::create([
-                'asset_id' => $loan->asset_id,
-                'movable_type' => User::class,
-                'movable_id' => $loan->user_id,
-                'from_location_id' => null,
-                'to_location_id' => null,
-                'type' => 'loan',
-                'reference_table' => 'asset_loans',
-                'reference_id' => $loan->id,
-                'moved_at' => $loan->loan_date,
-                'moved_by' => $admin?->id,
-                'notes' => "Loan: {$loan->purpose}",
-            ]);
-        }
-
-        $maintenances = AssetMaintenance::orderBy('id')->get();
-
-        foreach ($maintenances as $m) {
-            AssetMovement::create([
-                'asset_id' => $m->asset_id,
-                'movable_type' => null,
-                'movable_id' => null,
-                'from_location_id' => null,
-                'to_location_id' => null,
-                'type' => 'maintenance',
-                'reference_table' => 'asset_maintenances',
-                'reference_id' => $m->id,
-                'moved_at' => $m->start_date,
-                'moved_by' => $admin?->id,
-                'notes' => "Maintenance: {$m->issue}",
-            ]);
-        }
+            foreach ($maintenances as $m) {
+                AssetMovement::create([
+                    'asset_id' => $m->asset_id,
+                    'movable_type' => null,
+                    'movable_id' => null,
+                    'from_location_id' => null,
+                    'to_location_id' => null,
+                    'type' => 'maintenance',
+                    'reference_table' => 'asset_maintenances',
+                    'reference_id' => $m->id,
+                    'moved_at' => $m->start_date,
+                    'moved_by' => $admin?->id,
+                    'notes' => "Maintenance: {$m->issue}",
+                ]);
+            }
+        });
 
         $this->command->info(' Movements: generated');
     }

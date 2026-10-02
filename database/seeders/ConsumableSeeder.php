@@ -8,6 +8,7 @@ use App\Models\Consumable;
 use App\Models\ConsumableTransaction;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ConsumableSeeder extends Seeder
 {
@@ -16,14 +17,25 @@ class ConsumableSeeder extends Seeder
         $this->seedConsumables();
         $this->seedConsumableTransactions();
     }
+
     private function seedConsumables(): void
     {
         $categories = AssetCategory::pluck('id', 'code')->toArray();
 
+        // ==== Guard: pastikan semua kategori yang dibutuhkan ada ====
+        $required = ['MS', 'KYB', 'HDD'];
+        $missing = array_diff($required, array_keys($categories));
+
+        if (!empty($missing)) {
+            $this->command->error('❌ Kategori tidak ditemukan: ' . implode(', ', $missing));
+            $this->command->warn('💡 Jalankan dulu: php artisan db:seed --class=AssetCategorySeeder');
+            return;
+        }
+
         $data = [
             [
                 'name' => 'Mouse Logitech M170',
-                'category_id' => $categories['MSE'] ?? null,
+                'category_id' => $categories['MS'],       // ✅ FIX: MS (bukan MSE)
                 'brand' => 'Logitech',
                 'model' => 'M170',
                 'unit' => 'pcs',
@@ -34,7 +46,7 @@ class ConsumableSeeder extends Seeder
             ],
             [
                 'name' => 'Keyboard Logitech K120',
-                'category_id' => $categories['KBD'] ?? null,
+                'category_id' => $categories['KYB'],      // ✅ FIX: KYB (bukan KBD)
                 'brand' => 'Logitech',
                 'model' => 'K120',
                 'unit' => 'pcs',
@@ -45,7 +57,7 @@ class ConsumableSeeder extends Seeder
             ],
             [
                 'name' => 'HDD External Seagate 1TB',
-                'category_id' => $categories['HDD'] ?? null,
+                'category_id' => $categories['HDD'],      // ✅ HDD (sudah benar)
                 'brand' => 'Seagate',
                 'model' => 'Expansion 1TB',
                 'unit' => 'pcs',
@@ -62,6 +74,7 @@ class ConsumableSeeder extends Seeder
 
         $this->command->info(' Consumables: ' . count($data));
     }
+
     private function seedConsumableTransactions(): void
     {
         $admin = User::where('email', 'admin@admin.com')->first();
@@ -69,6 +82,12 @@ class ConsumableSeeder extends Seeder
         $siti = User::where('email', 'siti.aminah@perusahaan.com')->first();
         $andi = User::where('email', 'andi.wijaya@perusahaan.com')->first();
         $rudi = User::where('email', 'rudi.hartono@perusahaan.com')->first();
+
+        // ==== Guard: admin wajib ada ====
+        if (!$admin) {
+            $this->command->error('❌ User admin tidak ditemukan. Jalankan UserSeeder dulu.');
+            return;
+        }
 
         $mouse = Consumable::where('name', 'Mouse Logitech M170')->first();
         $keyboard = Consumable::where('name', 'Keyboard Logitech K120')->first();
@@ -85,8 +104,8 @@ class ConsumableSeeder extends Seeder
             ->get();
 
         $data = [
-            ['consumable' => $mouse, 'user' => null, 'type' => 'in', 'qty' => 50, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-MSE-001'],
-            ['consumable' => $keyboard, 'user' => null, 'type' => 'in', 'qty' => 30, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-KBD-001'],
+            ['consumable' => $mouse, 'user' => null, 'type' => 'in', 'qty' => 50, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-MS-001'],
+            ['consumable' => $keyboard, 'user' => null, 'type' => 'in', 'qty' => 30, 'days_ago' => 90, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-KYB-001'],
             ['consumable' => $hdd, 'user' => null, 'type' => 'in', 'qty' => 10, 'days_ago' => 85, 'requested' => $admin, 'approved' => $admin, 'location' => null, 'asset' => null, 'purpose' => 'Pembelian awal stok', 'notes' => 'PO-2026-HDD-001'],
             ['consumable' => $mouse, 'user' => $budi, 'type' => 'out', 'qty' => 1, 'days_ago' => 60, 'requested' => $budi, 'approved' => $admin, 'location' => $budi?->location_id, 'asset' => $laptops[0] ?? null, 'purpose' => 'Mouse laptop rusak', 'notes' => null],
             ['consumable' => $mouse, 'user' => $siti, 'type' => 'out', 'qty' => 1, 'days_ago' => 45, 'requested' => $siti, 'approved' => $admin, 'location' => $siti?->location_id, 'asset' => null, 'purpose' => 'Mouse baru untuk staff', 'notes' => null],
@@ -98,34 +117,36 @@ class ConsumableSeeder extends Seeder
 
         $inCount = $outCount = $returnCount = 0;
 
-        foreach ($data as $d) {
-            ConsumableTransaction::create([
-                'consumable_id' => $d['consumable']->id,
-                'user_id' => $d['user']?->id,
-                'type' => $d['type'],
-                'quantity' => $d['qty'],
-                'transaction_date' => now()->subDays($d['days_ago']),
-                'requested_by' => $d['requested']?->id,
-                'approved_by' => $d['approved']?->id,
-                'location_id' => $d['location'],
-                'asset_id' => $d['asset']?->id,
-                'purpose' => $d['purpose'],
-                'notes' => $d['notes'],
-            ]);
+        DB::transaction(function () use ($data, &$inCount, &$outCount, &$returnCount) {
+            foreach ($data as $d) {
+                ConsumableTransaction::create([
+                    'consumable_id' => $d['consumable']->id,
+                    'user_id' => $d['user']?->id,
+                    'type' => $d['type'],
+                    'quantity' => $d['qty'],
+                    'transaction_date' => now()->subDays($d['days_ago']),
+                    'requested_by' => $d['requested']?->id,
+                    'approved_by' => $d['approved']?->id,
+                    'location_id' => $d['location'],
+                    'asset_id' => $d['asset']?->id,
+                    'purpose' => $d['purpose'],
+                    'notes' => $d['notes'],
+                ]);
 
-            $consumable = $d['consumable'];
-            match ($d['type']) {
-                'in' => $consumable->increment('stock_available', $d['qty']),
-                'out' => $consumable->decrement('stock_available', $d['qty']),
-                'return' => $consumable->increment('stock_available', $d['qty']),
-            };
+                $consumable = $d['consumable'];
+                match ($d['type']) {
+                    'in' => $consumable->increment('stock_available', $d['qty']),
+                    'out' => $consumable->decrement('stock_available', $d['qty']),
+                    'return' => $consumable->increment('stock_available', $d['qty']),
+                };
 
-            match ($d['type']) {
-                'in' => $inCount++,
-                'out' => $outCount++,
-                'return' => $returnCount++,
-            };
-        }
+                match ($d['type']) {
+                    'in' => $inCount++,
+                    'out' => $outCount++,
+                    'return' => $returnCount++,
+                };
+            }
+        });
 
         $this->command->info(" Consumable Transactions: in={$inCount}, out={$outCount}, return={$returnCount}");
     }

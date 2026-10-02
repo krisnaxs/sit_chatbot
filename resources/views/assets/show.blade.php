@@ -2,6 +2,23 @@
 
 @section('title', 'Detail Aset — SIAM')
 
+@push('styles')
+    {{-- Leaflet CSS --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #assetMiniMap {
+            height: 280px;
+            border-radius: 12px;
+            z-index: 1;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 16px;
+            min-width: 200px;
+        }
+    </style>
+@endpush
+
 @section('content')
     <div class="max-w-7xl mx-auto" x-data="assetShowManager()">
 
@@ -16,12 +33,31 @@
                     <h1 class="text-2xl font-bold text-gray-800 mt-1">
                         {{ $asset->brand }} {{ $asset->model }}
                     </h1>
-                    <div class="flex items-center gap-2 mt-0.5">
+                    <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                         <p class="text-sm text-gray-500 font-mono">SN: {{ $asset->serial_number }}</p>
                         <a href="{{ route('siam.asset-types.index', ['search' => $asset->model]) }}" target="_blank"
                             class="text-xs text-indigo-600 hover:underline">
                             Lihat di Master →
                         </a>
+                        @if ($asset->last_seen_at)
+                            @php
+                                $agentColor = match ($asset->agent_status_color) {
+                                    'green' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                    'yellow' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                                    'red' => 'bg-red-100 text-red-700 border-red-200',
+                                    default => 'bg-slate-100 text-slate-600 border-slate-200',
+                                };
+                                $agentIcon = match ($asset->agent_status_color) {
+                                    'green' => '🟢',
+                                    'yellow' => '🟡',
+                                    'red' => '🔴',
+                                    default => '⚫',
+                                };
+                            @endphp
+                            <span class="px-2 py-0.5 text-xs rounded-full font-semibold border {{ $agentColor }}">
+                                {{ $agentIcon }} Agent {{ $asset->agent_status_label }}
+                            </span>
+                        @endif
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -83,7 +119,7 @@
                                 <dd>{{ $asset->category?->name ?? '-' }}</dd>
                             </div>
                             <div>
-                                <dt class="text-gray-500">OS</dt>
+                                <dt class="text-gray-500">OS (Manual)</dt>
                                 <dd>{{ $asset->os ?? '-' }}</dd>
                             </div>
                             <div>
@@ -150,6 +186,220 @@
                             </div>
                         @endif
                     </div>
+
+                    {{-- ============================================================ --}}
+                    {{-- INFO AGENT (REAL-TIME) --}}
+                    {{-- ============================================================ --}}
+                    @if ($asset->last_seen_at)
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h2 class="font-semibold text-gray-800">Info Agent (Real-time)</h2>
+                                        <p class="text-xs text-gray-500">Data dari agent yang berjalan di laptop</p>
+                                    </div>
+                                </div>
+
+                                @php
+                                    $agentColor = match ($asset->agent_status_color) {
+                                        'green' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                        'yellow' => 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                                        'red' => 'bg-red-100 text-red-700 border-red-200',
+                                        default => 'bg-slate-100 text-slate-600 border-slate-200',
+                                    };
+                                    $agentIcon = match ($asset->agent_status_color) {
+                                        'green' => '🟢',
+                                        'yellow' => '🟡',
+                                        'red' => '🔴',
+                                        default => '⚫',
+                                    };
+                                @endphp
+                                <span class="px-3 py-1 text-xs rounded-full font-bold border {{ $agentColor }}">
+                                    {{ $agentIcon }} {{ $asset->agent_status_label }}
+                                </span>
+                            </div>
+
+                            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+
+                                {{-- IP Address --}}
+                                <div>
+                                    <dt class="text-gray-500">IP Address</dt>
+                                    <dd class="font-mono text-gray-800">{{ $asset->last_ip ?? '-' }}</dd>
+                                </div>
+
+                                {{-- MAC Address --}}
+                                <div>
+                                    <dt class="text-gray-500">MAC Address</dt>
+                                    <dd class="font-mono text-gray-800">{{ $asset->last_mac ?? '-' }}</dd>
+                                </div>
+
+                                {{-- OS (dari agent) --}}
+                                <div class="sm:col-span-2">
+                                    <dt class="text-gray-500">Operating System</dt>
+                                    <dd class="text-gray-800">
+                                        {{ $asset->last_os ?? ($asset->os ?? '-') }}
+                                        @if ($asset->last_os && $asset->os && $asset->last_os !== $asset->os)
+                                            <span class="text-xs text-gray-400 ml-1">(update dari agent)</span>
+                                        @endif
+                                    </dd>
+                                </div>
+
+                                {{-- WiFi SSID --}}
+                                <div>
+                                    <dt class="text-gray-500">WiFi SSID</dt>
+                                    <dd class="text-gray-800">
+                                        @if ($asset->last_wifi_ssid)
+                                            <div class="flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-3.5 w-3.5 text-indigo-500 shrink-0" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                                                </svg>
+                                                {{ $asset->last_wifi_ssid }}
+                                            </div>
+                                        @else
+                                            -
+                                        @endif
+                                    </dd>
+                                </div>
+
+                                {{-- WiFi BSSID --}}
+                                <div>
+                                    <dt class="text-gray-500">WiFi BSSID</dt>
+                                    <dd class="font-mono text-gray-800">{{ $asset->last_wifi_bssid ?? '-' }}</dd>
+                                </div>
+
+                                {{-- User Login --}}
+                                <div>
+                                    <dt class="text-gray-500">User Login (Windows)</dt>
+                                    <dd class="text-gray-800">{{ $asset->last_logged_user ?? '-' }}</dd>
+                                </div>
+
+                                {{-- Uptime --}}
+                                <div>
+                                    <dt class="text-gray-500">Uptime</dt>
+                                    <dd class="text-gray-800">
+                                        @if ($asset->last_uptime_hours)
+                                            @php
+                                                $u = $asset->last_uptime_hours;
+                                                echo $u >= 24
+                                                    ? floor($u / 24) . ' hari ' . $u % 24 . ' jam'
+                                                    : $u . ' jam';
+                                            @endphp
+                                        @else
+                                            -
+                                        @endif
+                                    </dd>
+                                </div>
+
+                                {{-- Suhu CPU --}}
+                                <div>
+                                    <dt class="text-gray-500">Suhu CPU</dt>
+                                    <dd class="font-semibold">
+                                        @if ($asset->last_cpu_temp)
+                                            @php
+                                                $temp = (float) $asset->last_cpu_temp;
+                                                $color = match (true) {
+                                                    $temp >= 80 => 'text-red-600',
+                                                    $temp >= 70 => 'text-orange-600',
+                                                    $temp >= 60 => 'text-yellow-600',
+                                                    default => 'text-emerald-600',
+                                                };
+                                            @endphp
+                                            <span class="{{ $color }}">{{ $temp }}°C</span>
+                                        @else
+                                            -
+                                        @endif
+                                    </dd>
+                                </div>
+
+                                {{-- Versi Agent --}}
+                                <div>
+                                    <dt class="text-gray-500">Versi Agent</dt>
+                                    <dd class="font-mono text-gray-800">{{ $asset->agent_version ?? '-' }}</dd>
+                                </div>
+
+                                {{-- Terakhir Heartbeat --}}
+                                <div class="sm:col-span-2">
+                                    <dt class="text-gray-500">Terakhir Heartbeat</dt>
+                                    <dd class="text-gray-800">
+                                        @if ($asset->last_seen_at)
+                                            {{ $asset->last_seen_at->format('d M Y H:i:s') }}
+                                            <span class="text-xs text-gray-500">
+                                                ({{ $asset->last_seen_at->diffForHumans() }})
+                                            </span>
+                                        @else
+                                            Belum pernah
+                                        @endif
+                                    </dd>
+                                </div>
+
+                            </dl>
+
+                            {{-- ============================================================ --}}
+                            {{-- LOKASI ASET (MINI MAP) --}}
+                            {{-- ============================================================ --}}
+                            @if ($asset->last_lat && $asset->last_lng)
+                                <div class="mt-6 pt-4 border-t border-gray-100">
+                                    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                            Lokasi Terakhir
+                                        </h3>
+                                        <div class="flex items-center gap-2 text-xs">
+                                            <span
+                                                class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-semibold text-[10px]">
+                                                {{ $asset->location_source ?? 'unknown' }}
+                                            </span>
+                                            <a href="https://www.google.com/maps?q={{ $asset->last_lat }},{{ $asset->last_lng }}"
+                                                target="_blank" class="text-indigo-600 hover:underline font-semibold">
+                                                Google Maps →
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {{-- Mini Map --}}
+                                    <div id="assetMiniMap" class="w-full overflow-hidden border border-gray-200"></div>
+
+                                    <div class="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-indigo-500"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <span class="font-mono">
+                                            {{ number_format($asset->last_lat, 7) }},
+                                            {{ number_format($asset->last_lng, 7) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    @else
+                        {{-- Belum pernah heartbeat --}}
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <div class="text-center py-6">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-3"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <p class="text-sm text-gray-500 font-semibold">Aset ini belum pernah kirim heartbeat</p>
+                                <p class="text-xs text-gray-400 mt-1">
+                                    Pastikan agent sudah terinstall di laptop ini.
+                                </p>
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- History Pemakai --}}
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -602,6 +852,9 @@
 @endsection
 
 @push('scripts')
+    {{-- Leaflet JS --}}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
         function assetShowManager() {
             return {
@@ -677,6 +930,63 @@
                             this.closeConfirm();
                         }
                     });
+
+                    // 🆕 Init Mini Map untuk asset ini
+                    @if ($asset->last_lat && $asset->last_lng)
+                        this.$nextTick(() => {
+                            setTimeout(() => {
+                                this.initAssetMiniMap();
+                            }, 300);
+                        });
+                    @endif
+                },
+
+                // 🆕 Init Asset Mini Map
+                initAssetMiniMap() {
+                    const mapEl = document.getElementById('assetMiniMap');
+                    if (!mapEl) return;
+
+                    const lat = {{ $asset->last_lat ?? 0 }};
+                    const lng = {{ $asset->last_lng ?? 0 }};
+
+                    const map = L.map('assetMiniMap').setView([lat, lng], 17);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap'
+                    }).addTo(map);
+
+                    const statusColor = '{{ $asset->agent_status_color }}';
+                    const color = statusColor === 'green' ? '#10b981' :
+                        statusColor === 'yellow' ? '#f59e0b' :
+                        statusColor === 'red' ? '#ef4444' : '#6b7280';
+
+                    const icon = L.divIcon({
+                        className: '',
+                        html: `<div style="
+                            width: 36px; height: 36px;
+                            background: ${color};
+                            border: 4px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+                        "></div>`,
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                    });
+
+                    L.marker([lat, lng], {
+                            icon: icon
+                        }).addTo(map)
+                        .bindPopup(`
+                            <div style="font-family: system-ui;">
+                                <b>{{ $asset->brand }} {{ $asset->model }}</b><br>
+                                <span style="font-family: monospace; color: #6366f1;">{{ $asset->asset_code }}</span><br>
+                                <small>{{ $asset->hostname }}</small>
+                            </div>
+                        `)
+                        .openPopup();
+
+                    setTimeout(() => map.invalidateSize(), 300);
                 }
             }
         }

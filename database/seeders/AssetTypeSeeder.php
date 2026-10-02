@@ -9,28 +9,23 @@ class AssetTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $types = [
-            ['brand' => 'Lenovo', 'model' => 'ThinkPad T14 Gen 4'],
-            ['brand' => 'Lenovo', 'model' => 'ThinkPad X1 Carbon Gen 11'],
-            ['brand' => 'Lenovo', 'model' => 'ThinkPad E14 Gen 5'],
-            ['brand' => 'Lenovo', 'model' => 'IdeaPad Slim 3'],
-            ['brand' => 'HP', 'model' => 'ProDesk 400 G9'],
-            ['brand' => 'HP', 'model' => 'EliteBook 840 G10'],
-            ['brand' => 'HP', 'model' => 'LaserJet Pro M404'],
-            ['brand' => 'Epson', 'model' => 'L3110 All-in-One'],
-            ['brand' => 'Epson', 'model' => 'L3210 All-in-One'],
-            ['brand' => 'Dell', 'model' => 'Latitude 5420'],
-            ['brand' => 'Dell', 'model' => 'OptiPlex 3000'],
-            ['brand' => 'Asus', 'model' => 'VivoBook 14'],
+        $data = [
+            ['brand' => 'LENOVO', 'model' => 'THINPAD E 14 GEN 4', 'description' => null],
+            ['brand' => 'LENOVO', 'model' => 'THINPAD E 14 GEN 5', 'description' => null],
+            ['brand' => 'LENOVO', 'model' => 'THINPAD E 14 GEN 6', 'description' => null],
+            ['brand' => 'PRINTER', 'model' => 'EPSON L 5290', 'description' => null],
+            ['brand' => 'LENOVO', 'model' => 'THINK CENTRE M 90 A', 'description' => null],
+            ['brand' => 'LENOVO', 'model' => 'THINK CENTRE M 820 Z', 'description' => null],
+            ['brand' => 'LENOVO', 'model' => 'THINKPAD T 14', 'description' => null],
         ];
 
-        foreach ($types as $t) {
+        foreach ($data as $d) {
             AssetType::updateOrCreate(
-                ['brand' => $t['brand'], 'model' => $t['model']],
-                $t
+                ['brand' => $d['brand'], 'model' => $d['model']],
+                $d + ['is_active' => true]
             );
         }
 
-        $this->command->info(' Asset types seeded: ' . count($types));
+        $this->command->info(' Asset Types: ' . count($data));
     }
 }

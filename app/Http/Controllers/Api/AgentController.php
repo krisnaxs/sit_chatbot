@@ -166,6 +166,13 @@ class AgentController extends Controller
             'uptime_hours' => 'nullable|integer|min:0',
             'cpu_temp' => 'nullable|numeric|min:0|max:150',
             'agent_version' => 'nullable|string|max:20',
+            'last_os' => 'nullable|string|max:200',
+
+            // === 🆕 Koordinat dari Windows Location API ===
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'location_accuracy' => 'nullable|numeric|min:0',
+            'location_source' => 'nullable|string|max:20',
         ]);
 
         // === Ambil asset ===
@@ -176,17 +183,37 @@ class AgentController extends Controller
             ], 404);
         }
 
-        // === Olah lokasi dari BSSID ===
+        // ============================================================
+        // === OLAH LOKASI ===
+        // ============================================================
         $locationId = null;
-        if (!empty($validated['wifi_bssid'])) {
+        $lastLat = null;
+        $lastLng = null;
+        $locationSource = null;
+
+        // Prioritas 1: dari agent (Windows Location API)
+        if (!empty($validated['latitude']) && !empty($validated['longitude'])) {
+            $lastLat = $validated['latitude'];
+            $lastLng = $validated['longitude'];
+            $locationSource = $validated['location_source'] ?? 'agent';
+        }
+
+        // Prioritas 2: dari BSSID mapping (ap_locations) — kalau agent tidak kirim
+        if (!$lastLat && !empty($validated['wifi_bssid'])) {
             $ap = ApLocation::findByBssid($validated['wifi_bssid']);
             if ($ap) {
                 $locationId = $ap->location_id;
+
+                if ($ap->latitude && $ap->longitude) {
+                    $lastLat = $ap->latitude;
+                    $lastLng = $ap->longitude;
+                    $locationSource = 'bssid';
+                }
             }
         }
 
         // === Update asset + simpan log ===
-        DB::transaction(function () use ($asset, $validated, $agentToken, $locationId) {
+        DB::transaction(function () use ($asset, $validated, $agentToken, $locationId, $lastLat, $lastLng, $locationSource) {
             $updateData = [
                 'last_seen_at' => now(),
                 'last_ip' => $validated['ip'] ?? $asset->last_ip,
@@ -197,17 +224,25 @@ class AgentController extends Controller
                 'last_uptime_hours' => $validated['uptime_hours'] ?? $asset->last_uptime_hours,
                 'last_cpu_temp' => $validated['cpu_temp'] ?? $asset->last_cpu_temp,
                 'agent_version' => $validated['agent_version'] ?? $asset->agent_version,
+                'last_os' => $validated['last_os'] ?? $asset->last_os,
                 'agent_status' => 'online',
             ];
 
-            // Update lokasi kalau BSSID terdaftar
+            // Update lokasi ID kalau BSSID terdaftar
             if ($locationId) {
                 $updateData['current_location_id'] = $locationId;
             }
 
+            // Update koordinat (dari agent atau BSSID)
+            if ($lastLat && $lastLng) {
+                $updateData['last_lat'] = $lastLat;
+                $updateData['last_lng'] = $lastLng;
+                $updateData['location_source'] = $locationSource;
+            }
+
             $asset->update($updateData);
 
-            // Auto-sync hostname (kalau berubah & tidak konflik)
+            // Auto-sync hostname
             $this->syncHostname($asset, $validated['hostname']);
 
             // Simpan log
@@ -237,6 +272,9 @@ class AgentController extends Controller
             'asset_code' => $asset->asset_code,
             'status' => $asset->status,
             'location_id' => $locationId,
+            'lat' => $lastLat,
+            'lng' => $lastLng,
+            'location_source' => $locationSource,
             'server_time' => now()->toIso8601String(),
         ]);
     }
@@ -278,10 +316,9 @@ class AgentController extends Controller
     private function syncHostname(Asset $asset, string $newHostname): void
     {
         if ($asset->hostname === $newHostname) {
-            return; // tidak berubah
+            return;
         }
 
-        // Cek konflik dengan aset lain
         $conflict = Asset::where('hostname', $newHostname)
             ->where('id', '!=', $asset->id)
             ->exists();

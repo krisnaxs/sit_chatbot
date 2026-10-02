@@ -40,11 +40,29 @@ return new class extends Migration {
             $table->string('photo_path')->nullable();
             $table->text('notes')->nullable();
 
+            // ==== Agent / Monitoring Fields ====
+            $table->timestamp('last_seen_at')->nullable();
+            $table->string('last_ip', 45)->nullable();
+            $table->decimal('last_lat', 10, 7)->nullable();          // -90 s/d 90
+            $table->decimal('last_lng', 10, 7)->nullable();          // -180 s/d 180
+            $table->string('location_source', 20)->nullable();       // gps / wifi / ip / manual
+            $table->string('last_mac', 17)->nullable();
+            $table->string('last_wifi_ssid', 100)->nullable();
+            $table->string('last_wifi_bssid', 17)->nullable();
+            $table->string('last_logged_user', 100)->nullable();
+            $table->integer('last_uptime_hours')->nullable();
+            $table->decimal('last_cpu_temp', 4, 1)->nullable();
+            $table->string('agent_version', 20)->nullable();
+            $table->string('last_os', 200)->nullable();
+            $table->string('agent_status', 20)->default('unknown');
             $table->timestamps();
             $table->softDeletes();
             $table->index('status');
             $table->index('ownership_type');
             $table->index(['brand', 'model']);
+            $table->index('agent_status');
+            $table->index('last_seen_at');
+            $table->index(['last_lat', 'last_lng']);   // untuk query geo
         });
     }
 

@@ -14,12 +14,18 @@ return new class extends Migration {
             $table->foreignId('location_id')
                 ->constrained('locations')
                 ->cascadeOnDelete();
+
+            // ==== Koordinat GPS Access Point ====
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
+
             $table->string('notes')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
             $table->index('location_id');
             $table->index('ssid');
+            $table->index(['latitude', 'longitude']);   // untuk query geo
         });
     }
 

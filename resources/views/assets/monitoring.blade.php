@@ -2,6 +2,24 @@
 
 @section('title', 'Monitoring Agent — SIAM')
 
+@push('styles')
+    {{-- Leaflet CSS --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        #miniMap {
+            height: 240px;
+            border-radius: 12px;
+            z-index: 1;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 16px;
+            min-width: 200px;
+        }
+    </style>
+@endpush
+
 @section('content')
     <div class="max-w-7xl mx-auto" x-data="monitoringManager()">
 
@@ -179,14 +197,17 @@
                                 <th class="px-3 py-2 text-left">SN</th>
                                 <th class="px-3 py-2 text-left">Hostname</th>
                                 <th class="px-3 py-2 text-left">Brand & Model</th>
+                                <th class="px-3 py-2 text-left">OS</th>
                                 <th class="px-3 py-2 text-left">IP</th>
                                 <th class="px-3 py-2 text-left">WiFi</th>
                                 <th class="px-3 py-2 text-left">User</th>
                                 <th class="px-3 py-2 text-left">Lokasi</th>
+                                <th class="px-3 py-2 text-center">Sumber</th>
                                 <th class="px-3 py-2 text-center">Suhu</th>
                                 <th class="px-3 py-2 text-center">Uptime</th>
                                 <th class="px-3 py-2 text-left">Terakhir</th>
                                 <th class="px-3 py-2 text-left">Status</th>
+                                <th class="px-3 py-2 text-center w-20">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -213,6 +234,31 @@
                                         default => 'bg-red-50/30',
                                     };
 
+                                    // Sumber lokasi badge
+                                    $sourceBadge = match ($asset->location_source) {
+                                        'windows_api' => [
+                                            'icon' => '🪟',
+                                            'label' => 'Windows API',
+                                            'color' => 'bg-blue-100 text-blue-700',
+                                        ],
+                                        'bssid' => [
+                                            'icon' => '📡',
+                                            'label' => 'WiFi BSSID',
+                                            'color' => 'bg-purple-100 text-purple-700',
+                                        ],
+                                        'manual' => [
+                                            'icon' => '✍️',
+                                            'label' => 'Manual',
+                                            'color' => 'bg-gray-100 text-gray-700',
+                                        ],
+                                        'browser' => [
+                                            'icon' => '🌐',
+                                            'label' => 'Browser',
+                                            'color' => 'bg-cyan-100 text-cyan-700',
+                                        ],
+                                        default => null,
+                                    };
+
                                     $assetData = [
                                         'id' => $asset->id,
                                         'asset_code' => $asset->asset_code,
@@ -220,6 +266,8 @@
                                         'hostname' => $asset->hostname,
                                         'brand' => $asset->brand,
                                         'model' => $asset->model,
+                                        'last_os' => $asset->last_os,
+                                        'os' => $asset->os,
                                         'category' => $asset->category?->name,
                                         'ownership_label' => $asset->ownership_label,
                                         'status' => $asset->status,
@@ -244,6 +292,11 @@
                                         'agent_status_color' => $asset->agent_status_color,
                                         'agent_icon' => $agentIcon,
 
+                                        // Koordinat
+                                        'last_lat' => $asset->last_lat ? (float) $asset->last_lat : null,
+                                        'last_lng' => $asset->last_lng ? (float) $asset->last_lng : null,
+                                        'location_source' => $asset->location_source,
+
                                         'routes' => [
                                             'show' => route('siam.assets.show', $asset),
                                             'edit' => route('siam.assets.edit', $asset),
@@ -257,21 +310,22 @@
                                     ];
                                 @endphp
 
-                                <tr class="transition-colors cursor-pointer hover:bg-indigo-50 {{ $rowBg }}"
-                                    @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
-
+                                <tr class="transition-colors hover:bg-indigo-50 {{ $rowBg }}">
                                     {{-- No --}}
-                                    <td class="px-3 py-2 text-xs text-gray-500 font-medium">
+                                    <td class="px-3 py-2 text-xs text-gray-500 font-medium cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         {{ $assets->firstItem() + $index }}
                                     </td>
 
                                     {{-- SN --}}
-                                    <td class="px-3 py-2 font-mono text-xs text-indigo-700">
+                                    <td class="px-3 py-2 font-mono text-xs text-indigo-700 cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         {{ $asset->serial_number }}
                                     </td>
 
                                     {{-- Hostname --}}
-                                    <td class="px-3 py-2">
+                                    <td class="px-3 py-2 cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         <div class="font-mono text-xs font-semibold text-gray-800">
                                             {{ $asset->hostname ?? '-' }}
                                         </div>
@@ -281,18 +335,42 @@
                                     </td>
 
                                     {{-- Brand & Model --}}
-                                    <td class="px-3 py-2">
+                                    <td class="px-3 py-2 cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         <div class="font-semibold text-gray-800 text-xs">{{ $asset->brand }}</div>
                                         <div class="text-xs text-gray-600">{{ $asset->model }}</div>
                                     </td>
 
+                                    {{-- OS --}}
+                                    <td class="px-3 py-2 text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
+                                        @if ($asset->last_os)
+                                            @php
+                                                $osShort = preg_replace('/\s+\d+\.\d+.*$/', '', $asset->last_os);
+                                            @endphp
+                                            <div class="text-gray-700 font-medium">{{ $osShort }}</div>
+                                            <div class="text-[10px] text-gray-400 font-mono">
+                                                {{ \Illuminate\Support\Str::limit($asset->last_os, 30) }}
+                                            </div>
+                                        @elseif ($asset->os)
+                                            <div class="text-gray-600 italic text-[11px]">
+                                                {{ \Illuminate\Support\Str::limit($asset->os, 25) }}
+                                                <span class="text-[10px] text-gray-400">(manual)</span>
+                                            </div>
+                                        @else
+                                            <span class="text-gray-400 italic">-</span>
+                                        @endif
+                                    </td>
+
                                     {{-- IP --}}
-                                    <td class="px-3 py-2 font-mono text-xs">
+                                    <td class="px-3 py-2 font-mono text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         {{ $asset->last_ip ?? '-' }}
                                     </td>
 
                                     {{-- WiFi --}}
-                                    <td class="px-3 py-2 text-xs">
+                                    <td class="px-3 py-2 text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         @if ($asset->last_wifi_ssid)
                                             <div class="flex items-center gap-1">
                                                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -309,7 +387,8 @@
                                     </td>
 
                                     {{-- User --}}
-                                    <td class="px-3 py-2 text-xs">
+                                    <td class="px-3 py-2 text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         @if ($asset->last_logged_user)
                                             <div class="font-semibold text-gray-800">{{ $asset->last_logged_user }}</div>
                                             @if ($asset->currentUser)
@@ -323,19 +402,42 @@
                                     </td>
 
                                     {{-- Lokasi --}}
-                                    <td class="px-3 py-2 text-xs">
+                                    <td class="px-3 py-2 text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         @if ($asset->currentLocation)
                                             <div>{{ $asset->currentLocation->building }}</div>
                                             <div class="text-[10px] text-gray-500">
                                                 {{ $asset->currentLocation->room }}
+                                            </div>
+                                        @elseif ($asset->last_lat && $asset->last_lng)
+                                            <div class="text-indigo-600 font-semibold flex items-center gap-1">
+                                                📍 GPS
+                                            </div>
+                                            <div class="text-[10px] text-gray-500 font-mono">
+                                                {{ number_format($asset->last_lat, 4) }},
+                                                {{ number_format($asset->last_lng, 4) }}
                                             </div>
                                         @else
                                             <span class="text-gray-400 italic">-</span>
                                         @endif
                                     </td>
 
+                                    {{-- SUMBER LOKASI --}}
+                                    <td class="px-3 py-2 text-center cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
+                                        @if ($sourceBadge)
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-semibold {{ $sourceBadge['color'] }}">
+                                                {{ $sourceBadge['icon'] }} {{ $sourceBadge['label'] }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 italic">-</span>
+                                        @endif
+                                    </td>
+
                                     {{-- Suhu --}}
-                                    <td class="px-3 py-2 text-center text-xs">
+                                    <td class="px-3 py-2 text-center text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         @if ($asset->last_cpu_temp)
                                             @php
                                                 $temp = (float) $asset->last_cpu_temp;
@@ -353,7 +455,8 @@
                                     </td>
 
                                     {{-- Uptime --}}
-                                    <td class="px-3 py-2 text-center text-xs">
+                                    <td class="px-3 py-2 text-center text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         @if ($asset->last_uptime_hours)
                                             @php
                                                 $uptime = $asset->last_uptime_hours;
@@ -369,7 +472,8 @@
                                     </td>
 
                                     {{-- Terakhir --}}
-                                    <td class="px-3 py-2 text-xs">
+                                    <td class="px-3 py-2 text-xs cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         @if ($asset->last_seen_at)
                                             <div class="text-gray-800">{{ $asset->last_seen_at->diffForHumans() }}</div>
                                             <div class="text-[10px] text-gray-500">
@@ -381,16 +485,51 @@
                                     </td>
 
                                     {{-- Status --}}
-                                    <td class="px-3 py-2">
+                                    <td class="px-3 py-2 cursor-pointer"
+                                        @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                                         <span
                                             class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-semibold border {{ $agentColor }}">
                                             {{ $agentIcon }} {{ $agentStatus }}
                                         </span>
                                     </td>
+
+                                    {{-- AKSI --}}
+                                    <td class="px-3 py-2 text-center" @click.stop>
+                                        <div class="inline-flex gap-1">
+                                            @if ($asset->last_lat && $asset->last_lng)
+                                                <button type="button"
+                                                    @click='openModal({{ json_encode($assetData, JSON_HEX_APOS | JSON_HEX_QUOT) }})'
+                                                    title="Lihat lokasi di peta"
+                                                    class="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 transition">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                        stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                </button>
+                                            @endif
+
+                                            <a href="{{ route('siam.assets.show', $asset) }}"
+                                                title="Lihat detail lengkap"
+                                                class="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="12" class="px-3 py-12 text-center">
+                                    <td colspan="15" class="px-3 py-12 text-center">
                                         <svg xmlns="http://www.w3.org/2000/svg"
                                             class="h-16 w-16 text-gray-300 mx-auto mb-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -533,6 +672,13 @@
                                 <div class="text-xs text-gray-500">Versi Agent</div>
                                 <div class="text-xs font-mono" x-text="selectedAsset?.agent_version ?? '-'"></div>
                             </div>
+
+                            {{-- 🆕 OS --}}
+                            <div class="col-span-2">
+                                <div class="text-xs text-gray-500">Operating System</div>
+                                <div class="text-xs" x-text="selectedAsset?.last_os ?? selectedAsset?.os ?? '-'"></div>
+                            </div>
+
                             <div class="col-span-2">
                                 <div class="text-xs text-gray-500">Terakhir Heartbeat</div>
                                 <div class="text-xs">
@@ -542,6 +688,50 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- LOKASI ASET (MINI MAP) --}}
+                        <h4
+                            class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 pt-3 border-t border-gray-200">
+                            Lokasi Aset
+                        </h4>
+
+                        <template x-if="selectedAsset?.last_lat && selectedAsset?.last_lng">
+                            <div>
+                                <div id="miniMap" class="w-full" style="height: 240px;"></div>
+                                <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
+                                    <div>
+                                        <span class="font-mono" x-text="selectedAsset.last_lat.toFixed(6)"></span>,
+                                        <span class="font-mono" x-text="selectedAsset.last_lng.toFixed(6)"></span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-semibold text-[10px]"
+                                            x-text="selectedAsset.location_source ?? 'unknown'"></span>
+                                        <a :href="'https://www.google.com/maps?q=' + selectedAsset.last_lat + ',' + selectedAsset
+                                            .last_lng"
+                                            target="_blank" class="text-indigo-600 hover:underline font-semibold">
+                                            Google Maps →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="!selectedAsset?.last_lat || !selectedAsset?.last_lng">
+                            <div class="p-4 rounded-lg bg-gray-50 border border-gray-200 text-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-300 mx-auto mb-2"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <p class="text-xs text-gray-500">Koordinat tidak tersedia.</p>
+                                <p class="text-[10px] text-gray-400 mt-1">
+                                    Pastikan Windows Location Service aktif di laptop dan agent sudah kirim lokasi.
+                                </p>
+                            </div>
+                        </template>
                     </div>
 
                     {{-- ACTION BUTTONS --}}
@@ -689,6 +879,9 @@
 @endsection
 
 @push('scripts')
+    {{-- Leaflet JS --}}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
         function monitoringManager() {
             return {
@@ -696,6 +889,11 @@
                 showModal: false,
                 autoRefresh: false,
                 refreshInterval: null,
+
+                // untuk mini-map
+                miniMap: null,
+                miniMarker: null,
+                _mapInitTimer: null,
 
                 toast: {
                     show: false,
@@ -706,11 +904,87 @@
                 openModal(asset) {
                     this.selectedAsset = asset;
                     this.showModal = true;
+
+                    this.$nextTick(() => {
+                        clearTimeout(this._mapInitTimer);
+                        this._mapInitTimer = setTimeout(() => {
+                            this.initMiniMap();
+                        }, 250);
+                    });
                 },
 
                 closeModal() {
                     this.showModal = false;
                     this.selectedAsset = null;
+
+                    if (this.miniMap) {
+                        this.miniMap.remove();
+                        this.miniMap = null;
+                        this.miniMarker = null;
+                    }
+                },
+
+                initMiniMap() {
+                    const asset = this.selectedAsset;
+                    if (!asset || !asset.last_lat || !asset.last_lng) {
+                        return;
+                    }
+
+                    const mapEl = document.getElementById('miniMap');
+                    if (!mapEl) return;
+
+                    if (this.miniMap) {
+                        this.miniMap.remove();
+                        this.miniMap = null;
+                    }
+
+                    this.miniMap = L.map('miniMap', {
+                        center: [asset.last_lat, asset.last_lng],
+                        zoom: 17,
+                        scrollWheelZoom: true,
+                        zoomControl: true,
+                    });
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap'
+                    }).addTo(this.miniMap);
+
+                    const color = asset.agent_status_color === 'green' ? '#10b981' :
+                        asset.agent_status_color === 'yellow' ? '#f59e0b' :
+                        asset.agent_status_color === 'red' ? '#ef4444' :
+                        '#6b7280';
+
+                    const icon = L.divIcon({
+                        className: '',
+                        html: `<div style="
+                            width: 32px; height: 32px;
+                            background: ${color};
+                            border: 3px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                        "></div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16],
+                    });
+
+                    this.miniMarker = L.marker([asset.last_lat, asset.last_lng], {
+                        icon: icon
+                    }).addTo(this.miniMap);
+
+                    this.miniMarker.bindPopup(`
+                        <div style="font-family: system-ui;">
+                            <b>${asset.brand} ${asset.model}</b><br>
+                            <span style="font-family: monospace; color: #6366f1;">${asset.asset_code}</span><br>
+                            <small>${asset.hostname}</small>
+                        </div>
+                    `);
+
+                    setTimeout(() => {
+                        if (this.miniMap) {
+                            this.miniMap.invalidateSize();
+                        }
+                    }, 300);
                 },
 
                 toggleAutoRefresh() {

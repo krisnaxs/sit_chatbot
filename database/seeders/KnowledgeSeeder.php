@@ -4,12 +4,17 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\Knowledge;
+use App\Models\KnowledgeAttachment;
 
 class KnowledgeSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('knowledge')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        KnowledgeAttachment::truncate();   // hapus child dulu
+        Knowledge::truncate();             // baru parent
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $data = array_merge(
             $this->sapaan(),

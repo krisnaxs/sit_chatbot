@@ -181,6 +181,8 @@ Route::middleware(['auth'])->group(function () {
 
             Route::get('assets/monitoring', [AssetController::class, 'monitoring'])
                 ->name('assets.monitoring');
+
+            Route::get('assets/map', [AssetController::class, 'map'])->name('assets.map');
             Route::resource('assets', AssetController::class);
             Route::resource('assignments', AssetAssignmentController::class)->except(['edit', 'update']);
             Route::post('assignments/{assignment}/return', [AssetAssignmentController::class, 'returnAsset'])->name('assignments.return');

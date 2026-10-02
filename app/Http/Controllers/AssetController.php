@@ -1063,6 +1063,99 @@ class AssetController extends Controller
         ));
     }
 
+    /**
+     * Halaman peta keberadaan aset (Leaflet.js).
+     */
+    public function map(Request $request)
+    {
+        // Base query: hanya aset agent-monitored yang punya koordinat
+        $query = Asset::with(['category', 'currentUser', 'currentLocation'])
+            ->whereHas('category', fn($q) => $q->where('is_agent_monitored', true))
+            ->whereNotNull('last_lat')
+            ->whereNotNull('last_lng');
+
+        // Filter by status
+        if ($request->filled('status')) {
+            match ($request->status) {
+                'online' => $query->where('last_seen_at', '>=', now()->subMinutes(10)),
+                'idle' => $query->whereBetween('last_seen_at', [
+                    now()->subMinutes(60),
+                    now()->subMinutes(10),
+                ]),
+                'offline' => $query->where('last_seen_at', '<', now()->subMinutes(60))
+                    ->whereNotNull('last_seen_at'),
+                default => null,
+            };
+        }
+
+        // Filter by kategori
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('hostname', 'like', "%{$search}%")
+                    ->orWhere('asset_code', 'like', "%{$search}%")
+                    ->orWhere('serial_number', 'like', "%{$search}%")
+                    ->orWhere('last_logged_user', 'like', "%{$search}%")
+                    ->orWhereHas('currentUser', fn($uq) => $uq->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        // Get aset (maks 500 untuk performa peta)
+        $assets = $query->orderByDesc('last_seen_at')
+            ->limit(500)
+            ->get();
+
+        // Stats
+        $stats = [
+            'total' => $assets->count(),
+            'online' => $assets->filter(fn($a) => $a->isOnline())->count(),
+            'idle' => $assets->filter(fn($a) => $a->isIdle())->count(),
+            'offline' => $assets->filter(fn($a) => $a->isOffline())->count(),
+        ];
+
+        // Categories untuk filter
+        $categories = AssetCategory::where('is_agent_monitored', true)
+            ->where('is_consumable', false)
+            ->orderBy('name')
+            ->get();
+
+        // Format data untuk JavaScript
+        $assetsData = $assets->map(function ($asset) {
+            return [
+                'id' => $asset->id,
+                'asset_code' => $asset->asset_code,
+                'hostname' => $asset->hostname ?? '-',
+                'brand_model' => trim("{$asset->brand} {$asset->model}"),
+                'serial_number' => $asset->serial_number,
+                'category' => $asset->category?->name,
+                'lat' => (float) $asset->last_lat,
+                'lng' => (float) $asset->last_lng,
+                'status' => $asset->agent_status_color,
+                'status_label' => $asset->agent_status_label,
+                'last_seen' => $asset->last_seen_at?->diffForHumans(),
+                'current_user' => $asset->currentUser?->name,
+                'logged_user' => $asset->last_logged_user,
+                'location' => $asset->currentLocation?->full_name,
+                'ip' => $asset->last_ip,
+                'wifi_ssid' => $asset->last_wifi_ssid,
+                'location_source' => $asset->location_source,
+                'detail_url' => route('siam.assets.show', $asset),
+            ];
+        })->values()->toArray();
+
+        return view('assets.map', compact(
+            'assets',
+            'assetsData',
+            'stats',
+            'categories'
+        ));
+    }
+
     public function exportExcel(Request $request)
     {
         $filters = $request->only([

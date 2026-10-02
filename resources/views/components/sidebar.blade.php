@@ -363,7 +363,26 @@
                             Monitoring
                         </span>
                     </a>
-
+                    {{-- Peta Aset --}}
+                    <a href="{{ route('siam.assets.map') }}"
+                        :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"
+                        class="group relative flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all
+        {{ request()->routeIs('siam.assets.map') ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span
+                            class="relative w-7 h-7 rounded-md flex items-center justify-center shrink-0
+        {{ request()->routeIs('siam.assets.map') ? 'bg-purple-100' : 'bg-gray-100' }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </span>
+                        <span :class="$store.sidebar.collapsed ? 'lg:hidden' : ''" class="whitespace-nowrap">
+                            Peta Aset
+                        </span>
+                    </a>
                     {{-- Serah Terima --}}
                     <a href="{{ route('siam.assignments.index') }}"
                         :class="$store.sidebar.collapsed ? 'lg:justify-center lg:px-0' : ''"

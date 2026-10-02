@@ -22,16 +22,17 @@ Route::get('/user', function (Request $request) {
 */
 Route::prefix('agent')->name('agent.')->group(function () {
 
-    // Auto-register — tidak butuh token (pakai serial BIOS)
-    // Rate limit: 5x per jam per IP
+    // Auto-register — 5x per jam per IP
+    // Alasan: agent hanya register SEKALI saat install pertama.
+    // Setelah dapat token, tidak akan register lagi (kecuali token dihapus).
     Route::post('/register', [AgentController::class, 'register'])
         ->middleware('throttle:5,60')
         ->name('register');
 
-    // Heartbeat — butuh token (Bearer)
-    // Rate limit: 60x per menit per token
+    // Heartbeat — 30x per menit per token
+    // Agent kirim heartbeat tiap 5 menit. 30x/menit = buffer besar untuk retry.
     Route::post('/heartbeat', [AgentController::class, 'heartbeat'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:30,1')
         ->name('heartbeat');
 
     // Info agent (debug) — butuh token

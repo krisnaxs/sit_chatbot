@@ -36,6 +36,9 @@ class Asset extends Model
         // === Agent Tracking ===
         'last_seen_at',
         'last_ip',
+        'last_lat',
+        'last_lng',
+        'location_source',
         'last_mac',
         'last_wifi_ssid',
         'last_wifi_bssid',
@@ -43,6 +46,7 @@ class Asset extends Model
         'last_uptime_hours',
         'last_cpu_temp',
         'agent_version',
+        'last_os',
         'agent_status',
     ];
 
@@ -57,6 +61,8 @@ class Asset extends Model
             // === Agent Tracking ===
             'last_seen_at' => 'datetime',
             'last_cpu_temp' => 'decimal:1',
+            'last_lat' => 'decimal:7',
+            'last_lng' => 'decimal:7',
         ];
     }
 
@@ -156,7 +162,7 @@ class Asset extends Model
     }
 
     // ============================================================
-    // RELASI AGENT (BARU)
+    // RELASI AGENT
     // ============================================================
 
     public function agentToken()
@@ -223,11 +229,6 @@ class Asset extends Model
         });
     }
 
-    /**
-     * Scope: aset yang dipegang user yang sudah/sedang mendekati pensiun.
-     *
-     * @param  int  $hari  Rentang hari ke depan (default 30)
-     */
     public function scopePerluDitarik($query, int $hari = 30)
     {
         return $query->whereNotNull('current_user_id')
@@ -238,9 +239,6 @@ class Asset extends Model
             });
     }
 
-    /**
-     * Scope: aset yang dipegang user yang SUDAH pensiun.
-     */
     public function scopeDipegangPensiunan($query)
     {
         return $query->whereNotNull('current_user_id')
@@ -250,9 +248,6 @@ class Asset extends Model
             });
     }
 
-    /**
-     * Scope: aset yang dipegang user yang AKAN pensiun (belum, tapi dekat).
-     */
     public function scopeAkanDitarik($query, int $hari = 30)
     {
         return $query->whereNotNull('current_user_id')
@@ -264,12 +259,9 @@ class Asset extends Model
     }
 
     // ============================================================
-    // SCOPES AGENT (BARU)
+    // SCOPES AGENT
     // ============================================================
 
-    /**
-     * Scope: hanya aset yang kategorinya agent-monitored.
-     */
     public function scopeAgentMonitored($query)
     {
         return $query->whereHas('category', function ($q) {
@@ -277,18 +269,12 @@ class Asset extends Model
         });
     }
 
-    /**
-     * Scope: aset yang sedang online (heartbeat < 10 menit).
-     */
     public function scopeAgentOnline($query)
     {
         return $query->whereNotNull('last_seen_at')
             ->where('last_seen_at', '>=', now()->subMinutes(10));
     }
 
-    /**
-     * Scope: aset yang idle (heartbeat 10-60 menit).
-     */
     public function scopeAgentIdle($query)
     {
         return $query->whereNotNull('last_seen_at')
@@ -298,21 +284,24 @@ class Asset extends Model
             ]);
     }
 
-    /**
-     * Scope: aset yang offline (heartbeat > 60 menit).
-     */
     public function scopeAgentOffline($query)
     {
         return $query->whereNotNull('last_seen_at')
             ->where('last_seen_at', '<', now()->subMinutes(60));
     }
 
-    /**
-     * Scope: aset yang belum install agent.
-     */
     public function scopeAgentNeverReported($query)
     {
         return $query->whereNull('last_seen_at');
+    }
+
+    /**
+     * Scope: hanya aset yang punya koordinat.
+     */
+    public function scopeHasCoordinates($query)
+    {
+        return $query->whereNotNull('last_lat')
+            ->whereNotNull('last_lng');
     }
 
     // ============================================================
@@ -399,10 +388,6 @@ class Asset extends Model
         return route('assets.public', ['serial' => rawurlencode($this->serial_number)]);
     }
 
-    /**
-     * Cek apakah aset ini perlu ditarik karena user-nya akan/sudah pensiun.
-     * Default: cek 30 hari ke depan.
-     */
     public function getPerluDitarikAttribute(): bool
     {
         if (!$this->currentUser || !$this->currentUser->waktu_pensiun) {
@@ -412,9 +397,6 @@ class Asset extends Model
         return $this->currentUser->waktu_pensiun->lte(now()->addDays(30));
     }
 
-    /**
-     * Cek apakah user pemegang aset SUDAH pensiun.
-     */
     public function getDipegangPensiunanAttribute(): bool
     {
         if (!$this->currentUser || !$this->currentUser->waktu_pensiun) {
@@ -424,11 +406,6 @@ class Asset extends Model
         return $this->currentUser->waktu_pensiun->isPast();
     }
 
-    /**
-     * Sisa hari sebelum user pensiun.
-     * Nilai negatif = sudah lewat (sudah pensiun).
-     * Null = user tidak punya waktu_pensiun.
-     */
     public function getSisaHariPensiunAttribute(): ?int
     {
         if (!$this->currentUser || !$this->currentUser->waktu_pensiun) {
@@ -438,9 +415,6 @@ class Asset extends Model
         return (int) now()->diffInDays($this->currentUser->waktu_pensiun, false);
     }
 
-    /**
-     * Label pengingat pensiun (untuk badge di view).
-     */
     public function getLabelPengingatPensiunAttribute(): ?string
     {
         $sisa = $this->sisa_hari_pensiun;
@@ -458,9 +432,6 @@ class Asset extends Model
         };
     }
 
-    /**
-     * Warna badge pengingat pensiun.
-     */
     public function getWarnaPengingatPensiunAttribute(): ?string
     {
         $sisa = $this->sisa_hari_pensiun;
@@ -479,21 +450,15 @@ class Asset extends Model
     }
 
     // ============================================================
-    // ACCESSORS AGENT (BARU)
+    // ACCESSORS AGENT
     // ============================================================
 
-    /**
-     * Cek apakah aset sedang online (heartbeat < 10 menit).
-     */
     public function isOnline(): bool
     {
         return $this->last_seen_at
             && $this->last_seen_at->diffInMinutes(now()) < 10;
     }
 
-    /**
-     * Cek apakah aset sedang idle (heartbeat 10-60 menit).
-     */
     public function isIdle(): bool
     {
         if (!$this->last_seen_at)
@@ -502,26 +467,25 @@ class Asset extends Model
         return $min >= 10 && $min < 60;
     }
 
-    /**
-     * Cek apakah aset sedang offline (heartbeat > 60 menit).
-     */
     public function isOffline(): bool
     {
         return $this->last_seen_at
             && $this->last_seen_at->diffInMinutes(now()) >= 60;
     }
 
-    /**
-     * Cek apakah aset ini sudah pernah install agent.
-     */
     public function hasAgent(): bool
     {
         return !is_null($this->last_seen_at);
     }
 
     /**
-     * Label status agent (untuk badge di view).
+     * Cek apakah aset punya koordinat GPS.
      */
+    public function hasCoordinates(): bool
+    {
+        return !is_null($this->last_lat) && !is_null($this->last_lng);
+    }
+
     public function getAgentStatusLabelAttribute(): string
     {
         if (!$this->hasAgent())
@@ -533,9 +497,6 @@ class Asset extends Model
         return 'Offline';
     }
 
-    /**
-     * Warna badge status agent.
-     */
     public function getAgentStatusColorAttribute(): string
     {
         if (!$this->hasAgent())

@@ -2,14 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\App;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class AppSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $apps = [
@@ -89,8 +87,18 @@ class AppSeeder extends Seeder
             ['nama' => 'EPPT', 'gambar' => 'apps/BGKc67w2kMMO40dpmokuPgCULo4cZdDWGHcLue3Q.png', 'url' => 'http://eppt.plnindonesiapower.co.id/', 'clicks' => 0, 'is_active' => true, 'slide' => 'UBP Suralaya', 'urutan' => 1],
         ];
 
-        foreach ($apps as $data) {
-            App::create($data);
-        }
+        DB::transaction(function () use ($apps) {
+            foreach ($apps as $data) {
+                App::updateOrCreate(
+                    [
+                        'nama' => $data['nama'],
+                        'url' => $data['url'],
+                    ],
+                    $data
+                );
+            }
+        });
+
+        $this->command->info(' Apps: ' . count($apps) . ' records');
     }
 }
