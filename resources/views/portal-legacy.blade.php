@@ -312,14 +312,7 @@
         <div class="header-inner">
             <h1>SURALAYA INFORMATION CENTER</h1>
             <div class="header-nav">
-                @auth
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/knowledge">Knowledge</a>
-                    <a href="/chat">Chat</a>
-                    <a href="/pending">Pending</a>
-                @else
-                    <a href="/login">Login</a>
-                @endauth
+
                 <a href="{{ route('portal') }}">Mode Modern</a>
             </div>
         </div>
