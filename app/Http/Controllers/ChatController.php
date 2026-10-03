@@ -632,6 +632,8 @@ class ChatController extends Controller
                 return array_merge($consumableAnswer, [null]);
             }
         }
+
+        // === 1. QueryRouter (dalam try-catch) ===
         try {
             $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
             if ($dbAnswer) {
@@ -658,11 +660,22 @@ class ChatController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
-        $knowledgeAnswer = $this->tryKnowledge($pesan);
-        if ($knowledgeAnswer) {
-            Log::info('answer.via_knowledge', ['request_id' => $requestId]);
-            return $knowledgeAnswer;
+
+        // === 2. Knowledge (WAJIB dalam try-catch) ===
+        try {
+            $knowledgeAnswer = $this->tryKnowledge($pesan);
+            if ($knowledgeAnswer) {
+                Log::info('answer.via_knowledge', ['request_id' => $requestId]);
+                return $knowledgeAnswer;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Knowledge search error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
         }
+
+        // === 3. AutoLearning (JANGAN double-call app() di catch) ===
         $learning = null;
         try {
             $learning = app(AutoLearningService::class);
@@ -678,15 +691,35 @@ class ChatController extends Controller
                 'request_id' => $requestId,
                 'error' => $e->getMessage(),
             ]);
-            $learning = app(AutoLearningService::class);
+            // JANGAN re-assign $learning di sini
         }
-        $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
-        if ($intentResult) {
-            Log::info('answer.via_ollama_intent', ['request_id' => $requestId]);
-            return $intentResult;
+
+        // === 4. Ollama Intent (dalam try-catch) ===
+        try {
+            $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
+            if ($intentResult) {
+                Log::info('answer.via_ollama_intent', ['request_id' => $requestId]);
+                return $intentResult;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('OllamaIntent error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
         }
+
+        // === 5. Ollama QA (terakhir, dalam try-catch) ===
         Log::info('answer.via_ollama_qa', ['request_id' => $requestId]);
-        $jawaban = $this->tanyaOllama($pesan);
+
+        try {
+            $jawaban = $this->tanyaOllama($pesan);
+        } catch (\Throwable $e) {
+            Log::error('Ollama QA error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
+            $jawaban = 'Maaf, layanan AI sedang tidak tersedia. Coba lagi nanti.';
+        }
 
         if (strlen($jawaban) >= 50 && !str_contains($jawaban, 'Maaf,') && $learning) {
             try {
