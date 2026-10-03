@@ -356,7 +356,7 @@
 </head>
 
 
-<body class="font-sans relative min-h-screen overflow-x-hidden">
+< class="font-sans relative min-h-screen overflow-x-hidden">
 
 
     <!-- =========================================================
@@ -376,11 +376,11 @@
     <!-- =========================================================
          FLOATING ORBS
     ========================================================== -->
-
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
-
+    </div>
 
     <!-- =========================================================
          HEADER
@@ -621,8 +621,8 @@
 
     <script>
         /* =========================================================
-               SLIDE DATA
-            ========================================================== */
+                       SLIDE DATA
+                    ========================================================== */
 
         const slidesKeys = @json($slidesKeys);
         const slideTitleEl = document.getElementById('slideHeading');
@@ -877,6 +877,6 @@
         });
     </script>
 
-</body>
+    </body>
 
 </html>
