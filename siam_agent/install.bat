@@ -1,11 +1,14 @@
 @echo off
 REM ============================================================
-REM SIAM Agent - All-in-One Installer
-REM Install ke C:\ProgramData\SIAM Agent\
+REM SIAM Agent - All-in-One Installer v1.0.0
+REM - Jalan di SEMUA user (SYSTEM + AtStartup)
+REM - Auto-recovery kalau crash
+REM - Permission aman
+REM - Test heartbeat sebelum daftar task
 REM ============================================================
 
 setlocal EnableDelayedExpansion
-title SIAM Agent Installer
+title SIAM Agent Installer v1.0.0
 
 set AGENT_DIR=C:\ProgramData\SIAM Agent
 set TASK_NAME=SIAMAgent
@@ -19,6 +22,8 @@ echo         SIAM Agent Installer v1.0.0
 echo ============================================================
 echo.
 echo  Install folder: %AGENT_DIR%
+echo  Mode:           SYSTEM (jalan di semua user)
+echo  Auto-start:     Ya (sebelum login)
 echo.
 
 REM ==== CEK ADMIN ====
@@ -37,7 +42,7 @@ echo  [OK] Running as Administrator
 
 REM ==== CEK FILE ====
 echo.
-echo  [1/6] Cek file yang dibutuhkan...
+echo  [1/8] Cek file yang dibutuhkan...
 if not exist "%SCRIPT_DIR%siam-agent.ps1" (
     echo  [X] siam-agent.ps1 tidak ditemukan
     echo  Path: %SCRIPT_DIR%siam-agent.ps1
@@ -52,9 +57,27 @@ if not exist "%SCRIPT_DIR%config.json" (
 )
 echo  [OK] Semua file lengkap
 
+REM ==== STOP TASK LAMA (kalau ada) ====
+echo.
+echo  [2/8] Stop task lama (kalau ada)...
+schtasks /Query /TN "%TASK_NAME%" >nul 2>&1
+if %errorlevel% equ 0 (
+    schtasks /End /TN "%TASK_NAME%" >nul 2>&1
+    timeout /t 2 /nobreak >nul
+
+    REM Kill proses agent yang masih jalan
+    powershell.exe -NoProfile -Command ^
+      "Get-CimInstance Win32_Process -Filter \"Name='powershell.exe'\" | Where-Object { $_.CommandLine -like '*siam-agent*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
+
+    schtasks /Delete /TN "%TASK_NAME%" /F >nul 2>&1
+    echo  [OK] Task lama dihapus
+) else (
+    echo  [-] Tidak ada task lama
+)
+
 REM ==== BUAT FOLDER ====
 echo.
-echo  [2/6] Buat folder...
+echo  [3/8] Buat folder...
 if not exist "%AGENT_DIR%" mkdir "%AGENT_DIR%"
 if not exist "%AGENT_DIR%" (
     echo  [X] Gagal buat folder %AGENT_DIR%
@@ -65,7 +88,7 @@ echo  [OK] Folder siap
 
 REM ==== COPY FILE ====
 echo.
-echo  [3/6] Copy file...
+echo  [4/8] Copy file...
 copy /Y "%SCRIPT_DIR%siam-agent.ps1" "%AGENT_DIR%\" >nul
 if errorlevel 1 (
     echo  [X] Gagal copy siam-agent.ps1
@@ -91,64 +114,128 @@ if exist "%SCRIPT_DIR%README.txt" (
 
 echo  [OK] File tercopy ke %AGENT_DIR%
 
-REM ==== SET PERMISSION ====
+REM ==== SET PERMISSION (AMAN) ====
 echo.
-echo  [4/6] Set permission...
-icacls "%AGENT_DIR%" /grant "Users:(OI)(CI)F" /T /Q >nul 2>&1
-echo  [OK] Users bisa baca/tulis
+echo  [5/8] Set permission (aman)...
+icacls "%AGENT_DIR%" /inheritance:r >nul 2>&1
+icacls "%AGENT_DIR%" /grant "SYSTEM:(OI)(CI)F" /T /Q >nul 2>&1
+icacls "%AGENT_DIR%" /grant "Administrators:(OI)(CI)F" /T /Q >nul 2>&1
+icacls "%AGENT_DIR%" /grant "Users:(OI)(CI)RX" /T /Q >nul 2>&1
 
-REM ==== DAFTARKAN TASK (Pakai PowerShell, lebih reliable) ====
-echo.
-echo  [5/6] Setup Windows Task...
-
-REM Hapus task lama kalau ada
-schtasks /Query /TN "%TASK_NAME%" >nul 2>&1
-if %errorlevel% equ 0 (
-    schtasks /End /TN "%TASK_NAME%" >nul 2>&1
-    schtasks /Delete /TN "%TASK_NAME%" /F >nul 2>&1
-    echo  [-] Task lama dihapus
+REM Config & log: user boleh baca
+if exist "%AGENT_DIR%\config.json" (
+    icacls "%AGENT_DIR%\config.json" /grant "Users:R" /Q >nul 2>&1
+)
+if exist "%AGENT_DIR%\agent.log" (
+    icacls "%AGENT_DIR%\agent.log" /grant "Users:R" /Q >nul 2>&1
 )
 
-REM Register task via PowerShell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"%PS_SCRIPT%\"' -WorkingDirectory '%AGENT_DIR%';" ^
-  "$t1 = New-ScheduledTaskTrigger -AtStartup;" ^
-  "$t2 = New-ScheduledTaskTrigger -AtLogOn;" ^
-  "$p = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest;" ^
-  "$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Hours 0) -MultipleInstances IgnoreNew;" ^
-  "Register-ScheduledTask -TaskName '%TASK_NAME%' -Action $action -Trigger @($t1, $t2) -Principal $p -Settings $s -Description 'SIAM Asset Tracking Agent' -Force | Out-Null"
+echo  [OK] Permission di-set:
+echo      SYSTEM       = Full Control
+echo      Admins       = Full Control
+echo      Users        = Read + Execute
+echo      Config ^& Log = Read only
+
+REM ==== TEST HEARTBEAT DULU (sebelum daftar task) ====
+echo.
+echo  [6/8] Test heartbeat (tunggu 5-15 detik)...
+echo.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" -Once -ShowLog
+echo.
+echo  Interpretasi hasil di atas:
+echo    [OK] "Heartbeat OK"      = sukses, siap jalan
+echo    [!]  "Asset BELUM"       = perlu approve di SIAM (agent tetap jalan)
+echo    [X]  "Registrasi gagal"  = cek server_url di config.json
+echo.
+
+REM ==== DAFTARKAN TASK ====
+echo  [7/8] Setup Windows Task...
+echo.
+
+REM Buat script PowerShell temporary untuk registrasi task
+set PS_REG=%TEMP%\siam_register_task.ps1
+(
+    echo $ErrorActionPreference = 'Stop'
+    echo.
+    echo $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%PS_SCRIPT%"' -WorkingDirectory '%AGENT_DIR%'
+    echo.
+    echo # Trigger utama: AtStartup (jalan sebelum login)
+    echo $trigger = New-ScheduledTaskTrigger -AtStartup
+    echo.
+    echo # Tambah repetition tiap 15 menit sebagai recovery kalau agent crash
+    echo $rep = New-ScheduledTaskTrigger -Once -At ^(Get-Date^) -RepetitionInterval ^(New-TimeSpan -Minutes 15^)
+    echo $trigger.Repetition = $rep.Repetition
+    echo.
+    echo # Principal SYSTEM: jalan tanpa peduli user login
+    echo $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    echo.
+    echo # Settings: auto restart, no time limit, jangan dobel
+    echo $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval ^(New-TimeSpan -Minutes 1^) -ExecutionTimeLimit ^(New-TimeSpan -Hours 0^) -MultipleInstances IgnoreNew
+    echo.
+    echo Register-ScheduledTask -TaskName '%TASK_NAME%' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'SIAM Asset Tracking Agent - runs as SYSTEM, all users' -Force ^| Out-Null
+    echo.
+    echo Write-Host '  [OK] Task registered' -ForegroundColor Green
+) > "%PS_REG%"
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PS_REG%"
+del "%PS_REG%" >nul 2>&1
 
 if errorlevel 1 (
     echo  [X] Gagal daftarkan task
     pause
     exit /b 1
 )
-echo  [OK] Task '%TASK_NAME%' terdaftar
+echo  [OK] Task terdaftar:
+echo      Trigger: AtStartup + recovery 15 menit
+echo      User:    SYSTEM (semua user)
+echo      Restart: 999x, interval 1 menit
 
-REM ==== TEST & START ====
+REM ==== START TASK ====
 echo.
-echo  [*] Test heartbeat pertama (tunggu 5-15 detik)...
-echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%" -Once -ShowLog
-echo.
+echo  [*] Start task sekarang...
+timeout /t 2 /nobreak >nul
+powershell.exe -NoProfile -Command "Start-ScheduledTask -TaskName '%TASK_NAME%' -ErrorAction SilentlyContinue" >nul 2>&1
+timeout /t 3 /nobreak >nul
 
-echo  [*] Start task...
-schtasks /Run /TN "%TASK_NAME%" >nul 2>&1
-echo  [OK] Task berjalan
+powershell.exe -NoProfile -Command ^
+  "$t = Get-ScheduledTask -TaskName '%TASK_NAME%' -ErrorAction SilentlyContinue; if ($t) { Write-Host '  Status:' $t.State -ForegroundColor Green } else { Write-Host '  WARNING: Task tidak ditemukan' -ForegroundColor Red }"
 
 REM ==== SHORTCUTS ====
 set STARTMENU=C:\ProgramData\Microsoft\Windows\Start Menu\Programs\SIAM Agent
 if not exist "%STARTMENU%" mkdir "%STARTMENU%"
 
 echo.
-echo  [6/6] Buat shortcut Start Menu...
+echo  [8/8] Buat shortcut Start Menu...
 
-powershell.exe -NoProfile -Command ^
-  "$ws = New-Object -COM WScript.Shell;" ^
-  "$s = $ws.CreateShortcut('%STARTMENU%\Lihat Log.lnk'); $s.TargetPath = 'notepad.exe'; $s.Arguments = '\"%AGENT_DIR%\agent.log\"'; $s.Save();" ^
-  "$s = $ws.CreateShortcut('%STARTMENU%\Edit Config.lnk'); $s.TargetPath = 'notepad.exe'; $s.Arguments = '\"%AGENT_DIR%\config.json\"'; $s.Save();" ^
-  "$s = $ws.CreateShortcut('%STARTMENU%\Restart Agent.lnk'); $s.TargetPath = 'cmd.exe'; $s.Arguments = '/c schtasks /End /TN %TASK_NAME% && timeout /t 2 >nul && schtasks /Run /TN %TASK_NAME%'; $s.Save();" ^
-  "$s = $ws.CreateShortcut('%STARTMENU%\Buka Folder.lnk'); $s.TargetPath = 'explorer.exe'; $s.Arguments = '\"%AGENT_DIR%\"'; $s.Save()"
+set PS_SHORTCUT=%TEMP%\siam_shortcut.ps1
+(
+    echo $ErrorActionPreference = 'Stop'
+    echo $ws = New-Object -COM WScript.Shell
+    echo.
+    echo $s = $ws.CreateShortcut^('%STARTMENU%\Lihat Log.lnk'^)
+    echo $s.TargetPath = 'notepad.exe'
+    echo $s.Arguments = '"%AGENT_DIR%\agent.log"'
+    echo $s.Save^(^)
+    echo.
+    echo $s = $ws.CreateShortcut^('%STARTMENU%\Edit Config.lnk'^)
+    echo $s.TargetPath = 'notepad.exe'
+    echo $s.Arguments = '"%AGENT_DIR%\config.json"'
+    echo $s.Save^(^)
+    echo.
+    echo # Restart butuh admin - pakai runas supaya muncul UAC
+    echo $s = $ws.CreateShortcut^('%STARTMENU%\Restart Agent.lnk'^)
+    echo $s.TargetPath = 'powershell.exe'
+    echo $s.Arguments = '-NoProfile -Command "Start-Process schtasks -ArgumentList ''/End /TN %TASK_NAME%'' -Verb RunAs -Wait; Start-Sleep 2; Start-Process schtasks -ArgumentList ''/Run /TN %TASK_NAME%'' -Verb RunAs -Wait"'
+    echo $s.Save^(^)
+    echo.
+    echo $s = $ws.CreateShortcut^('%STARTMENU%\Buka Folder.lnk'^)
+    echo $s.TargetPath = 'explorer.exe'
+    echo $s.Arguments = '"%AGENT_DIR%"'
+    echo $s.Save^(^)
+) > "%PS_SHORTCUT%"
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PS_SHORTCUT%"
+del "%PS_SHORTCUT%" >nul 2>&1
 
 echo  [OK] Shortcut dibuat
 
@@ -161,8 +248,15 @@ echo.
 echo  Detail:
 echo    Folder:      %AGENT_DIR%
 echo    Task:        %TASK_NAME%
-echo    Log file:    %AGENT_DIR%\agent.log
+echo    Mode:        SYSTEM (jalan di semua user, sebelum login)
+echo    Log:         %AGENT_DIR%\agent.log
 echo    Config:      %AGENT_DIR%\config.json
+echo.
+echo  Agent akan otomatis:
+echo    - Jalan sejak Windows startup (sebelum login)
+echo    - Jalan di SEMUA user (Administrator, User A, dll)
+echo    - Auto-restart kalau crash
+echo    - Recovery tiap 15 menit
 echo.
 echo  Akses cepat: Start Menu ^> SIAM Agent
 echo.
@@ -170,6 +264,8 @@ echo  Perintah berguna:
 echo    Cek log:      type "%AGENT_DIR%\agent.log"
 echo    Stop agent:   schtasks /End /TN %TASK_NAME%
 echo    Start agent:  schtasks /Run /TN %TASK_NAME%
+echo.
+echo  Uninstall:    jalankan uninstall.bat
 echo.
 pause
 exit /b 0
