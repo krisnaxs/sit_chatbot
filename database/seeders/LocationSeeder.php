@@ -10,14 +10,14 @@ class LocationSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['building' => 'ADB', 'floor' => '1', 'room' => 'SIS', 'division' => 'Sistem Informasi', 'full_name' => 'ADB - SIS'],
+            ['building' => 'ADB', 'floor' => '1', 'room' => 'SIS', 'division' => 'Sistem Informasi', 'full_name' => 'ADB - 1 - SIS'],
             ['building' => 'ALBES', 'floor' => '1', 'room' => 'ALBES', 'division' => 'ALBES', 'full_name' => 'ALBES - 1 - ALBES'],
             ['building' => 'ADB', 'floor' => '1', 'room' => 'KEUANGAN', 'division' => 'keuangan', 'full_name' => 'ADB - 1 - KEUANGAN'],
             ['building' => 'ADB', 'floor' => '1', 'room' => 'HUMAS', 'division' => 'HUMAS', 'full_name' => 'ADB - 1 - HUMAS'],
-            ['building' => 'ADB', 'floor' => '2', 'room' => 'SMT', 'division' => 'SMT', 'full_name' => 'ADB - SMT'],
+            ['building' => 'ADB', 'floor' => '2', 'room' => 'SMT', 'division' => 'SMT', 'full_name' => 'ADB - 2 - SMT'],
             ['building' => 'ADB', 'floor' => '1', 'room' => 'AKUNTANSI', 'division' => 'AKUNTANSI', 'full_name' => 'ADB - 1 - AKUNTANSI'],
-            ['building' => 'ADB', 'floor' => '2', 'room' => 'EFISIENSI', 'division' => 'EFISIENSI', 'full_name' => 'ADB - EFISIENSI'],
-            ['building' => 'ADB', 'floor' => '2', 'room' => 'PUK', 'division' => 'PUK', 'full_name' => 'ADB - PUK'],
+            ['building' => 'ADB', 'floor' => '2', 'room' => 'EFISIENSI', 'division' => 'EFISIENSI', 'full_name' => 'ADB - 2 - EFISIENSI'],
+            ['building' => 'ADB', 'floor' => '2', 'room' => 'PUK', 'division' => 'PUK', 'full_name' => 'ADB - 2 - PUK'],
             ['building' => 'ADB', 'floor' => '1', 'room' => 'FASAU', 'division' => 'FASAU', 'full_name' => 'ADB - 1 - FASAU'],
             ['building' => 'ADB', 'floor' => '1', 'room' => 'POLIKLINIK', 'division' => 'POLIKLINIK', 'full_name' => 'ADB - 1 - POLIKLINIK'],
             ['building' => 'ADB', 'floor' => '1', 'room' => 'PBJ01', 'division' => 'PBJ01', 'full_name' => 'ADB - 1 - PBJ01'],
