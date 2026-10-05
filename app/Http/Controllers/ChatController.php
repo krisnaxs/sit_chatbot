@@ -862,52 +862,54 @@ class ChatController extends Controller
         $lower = Str::lower($pesan);
 
         // ═══════════════════════════════════════════════════════════
-        // STEP 0: KNOWLEDGE BASE (paling awal)
-        // Skip kalau pesan jelas query data (butuh DB real-time),
-        // supaya KB tidak "mencuri" pertanyaan seperti "berapa laptop ready".
+        // STEP 0: KNOWLEDGE BASE — fleksibel
+        // Match KUAT (≥ 0.8)  → langsung jawab KB
+        // Match LEMAH (< 0.8) → simpan untuk fallback, lanjut pipeline
         // ═══════════════════════════════════════════════════════════
-        $looksLikeDataQuery = (bool) preg_match(
-            '/\b(berapa|jumlah|total|daftar|list|sebutkan|tampilkan|lihat)\b/i',
-            $lower
-        );
+        $kbFallback = null;
 
-        if (!$looksLikeDataQuery) {
-            try {
-                $kb = $this->tryKnowledge($pesan);
-                if ($kb) {
-                    Log::info('answer.via_knowledge_step0', [
+        try {
+            $kb = $this->tryKnowledge($pesan);
+            if ($kb) {
+                $kbScore = $kb[3] ?? 0;
+
+                if ($kbScore >= 0.8) {
+                    Log::info('answer.via_knowledge_strong', [
                         'request_id' => $requestId,
+                        'score' => $kbScore,
                         'pesan' => $pesan,
                     ]);
-                    return $kb;
+                    return [$kb[0], 'database', $kb[2]];
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Knowledge step0 error', [
+
+                // Match lemah → simpan untuk fallback
+                $kbFallback = $kb;
+                Log::info('answer.kb_weak_saved', [
                     'request_id' => $requestId,
-                    'error' => $e->getMessage(),
+                    'score' => $kbScore,
+                    'pesan' => $pesan,
                 ]);
             }
+        } catch (\Throwable $e) {
+            Log::warning('Knowledge step0 error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 1: SN Pattern (paling spesifik, paling akurat)
-        // ═══════════════════════════════════════════════════════════
+        // STEP 1: SN Pattern
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
         if ($snAnswer) {
             return $snAnswer;
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 2: User + Field (misal: "Dewi Lestari sn nya berapa")
-        // ═══════════════════════════════════════════════════════════
+        // STEP 2: User + Field
         $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
         if ($userAssetAnswer) {
             return $userAssetAnswer;
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 3: User Assets by Name (misal: "Budi pegang aset apa")
-        // ═══════════════════════════════════════════════════════════
+        // STEP 3: User Assets by Name
         $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
         if ($userAssetsByName) {
             if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
@@ -916,9 +918,7 @@ class ChatController extends Controller
             return $userAssetsByName;
         }
 
-        // ═══════════════════════════════════════════════════════════
         // STEP 4: Consumable Query
-        // ═══════════════════════════════════════════════════════════
         if ($this->isConsumableQuery($lower, $memory)) {
             $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
             if ($consumableAnswer) {
@@ -926,14 +926,9 @@ class ChatController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 5: (DIHAPUS — dulu duplikat tryKnowledge)
-        // Knowledge Base sudah dicek di STEP 0 di atas.
-        // ═══════════════════════════════════════════════════════════
+        // STEP 5: (kosong — KB sudah di step 0)
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 6: SQL-to-Text untuk query kompleks (PRIORITY)
-        // ═══════════════════════════════════════════════════════════
+        // STEP 6: SQL-to-Text (PRIORITY) + KB context
         $sqlTextTried = false;
 
         if ($this->isComplexQuery($pesan)) {
@@ -944,6 +939,30 @@ class ChatController extends Controller
                 'pesan' => $pesan,
             ]);
 
+            $kbHits = $this->getRelevantKnowledge($pesan, 5);
+            $topScore = $kbHits[0]['score'] ?? 0;
+
+            // KB sangat relevan → langsung jawab KB
+            if ($topScore >= 0.8) {
+                Log::info('answer.via_knowledge_strong', [
+                    'request_id' => $requestId,
+                    'score' => $topScore,
+                ]);
+
+                $kbModel = Knowledge::where('kata_kunci', $kbHits[0]['kata_kunci'])->first();
+                if ($kbModel) {
+                    return [$kbModel->jawaban, 'database', $this->extractFiles($kbModel)];
+                }
+            }
+
+            if (!empty($kbHits)) {
+                Log::info('cariJawaban.sql_with_kb_context', [
+                    'request_id' => $requestId,
+                    'kb_hits' => count($kbHits),
+                    'top_score' => $topScore,
+                ]);
+            }
+
             try {
                 $prevSql = null;
                 $sqlCtx = $memory->recall('sql_text');
@@ -951,13 +970,16 @@ class ChatController extends Controller
                     $prevSql = $sqlCtx['sql'];
                 }
 
-                $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan, $prevSql);
+                $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)
+                    ->tryAnswer($pesan, $prevSql, $kbHits);
+
                 if ($sqlAnswer) {
                     Log::info('answer.via_sql_text_priority', [
                         'request_id' => $requestId,
                         'sql' => $sqlAnswer[2]['sql'] ?? null,
                         'row_count' => $sqlAnswer[2]['row_count'] ?? 0,
                         'had_context' => $prevSql !== null,
+                        'kb_hits' => count($kbHits),
                     ]);
 
                     if (isset($sqlAnswer[2]) && is_array($sqlAnswer[2])) {
@@ -974,9 +996,7 @@ class ChatController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 7: QueryRouter (untuk query sederhana)
-        // ═══════════════════════════════════════════════════════════
+        // STEP 7: QueryRouter
         try {
             $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
             if ($dbAnswer) {
@@ -1004,9 +1024,7 @@ class ChatController extends Controller
             ]);
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 8: AutoLearning (FAQ hasil belajar)
-        // ═══════════════════════════════════════════════════════════
+        // STEP 8: AutoLearning
         $learning = null;
         try {
             $learning = app(AutoLearningService::class);
@@ -1024,9 +1042,7 @@ class ChatController extends Controller
             ]);
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 9: SQL-to-Text (FALLBACK)
-        // ═══════════════════════════════════════════════════════════
+        // STEP 9: SQL-to-Text (FALLBACK) + KB context
         if (!$sqlTextTried) {
             try {
                 $prevSql = null;
@@ -1035,12 +1051,17 @@ class ChatController extends Controller
                     $prevSql = $sqlCtx['sql'];
                 }
 
-                $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan, $prevSql);
+                $kbHits = $this->getRelevantKnowledge($pesan, 5);
+
+                $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)
+                    ->tryAnswer($pesan, $prevSql, $kbHits);
+
                 if ($sqlAnswer) {
                     Log::info('answer.via_sql_text_fallback', [
                         'request_id' => $requestId,
                         'sql' => $sqlAnswer[2]['sql'] ?? null,
                         'row_count' => $sqlAnswer[2]['row_count'] ?? 0,
+                        'kb_hits' => count($kbHits),
                     ]);
 
                     if (isset($sqlAnswer[2]) && is_array($sqlAnswer[2])) {
@@ -1057,9 +1078,7 @@ class ChatController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
         // STEP 10: Ollama Intent Parser
-        // ═══════════════════════════════════════════════════════════
         try {
             $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
             if ($intentResult) {
@@ -1073,9 +1092,17 @@ class ChatController extends Controller
             ]);
         }
 
-        // ═══════════════════════════════════════════════════════════
+        // ⭐ FALLBACK KB LEMAH — sebelum Ollama QA
+        if ($kbFallback) {
+            Log::info('answer.via_knowledge_weak_fallback', [
+                'request_id' => $requestId,
+                'score' => $kbFallback[3] ?? 0,
+                'pesan' => $pesan,
+            ]);
+            return [$kbFallback[0], 'database', $kbFallback[2]];
+        }
+
         // STEP 11: Ollama QA (LAST RESORT)
-        // ═══════════════════════════════════════════════════════════
         Log::info('answer.via_ollama_qa', ['request_id' => $requestId]);
 
         try {
@@ -1377,30 +1404,32 @@ class ChatController extends Controller
         };
 
         $pesanBersih = $normalize($pesan);
-        if (empty($pesanBersih))
+        if (empty($pesanBersih)) {
             return null;
+        }
 
         $allKb = Knowledge::with('attachments')->get();
-        if ($allKb->isEmpty())
+        if ($allKb->isEmpty()) {
             return null;
+        }
 
         // ═══════════════════════════════════════════════════════════
-        // LEVEL 1: EXACT MATCH
+        // LEVEL 1: EXACT MATCH — skor 1.0
         // ═══════════════════════════════════════════════════════════
         foreach ($allKb as $kb) {
             if ($normalize($kb->kata_kunci) === $pesanBersih) {
                 Log::info('tryKnowledge.exact_match', [
                     'id' => $kb->id,
                     'kata_kunci' => $kb->kata_kunci,
+                    'score' => 1.0,
                 ]);
-                return [$kb->jawaban, 'database', $this->extractFiles($kb)];
+                return [$kb->jawaban, 'database', $this->extractFiles($kb), 1.0];
             }
         }
 
         // ═══════════════════════════════════════════════════════════
-        // LEVEL 2: SUBSTRING MATCH
-        // ⭐ FIX: Skip KB yang cuma 1 kata DAN pendek (mis. "password").
-        //   KB 1 kata masih boleh kalau panjang (mis. "helpdesk").
+        // LEVEL 2: SUBSTRING MATCH — skor 0.9
+        // Skip KB 1 kata pendek (< 12 char)
         // ═══════════════════════════════════════════════════════════
         $bestSubstring = null;
         $bestSubstringLen = 0;
@@ -1408,17 +1437,12 @@ class ChatController extends Controller
         foreach ($allKb as $kb) {
             $kbNorm = $normalize($kb->kata_kunci);
 
-            // ⭐ FIX: hitung jumlah kata
             $kbWordCount = count(array_filter(explode(' ', $kbNorm), fn($w) => $w !== ''));
-
-            // Skip KB 1 kata yang pendek (< 12 char)
             if ($kbWordCount < 2 && strlen($kbNorm) < 12) {
                 continue;
             }
 
-            // Cek substring (dua arah)
             if (str_contains($pesanBersih, $kbNorm) || str_contains($kbNorm, $pesanBersih)) {
-                // Ambil yang paling panjang (paling spesifik)
                 if (strlen($kbNorm) > $bestSubstringLen) {
                     $bestSubstringLen = strlen($kbNorm);
                     $bestSubstring = $kb;
@@ -1430,22 +1454,23 @@ class ChatController extends Controller
             Log::info('tryKnowledge.substring_match', [
                 'id' => $bestSubstring->id,
                 'kata_kunci' => $bestSubstring->kata_kunci,
+                'score' => 0.9,
             ]);
-            return [$bestSubstring->jawaban, 'database', $this->extractFiles($bestSubstring)];
+            return [$bestSubstring->jawaban, 'database', $this->extractFiles($bestSubstring), 0.9];
         }
 
         // ═══════════════════════════════════════════════════════════
-        // LEVEL 3: TOKEN-BASED MATCHING (fallback)
-        // ⭐ FIX: threshold 0.5 (lebih ketat)
-        // ⭐ FIX: skip KB 1 kata pendek juga di sini
+        // LEVEL 3: TOKEN-BASED MATCHING — skor dinamis
+        // Threshold 0.5, skip KB 1 kata pendek
         // ═══════════════════════════════════════════════════════════
         $pesanTokens = collect(explode(' ', $pesanBersih))
             ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
             ->values()
             ->all();
 
-        if (empty($pesanTokens))
+        if (empty($pesanTokens)) {
             return null;
+        }
 
         $best = null;
         $bestScore = 0;
@@ -1453,7 +1478,6 @@ class ChatController extends Controller
         foreach ($allKb as $kb) {
             $kbNorm = $normalize($kb->kata_kunci);
 
-            // ⭐ FIX: skip KB 1 kata pendek juga di level 3
             $kbWordCount = count(array_filter(explode(' ', $kbNorm), fn($w) => $w !== ''));
             if ($kbWordCount < 2 && strlen($kbNorm) < 12) {
                 continue;
@@ -1464,8 +1488,9 @@ class ChatController extends Controller
                 ->values()
                 ->all();
 
-            if (empty($kbTokens))
+            if (empty($kbTokens)) {
                 continue;
+            }
 
             $matched = 0;
             foreach ($pesanTokens as $pt) {
@@ -1493,19 +1518,86 @@ class ChatController extends Controller
             }
         }
 
-        // ⭐ FIX: threshold 0.5 (naik dari 0.4)
         if ($best && $bestScore >= 0.5) {
             Log::info('tryKnowledge.token_match', [
                 'id' => $best->id,
                 'score' => round($bestScore, 2),
                 'kata_kunci' => $best->kata_kunci,
             ]);
-            return [$best->jawaban, 'database', $this->extractFiles($best)];
+            return [$best->jawaban, 'database', $this->extractFiles($best), $bestScore];
         }
 
         return null;
     }
+    /**
+     * Ambil top-N KB yang relevan dengan pesan, untuk dijadikan konteks SQL.
+     * Return array of ['kata_kunci' => ..., 'jawaban' => ..., 'score' => ...].
+     */
+    private function getRelevantKnowledge(string $pesan, int $limit = 5): array
+    {
+        $normalize = function (string $s): string {
+            $s = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($s));
+            return preg_replace('/\s+/', ' ', trim($s));
+        };
 
+        $pesanBersih = $normalize($pesan);
+        if (empty($pesanBersih))
+            return [];
+
+        $allKb = Knowledge::all();
+        if ($allKb->isEmpty())
+            return [];
+
+        $pesanTokens = collect(explode(' ', $pesanBersih))
+            ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
+            ->values()
+            ->all();
+
+        if (empty($pesanTokens))
+            return [];
+
+        $scored = [];
+
+        foreach ($allKb as $kb) {
+            $kbNorm = $normalize($kb->kata_kunci);
+            $kbTokens = collect(explode(' ', $kbNorm))
+                ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
+                ->values()
+                ->all();
+
+            if (empty($kbTokens))
+                continue;
+
+            // Skor: berapa % token KB yang match pesan
+            $matched = 0;
+            foreach ($kbTokens as $kt) {
+                foreach ($pesanTokens as $pt) {
+                    if (
+                        $kt === $pt || levenshtein($kt, $pt) <= 1
+                        || str_contains($pt, $kt) || str_contains($kt, $pt)
+                    ) {
+                        $matched++;
+                        break;
+                    }
+                }
+            }
+
+            $score = $matched / count($kbTokens);
+
+            // Hanya ambil yang cukup relevan
+            if ($score >= 0.5) {
+                $scored[] = [
+                    'kata_kunci' => $kb->kata_kunci,
+                    'jawaban' => $kb->jawaban,
+                    'score' => $score,
+                ];
+            }
+        }
+
+        usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
+
+        return array_slice($scored, 0, $limit);
+    }
     private function followUpTopAssetByModel(array $ctx, int $offset, int $limit, ChatMemoryService $memory): ?array
     {
         $model = $ctx['model'] ?? null;

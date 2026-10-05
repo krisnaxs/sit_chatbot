@@ -30,32 +30,29 @@ class SqlTextService
      * @param string $pesan Pesan user
      * @param string|null $previousSql SQL sebelumnya (untuk konteks follow-up)
      */
-    public function tryAnswer(string $pesan, ?string $previousSql = null): ?array
+    public function tryAnswer(string $pesan, ?string $previousSql = null, array $kbContext = []): ?array
     {
-        // 1. Normalisasi pesan (buang kata tidak penting)
         $normalizedMessage = $this->normalizeMessage($pesan);
 
         Log::info('SqlTextService.tryAnswer', [
             'original' => $pesan,
             'normalized' => $normalizedMessage,
             'has_prev_sql' => $previousSql !== null,
+            'kb_context_count' => count($kbContext),
         ]);
 
-        // 2. Generate SQL
-        $sql = $this->generateSql($normalizedMessage, $previousSql);
+        $sql = $this->generateSql($normalizedMessage, $previousSql, $kbContext);
         if (!$sql) {
             Log::info('SqlTextService.generateSql_failed');
             return null;
         }
 
-        // 3. Execute
         $rows = $this->executeSql($sql);
         if ($rows === null) {
             Log::info('SqlTextService.executeSql_failed', ['sql' => $sql]);
             return null;
         }
 
-        // 4. Format hasil → jawaban natural
         $answer = $this->formatAnswer($normalizedMessage, $sql, $rows);
 
         return [
@@ -65,6 +62,7 @@ class SqlTextService
                 'type' => 'sql_text',
                 'sql' => $sql,
                 'row_count' => count($rows),
+                'kb_context_count' => count($kbContext),
                 'time' => now()->toDateTimeString(),
             ],
         ];
@@ -102,19 +100,37 @@ class SqlTextService
     // TAHAP 1: GENERATE SQL
     // ============================================================
 
-    private function generateSql(string $pesan, ?string $previousSql = null): ?string
+    private function generateSql(string $pesan, ?string $previousSql = null, array $kbContext = []): ?string
     {
         $schema = $this->getSchema();
         $system = $this->buildSqlPrompt($schema);
 
-        // Sisipkan context SQL sebelumnya kalau ada
-        $userMessage = $pesan;
+        // Bangun blok KB kalau ada
+        $kbBlock = '';
+        if (!empty($kbContext)) {
+            $kbBlock = "═══════════════════════════════════════\n"
+                . "KONTEKS KNOWLEDGE BASE\n"
+                . "═══════════════════════════════════════\n"
+                . "Gunakan konteks ini untuk memahami istilah/definisi dalam pertanyaan user.\n"
+                . "Konteks ini BUKAN data database — jangan dijadikan SELECT target.\n\n";
+
+            foreach ($kbContext as $i => $kb) {
+                $kbBlock .= "[" . ($i + 1) . "] Kata kunci: {$kb['kata_kunci']}\n";
+                $kbBlock .= "    Jawaban: {$kb['jawaban']}\n\n";
+            }
+
+            $kbBlock .= "═══════════════════════════════════════\n\n";
+        }
+
+        $userMessage = $kbBlock . $pesan;
+
         if ($previousSql) {
             $userMessage = "═══════════════════════════════════════\n"
                 . "KONTEKS SQL SEBELUMNYA\n"
                 . "═══════════════════════════════════════\n"
                 . "```sql\n{$previousSql}\n```\n"
                 . "═══════════════════════════════════════\n\n"
+                . $kbBlock
                 . "Pertanyaan lanjutan user: {$pesan}\n\n"
                 . "PENTING: Gunakan konteks SQL di atas untuk memahami kata 'itu', 'yang tadi', 'nya', dll.\n"
                 . "Jika user tanya 'type apa itu' setelah SQL sebelumnya filter 'tahun 2024', maka generate SQL "
@@ -132,28 +148,24 @@ class SqlTextService
         $sql = preg_replace('/\s*```$/', '', $sql);
         $sql = trim($sql);
 
-        // Buang komentar SQL (-- ...)
         $sql = preg_replace('/--.*$/m', '', $sql);
         $sql = trim($sql);
 
-        // Buang penjelasan setelah SQL (kalau ada)
-        // Ambil hanya sampai titik koma pertama atau akhir baris SQL
         if (preg_match('/^(.*?;)/s', $sql, $m)) {
             $sql = $m[1];
         }
 
-        // Safety: hanya boleh SELECT / WITH
         if (!$this->isSafeSql($sql)) {
             Log::warning('SqlTextService: unsafe SQL rejected', [
                 'pesan' => $pesan,
                 'sql' => mb_substr($sql, 0, 300),
+                'kb_context_count' => count($kbContext),
             ]);
             return null;
         }
 
         return $sql;
     }
-
     /**
      * Prompt SQL generator — diperkuat dengan contoh kombinasi.
      */
@@ -335,9 +347,26 @@ Q: "stok mouse berapa" ATAU "berapa stok mouse"
 A: SELECT name, stock_available AS stok, unit FROM consumables WHERE name LIKE '%mouse%'
 
 ═══════════════════════════════════════
-FALLBACK:
+CATATAN — KONTEKS KNOWLEDGE BASE
 ═══════════════════════════════════════
 
+Kalau di atas ada blok "KONTEKS KNOWLEDGE BASE", itu adalah definisi/penjelasan
+dari KB internal — BUKAN data dari database.
+
+Gunakan KB hanya untuk MEMAHAMI istilah dalam pertanyaan user, misalnya:
+- "apa itu SIAM" → SIAM = Sistem Informasi Aset Manajemen
+- "apa itu IAM" → IAM = Identity and Access Management
+
+JANGAN jadikan isi KB sebagai target SELECT. Tetap generate SQL ke tabel
+database (assets, consumables, users, dll).
+
+Kalau pertanyaan user bisa dijawab dari KB (misal "apa itu SIAM"),
+output PERSIS:
+SELECT NULL AS not_applicable LIMIT 1
+
+═══════════════════════════════════════
+FALLBACK:
+═══════════════════════════════════════
 Kalau pertanyaan TIDAK BISA dijawab dengan SQL (misal: "cara reset password", "apa itu SIS",
 "siapa kamu", "resep nasi goreng"), output PERSIS:
 SELECT NULL AS not_applicable LIMIT 1
