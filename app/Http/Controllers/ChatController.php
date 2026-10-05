@@ -446,9 +446,20 @@ class ChatController extends Controller
             preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower) &&
             preg_match('/\b(apa|apa saja|apa aja|list|daftar|sebutkan|tampilkan)\b/i', $lower)
         ) || (
-            // Atau: "tahun pembelian 2024 type apa"
+            // "tahun pembelian 2024 type apa"
             preg_match('/\b(tahun|year)\b/i', $lower) &&
             preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower)
+        ) || (
+            // ★ BARU: "type apa itu", "tipe apa itu"
+            preg_match('/\b(type|tipe|model)\s+apa\s+itu\b/i', $lower)
+        ) || (
+            // ★ BARU: "apa type-nya", "apa tipenya"
+            preg_match('/\bapa\s+(type|tipe|model)(nya)?\b/i', $lower)
+        ) || (
+            // ★ BARU: "laptop tahun 2024 laptop apa" (kategori + tahun + apa)
+            preg_match('/\b(laptop|pc|komputer|printer|monitor)\b/i', $lower) &&
+            preg_match('/\b(20\d{2}|tahun)\b/i', $lower) &&
+            preg_match('/\b(apa|tipe|type|model)\b/i', $lower)
         );
 
         if ($isListDistinctQuery) {
@@ -717,31 +728,59 @@ class ChatController extends Controller
             }
         }
 
-        // === 1. QueryRouter (dalam try-catch) ===
-        try {
-            $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
-            if ($dbAnswer) {
-                if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
-                    session()->put('last_query_context', $dbAnswer[2]);
-                    $type = $dbAnswer[2]['type'] ?? 'query';
-                    $memory->remember($type, $dbAnswer[2], self::CONTEXT_TTL);
-                }
+        // ============================================================
+        // ★ DETEKSI KOMPLEKSITAS QUERY ★
+        // Kalau ada filter kompleks (tahun, brand, bulan, dll),
+        // SKIP QueryRouter manual → langsung ke SQL-to-Text
+        // ============================================================
+        $hasComplexFilter = (
+            // Ada tahun (2024, 2023, 2025)
+            preg_match('/\b(20\d{2})\b/', $lower) ||
+            // Ada "tahun XXXX"
+            preg_match('/\b(tahun|year)\s+\d{4}\b/i', $lower) ||
+            // Ada bulan
+            preg_match('/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i', $lower) ||
+            // Ada brand spesifik + kata "brand/merek"
+            preg_match('/\b(brand|merek|model)\s+(dell|hp|lenovo|asus|acer|apple|samsung|toshiba|epson|canon|brother)\b/i', $lower) ||
+                // Kombinasi kategori + waktu
+            (
+                preg_match('/\b(laptop|pc|komputer|printer|monitor|server|router|proyektor|scanner)\b/i', $lower) &&
+                preg_match('/\b(20\d{2}|tahun|bulan|januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i', $lower)
+            )
+        );
 
-                if (preg_match('/\b(konsumable|consumable|konsumebel|habis pakai|daftar konsumable)\b/i', $lower)) {
-                    $memory->remember('consumable_list', [
-                        'type' => 'consumable_list',
-                        '_type' => 'consumable_list',
-                        'time' => now()->toDateTimeString(),
-                    ], self::CONTEXT_TTL, 'Daftar konsumable');
-                }
+        // === 1. QueryRouter (skip kalau filter kompleks) ===
+        if (!$hasComplexFilter) {
+            try {
+                $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
+                if ($dbAnswer) {
+                    if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
+                        session()->put('last_query_context', $dbAnswer[2]);
+                        $type = $dbAnswer[2]['type'] ?? 'query';
+                        $memory->remember($type, $dbAnswer[2], self::CONTEXT_TTL);
+                    }
 
-                Log::info('answer.via_queryrouter', ['request_id' => $requestId]);
-                return [$dbAnswer[0], 'database', null];
+                    if (preg_match('/\b(konsumable|consumable|konsumebel|habis pakai|daftar konsumable)\b/i', $lower)) {
+                        $memory->remember('consumable_list', [
+                            'type' => 'consumable_list',
+                            '_type' => 'consumable_list',
+                            'time' => now()->toDateTimeString(),
+                        ], self::CONTEXT_TTL, 'Daftar konsumable');
+                    }
+
+                    Log::info('answer.via_queryrouter', ['request_id' => $requestId]);
+                    return [$dbAnswer[0], 'database', null];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('QueryRouter error', [
+                    'request_id' => $requestId,
+                    'error' => $e->getMessage(),
+                ]);
             }
-        } catch (\Throwable $e) {
-            Log::warning('QueryRouter error', [
+        } else {
+            Log::info('queryrouter.skipped_complex_filter', [
                 'request_id' => $requestId,
-                'error' => $e->getMessage(),
+                'pesan' => $pesan,
             ]);
         }
 
@@ -780,12 +819,20 @@ class ChatController extends Controller
 
         // === 3.5. SQL-to-Text (BARU) ===
         try {
-            $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan);
+            // Ambil context SQL sebelumnya (untuk follow-up "type apa itu")
+            $prevSql = null;
+            $sqlCtx = $memory->recall('sql_text');
+            if ($sqlCtx && isset($sqlCtx['sql'])) {
+                $prevSql = $sqlCtx['sql'];
+            }
+
+            $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan, $prevSql);
             if ($sqlAnswer) {
                 Log::info('answer.via_sql_text', [
                     'request_id' => $requestId,
                     'sql' => $sqlAnswer[2]['sql'] ?? null,
                     'row_count' => $sqlAnswer[2]['row_count'] ?? 0,
+                    'had_context' => $prevSql !== null,
                 ]);
 
                 // Simpan context biar follow-up "lanjut" bisa kerja

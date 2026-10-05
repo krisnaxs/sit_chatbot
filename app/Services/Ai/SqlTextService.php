@@ -22,10 +22,16 @@ class SqlTextService
     /**
      * Entry point. Return [answer, 'database', context] atau null kalau gagal.
      */
-    public function tryAnswer(string $pesan): ?array
+    /**
+     * Entry point. Return [answer, 'database', context] atau null kalau gagal.
+     *
+     * @param string $pesan Pesan user
+     * @param string|null $previousSql SQL sebelumnya (untuk konteks follow-up)
+     */
+    public function tryAnswer(string $pesan, ?string $previousSql = null): ?array
     {
-        // 1. Generate SQL
-        $sql = $this->generateSql($pesan);
+        // 1. Generate SQL (dengan context kalau ada)
+        $sql = $this->generateSql($pesan, $previousSql);
         if (!$sql) {
             return null;
         }
@@ -54,12 +60,26 @@ class SqlTextService
     // ============================================================
     // TAHAP 1: GENERATE SQL
     // ============================================================
-    private function generateSql(string $pesan): ?string
+    private function generateSql(string $pesan, ?string $previousSql = null): ?string
     {
         $schema = $this->getSchema();
         $system = $this->buildSqlPrompt($schema);
 
-        $response = $this->callOllama($system, $pesan, temperature: 0.1, maxTokens: 400);
+        // Sisipkan context SQL sebelumnya kalau ada
+        $userMessage = $pesan;
+        if ($previousSql) {
+            $userMessage = "═══════════════════════════════════════\n"
+                . "KONTEKS SQL SEBELUMNYA\n"
+                . "═══════════════════════════════════════\n"
+                . "```sql\n{$previousSql}\n```\n"
+                . "═══════════════════════════════════════\n\n"
+                . "Pertanyaan lanjutan user: {$pesan}\n\n"
+                . "PENTING: Gunakan konteks SQL di atas untuk memahami kata 'itu', 'yang tadi', 'nya', dll.\n"
+                . "Jika user tanya 'type apa itu' setelah SQL sebelumnya filter 'tahun 2024', maka generate SQL "
+                . "yang juga memfilter tahun 2024.\n";
+        }
+
+        $response = $this->callOllama($system, $userMessage, temperature: 0.1, maxTokens: 400);
         if (!$response) {
             return null;
         }
@@ -81,7 +101,6 @@ class SqlTextService
 
         return $sql;
     }
-
     private function buildSqlPrompt(string $schema): string
     {
         $today = now()->format('Y-m-d');
