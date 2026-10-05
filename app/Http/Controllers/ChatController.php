@@ -865,15 +865,17 @@ class ChatController extends Controller
         // STEP 1: SN Pattern (paling spesifik, paling akurat)
         // ═══════════════════════════════════════════════════════════
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
-        if ($snAnswer)
+        if ($snAnswer) {
             return $snAnswer;
+        }
 
         // ═══════════════════════════════════════════════════════════
         // STEP 2: User + Field (misal: "Dewi Lestari sn nya berapa")
         // ═══════════════════════════════════════════════════════════
         $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
-        if ($userAssetAnswer)
+        if ($userAssetAnswer) {
             return $userAssetAnswer;
+        }
 
         // ═══════════════════════════════════════════════════════════
         // STEP 3: User Assets by Name (misal: "Budi pegang aset apa")
@@ -897,14 +899,30 @@ class ChatController extends Controller
         }
 
         // ═══════════════════════════════════════════════════════════
-        // STEP 5: SQL-to-Text untuk query kompleks (PRIORITY)
-        // Query kompleks = kombinasi tahun/bulan/kategori/status
-        // yang tidak bisa dijawab oleh pattern matching QueryRouter.
+        // STEP 5: KNOWLEDGE BASE (dipindah ke sini)
+        // Cek dulu sebelum SQL/QueryRouter supaya pertanyaan non-data
+        // (SOP, definisi, cara pakai) tidak "nyasar" ke DB.
+        // ═══════════════════════════════════════════════════════════
+        try {
+            $knowledgeAnswer = $this->tryKnowledge($pesan);
+            if ($knowledgeAnswer) {
+                Log::info('answer.via_knowledge', ['request_id' => $requestId]);
+                return $knowledgeAnswer;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Knowledge search error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 6: SQL-to-Text untuk query kompleks (PRIORITY)
         // ═══════════════════════════════════════════════════════════
         $sqlTextTried = false;
 
         if ($this->isComplexQuery($pesan)) {
-            $sqlTextTried = true;  // ← set true SEBELUM call
+            $sqlTextTried = true;
 
             Log::info('cariJawaban.complex_query_detected', [
                 'request_id' => $requestId,
@@ -942,7 +960,7 @@ class ChatController extends Controller
         }
 
         // ═══════════════════════════════════════════════════════════
-        // STEP 6: QueryRouter (untuk query sederhana)
+        // STEP 7: QueryRouter (untuk query sederhana)
         // ═══════════════════════════════════════════════════════════
         try {
             $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
@@ -972,22 +990,6 @@ class ChatController extends Controller
         }
 
         // ═══════════════════════════════════════════════════════════
-        // STEP 7: Knowledge Base
-        // ═══════════════════════════════════════════════════════════
-        try {
-            $knowledgeAnswer = $this->tryKnowledge($pesan);
-            if ($knowledgeAnswer) {
-                Log::info('answer.via_knowledge', ['request_id' => $requestId]);
-                return $knowledgeAnswer;
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Knowledge search error', [
-                'request_id' => $requestId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        // ═══════════════════════════════════════════════════════════
         // STEP 8: AutoLearning (FAQ hasil belajar)
         // ═══════════════════════════════════════════════════════════
         $learning = null;
@@ -1009,8 +1011,6 @@ class ChatController extends Controller
 
         // ═══════════════════════════════════════════════════════════
         // STEP 9: SQL-to-Text (FALLBACK)
-        // Skip kalau sudah dicoba di STEP 5 (isComplexQuery = true).
-        // Hanya jalan kalau query sederhana yang QueryRouter gagal.
         // ═══════════════════════════════════════════════════════════
         if (!$sqlTextTried) {
             try {
