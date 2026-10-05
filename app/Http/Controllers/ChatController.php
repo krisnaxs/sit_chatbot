@@ -434,6 +434,34 @@ class ChatController extends Controller
         $lower = Str::lower(trim($pesan));
 
         // ═══════════════════════════════════════════════════════════
+        // ⭐ STEP 0 (BARU): Handler "type apa itu" / "model apa itu"
+        // ═══════════════════════════════════════════════════════════
+        if (preg_match('/\b(type|tipe|model)\s+apa\s+itu\b/i', $lower)) {
+            $sqlCtx = $memory->recall('sql_text');
+
+            // HANYA kalau ada SQL context → biarkan SQL-to-Text jawab
+            if ($sqlCtx && isset($sqlCtx['sql'])) {
+                Log::info('followup.type_apa_itu_with_sql_context', ['pesan' => $pesan]);
+                return null;
+            }
+
+            // Selain itu → jawab penjelasan umum
+            Log::info('followup.type_apa_itu_general', ['pesan' => $pesan]);
+            return [
+                "**Type/Tipe** itu adalah *model atau jenis produk*. Contoh untuk laptop:\n\n"
+                . "• THINPAD E 14 GEN 6\n"
+                . "• THINPAD E 14 GEN 5\n"
+                . "• ASUS Zenbook DUO (UX8406MA)\n"
+                . "• THINKPAD YOGA X1\n\n"
+                . "Kalau mau tahu type spesifik, tanya misalnya:\n"
+                . "• \"type laptop tahun 2024\"\n"
+                . "• \"type laptop yang ready\"\n"
+                . "• \"berapa laptop type THINPAD E 14 GEN 5\"",
+                'database',
+                null,
+            ];
+        }
+        // ═══════════════════════════════════════════════════════════
         // STEP 1: Handler spesifik (user, SN, consumable)
         // ═══════════════════════════════════════════════════════════
 
@@ -750,11 +778,14 @@ class ChatController extends Controller
 
         return $this->executeFollowUp($ctx, $request, $memory);
     }
-    /**
-     *  Cek apakah pesan sebenarnya adalah QUERY BARU (bukan follow-up).
-     */
+
     private function isNewQuery(string $lower): bool
     {
+        // ⭐ BARU: kalau query kompleks → pasti query baru
+        if ($this->isComplexQuery($lower)) {
+            return true;
+        }
+
         $hasCountWord = (bool) preg_match(
             '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
             $lower
@@ -829,12 +860,24 @@ class ChatController extends Controller
     private function cariJawaban(string $pesan, ChatMemoryService $memory, string $requestId): array
     {
         $lower = Str::lower($pesan);
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 1: SN Pattern (paling spesifik, paling akurat)
+        // ═══════════════════════════════════════════════════════════
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
         if ($snAnswer)
             return $snAnswer;
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 2: User + Field (misal: "Dewi Lestari sn nya berapa")
+        // ═══════════════════════════════════════════════════════════
         $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
         if ($userAssetAnswer)
             return $userAssetAnswer;
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 3: User Assets by Name (misal: "Budi pegang aset apa")
+        // ═══════════════════════════════════════════════════════════
         $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
         if ($userAssetsByName) {
             if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
@@ -842,6 +885,10 @@ class ChatController extends Controller
             }
             return $userAssetsByName;
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 4: Consumable Query
+        // ═══════════════════════════════════════════════════════════
         if ($this->isConsumableQuery($lower, $memory)) {
             $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
             if ($consumableAnswer) {
@@ -849,67 +896,84 @@ class ChatController extends Controller
             }
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // STEP 5: SQL-to-Text untuk query kompleks (PRIORITY)
+        // Query kompleks = kombinasi tahun/bulan/kategori/status
+        // yang tidak bisa dijawab oleh pattern matching QueryRouter.
+        // ═══════════════════════════════════════════════════════════
+        $sqlTextTried = false;
 
-        $hasComplexFilter = (
-            // 1. Ada tahun (2024, 2023, 2025)
-            preg_match('/\b(20\d{2})\b/', $lower) ||
-            // 2. Ada "tahun XXXX"
-            preg_match('/\b(tahun|year)\s+\d{4}\b/i', $lower) ||
-            // 3. Ada bulan
-            preg_match('/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i', $lower) ||
-            // 4. Ada brand spesifik + kata "brand/merek"
-            preg_match('/\b(brand|merek|model)\s+(dell|hp|lenovo|asus|acer|apple|samsung|toshiba|epson|canon|brother)\b/i', $lower) ||
-                // 5. Kombinasi kategori + waktu
-            (
-                preg_match('/\b(laptop|pc|komputer|printer|monitor|server|router|proyektor|scanner)\b/i', $lower) &&
-                preg_match('/\b(20\d{2}|tahun|bulan|januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i', $lower)
-            ) ||
-                // ★ BARU: 6. Kategori + status + "apa" (list distinct)
-            (
-                preg_match('/\b(laptop|pc|komputer|printer|monitor|server|router|proyektor|scanner)\b/i', $lower) &&
-                preg_match('/\b(ready|tersedia|available|rusak|maintenance|dipinjam|loaned)\b/i', $lower) &&
-                preg_match('/\b(apa|apa saja|list|daftar)\b/i', $lower)
-            ) ||
-            // ★ BARU: 7. "type apa saja", "brand apa saja"
-            preg_match('/\b(type|tipe|model|brand|merek|merk)\s+(apa|apa saja|apa aja)\b/i', $lower)
-        );
+        if ($this->isComplexQuery($pesan)) {
+            $sqlTextTried = true;  // ← set true SEBELUM call
 
-        // === 1. QueryRouter (skip kalau filter kompleks) ===
-        if (!$hasComplexFilter) {
+            Log::info('cariJawaban.complex_query_detected', [
+                'request_id' => $requestId,
+                'pesan' => $pesan,
+            ]);
+
             try {
-                $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
-                if ($dbAnswer) {
-                    if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
-                        session()->put('last_query_context', $dbAnswer[2]);
-                        $type = $dbAnswer[2]['type'] ?? 'query';
-                        $memory->remember($type, $dbAnswer[2], self::CONTEXT_TTL);
+                $prevSql = null;
+                $sqlCtx = $memory->recall('sql_text');
+                if ($sqlCtx && isset($sqlCtx['sql'])) {
+                    $prevSql = $sqlCtx['sql'];
+                }
+
+                $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan, $prevSql);
+                if ($sqlAnswer) {
+                    Log::info('answer.via_sql_text_priority', [
+                        'request_id' => $requestId,
+                        'sql' => $sqlAnswer[2]['sql'] ?? null,
+                        'row_count' => $sqlAnswer[2]['row_count'] ?? 0,
+                        'had_context' => $prevSql !== null,
+                    ]);
+
+                    if (isset($sqlAnswer[2]) && is_array($sqlAnswer[2])) {
+                        $memory->remember('sql_text', $sqlAnswer[2], self::CONTEXT_TTL);
                     }
 
-                    if (preg_match('/\b(konsumable|consumable|konsumebel|habis pakai|daftar konsumable)\b/i', $lower)) {
-                        $memory->remember('consumable_list', [
-                            'type' => 'consumable_list',
-                            '_type' => 'consumable_list',
-                            'time' => now()->toDateTimeString(),
-                        ], self::CONTEXT_TTL, 'Daftar konsumable');
-                    }
-
-                    Log::info('answer.via_queryrouter', ['request_id' => $requestId]);
-                    return [$dbAnswer[0], 'database', null];
+                    return [$sqlAnswer[0], 'database', null];
                 }
             } catch (\Throwable $e) {
-                Log::warning('QueryRouter error', [
+                Log::warning('SqlTextService (priority) error', [
                     'request_id' => $requestId,
                     'error' => $e->getMessage(),
                 ]);
             }
-        } else {
-            Log::info('queryrouter.skipped_complex_filter', [
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 6: QueryRouter (untuk query sederhana)
+        // ═══════════════════════════════════════════════════════════
+        try {
+            $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
+            if ($dbAnswer) {
+                if (isset($dbAnswer[2]) && is_array($dbAnswer[2])) {
+                    session()->put('last_query_context', $dbAnswer[2]);
+                    $type = $dbAnswer[2]['type'] ?? 'query';
+                    $memory->remember($type, $dbAnswer[2], self::CONTEXT_TTL);
+                }
+
+                if (preg_match('/\b(konsumable|consumable|konsumebel|habis pakai|daftar konsumable)\b/i', $lower)) {
+                    $memory->remember('consumable_list', [
+                        'type' => 'consumable_list',
+                        '_type' => 'consumable_list',
+                        'time' => now()->toDateTimeString(),
+                    ], self::CONTEXT_TTL, 'Daftar konsumable');
+                }
+
+                Log::info('answer.via_queryrouter', ['request_id' => $requestId]);
+                return [$dbAnswer[0], 'database', null];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('QueryRouter error', [
                 'request_id' => $requestId,
-                'pesan' => $pesan,
+                'error' => $e->getMessage(),
             ]);
         }
 
-        // === 2. Knowledge (WAJIB dalam try-catch) ===
+        // ═══════════════════════════════════════════════════════════
+        // STEP 7: Knowledge Base
+        // ═══════════════════════════════════════════════════════════
         try {
             $knowledgeAnswer = $this->tryKnowledge($pesan);
             if ($knowledgeAnswer) {
@@ -923,7 +987,9 @@ class ChatController extends Controller
             ]);
         }
 
-        // === 3. AutoLearning (JANGAN double-call app() di catch) ===
+        // ═══════════════════════════════════════════════════════════
+        // STEP 8: AutoLearning (FAQ hasil belajar)
+        // ═══════════════════════════════════════════════════════════
         $learning = null;
         try {
             $learning = app(AutoLearningService::class);
@@ -939,42 +1005,46 @@ class ChatController extends Controller
                 'request_id' => $requestId,
                 'error' => $e->getMessage(),
             ]);
-            // JANGAN re-assign $learning di sini
         }
 
-        // === 3.5. SQL-to-Text (BARU) ===
-        try {
-            // Ambil context SQL sebelumnya (untuk follow-up "type apa itu")
-            $prevSql = null;
-            $sqlCtx = $memory->recall('sql_text');
-            if ($sqlCtx && isset($sqlCtx['sql'])) {
-                $prevSql = $sqlCtx['sql'];
-            }
-
-            $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan, $prevSql);
-            if ($sqlAnswer) {
-                Log::info('answer.via_sql_text', [
-                    'request_id' => $requestId,
-                    'sql' => $sqlAnswer[2]['sql'] ?? null,
-                    'row_count' => $sqlAnswer[2]['row_count'] ?? 0,
-                    'had_context' => $prevSql !== null,
-                ]);
-
-                // Simpan context biar follow-up "lanjut" bisa kerja
-                if (isset($sqlAnswer[2]) && is_array($sqlAnswer[2])) {
-                    $memory->remember('sql_text', $sqlAnswer[2], self::CONTEXT_TTL);
+        // ═══════════════════════════════════════════════════════════
+        // STEP 9: SQL-to-Text (FALLBACK)
+        // Skip kalau sudah dicoba di STEP 5 (isComplexQuery = true).
+        // Hanya jalan kalau query sederhana yang QueryRouter gagal.
+        // ═══════════════════════════════════════════════════════════
+        if (!$sqlTextTried) {
+            try {
+                $prevSql = null;
+                $sqlCtx = $memory->recall('sql_text');
+                if ($sqlCtx && isset($sqlCtx['sql'])) {
+                    $prevSql = $sqlCtx['sql'];
                 }
 
-                return [$sqlAnswer[0], 'database', null];
+                $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan, $prevSql);
+                if ($sqlAnswer) {
+                    Log::info('answer.via_sql_text_fallback', [
+                        'request_id' => $requestId,
+                        'sql' => $sqlAnswer[2]['sql'] ?? null,
+                        'row_count' => $sqlAnswer[2]['row_count'] ?? 0,
+                    ]);
+
+                    if (isset($sqlAnswer[2]) && is_array($sqlAnswer[2])) {
+                        $memory->remember('sql_text', $sqlAnswer[2], self::CONTEXT_TTL);
+                    }
+
+                    return [$sqlAnswer[0], 'database', null];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('SqlTextService (fallback) error', [
+                    'request_id' => $requestId,
+                    'error' => $e->getMessage(),
+                ]);
             }
-        } catch (\Throwable $e) {
-            Log::warning('SqlTextService error', [
-                'request_id' => $requestId,
-                'error' => $e->getMessage(),
-            ]);
         }
 
-        // === 4. Ollama Intent (dalam try-catch) ===
+        // ═══════════════════════════════════════════════════════════
+        // STEP 10: Ollama Intent Parser
+        // ═══════════════════════════════════════════════════════════
         try {
             $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
             if ($intentResult) {
@@ -988,7 +1058,9 @@ class ChatController extends Controller
             ]);
         }
 
-        // === 5. Ollama QA (terakhir, dalam try-catch) ===
+        // ═══════════════════════════════════════════════════════════
+        // STEP 11: Ollama QA (LAST RESORT)
+        // ═══════════════════════════════════════════════════════════
         Log::info('answer.via_ollama_qa', ['request_id' => $requestId]);
 
         try {
@@ -1013,6 +1085,102 @@ class ChatController extends Controller
         }
 
         return [$jawaban, 'ai', null];
+    }
+    /**
+     * Cek apakah pesan adalah query kompleks yang butuh SQL-to-Text.
+     * Query kompleks = kombinasi kategori/waktu/agregasi yang
+     * tidak bisa dijawab oleh pattern matching QueryRouter.
+     */
+    private function isComplexQuery(string $pesan): bool
+    {
+        $lower = Str::lower(trim($pesan));
+
+        // ═══════════════════════════════════════════════════════════
+        // 1. Ada tahun (2024, 2023, dll) + kata tanya
+        // ═══════════════════════════════════════════════════════════
+        $hasYear = (bool) preg_match('/\b(20\d{2})\b/', $lower);
+        $hasYearWord = (bool) preg_match('/\b(tahun|thn|year)\b/i', $lower);
+        $hasMonth = (bool) preg_match(
+            '/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i',
+            $lower
+        );
+
+        if (($hasYear || $hasYearWord || $hasMonth) && $this->hasAskingWord($lower)) {
+            return true;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 2. List distinct: "type apa saja", "brand apa saja",
+        //    "model apa saja", "merek apa aja"
+        // ═══════════════════════════════════════════════════════════
+        if (
+            preg_match('/\b(type|tipe|model|brand|merek|merk)\s+(apa|apa saja|apa aja)\b/i', $lower)
+        ) {
+            return true;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 3. Kategori + status + "apa" (misal: "laptop ready apa saja")
+        // ═══════════════════════════════════════════════════════════
+        $hasCategory = (bool) preg_match(
+            '/\b(laptop|pc|komputer|printer|monitor|server|router|proyektor|scanner)\b/i',
+            $lower
+        );
+        $hasStatus = (bool) preg_match(
+            '/\b(ready|tersedia|available|rusak|maintenance|dipinjam|loaned|dipakai|in_use|hilang|lost|pensiun|retired)\b/i',
+            $lower
+        );
+        $hasApa = (bool) preg_match('/\b(apa|apa saja|apa aja|list|daftar)\b/i', $lower);
+
+        if ($hasCategory && $hasStatus && $hasApa) {
+            return true;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 4. Kategori + tahun (misal: "laptop tahun 2024")
+        // ═══════════════════════════════════════════════════════════
+        if ($hasCategory && ($hasYear || $hasYearWord)) {
+            return true;
+        }
+        // ═══════════════════════════════════════════════════════════
+        // 5. "type apa itu" / "model apa itu" tanpa context aset
+        //    (biar SQL-to-Text atau handler khusus yang jawab)
+        // ═══════════════════════════════════════════════════════════
+        if (preg_match('/\b(type|tipe|model)\s+apa\s+itu\b/i', $lower)) {
+            return true;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 6. Agregasi: "brand X tahun Y", "type X yang paling banyak"
+        // ═══════════════════════════════════════════════════════════
+        if (
+            preg_match('/\b(brand|merek|merk|model|type|tipe)\s+[a-z0-9]+\s+(tahun|20\d{2})/i', $lower)
+        ) {
+            return true;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 7. Kategori + "yang paling" / "terbanyak" + tahun/status
+        // ═══════════════════════════════════════════════════════════
+        if (
+            $hasCategory &&
+            preg_match('/\b(paling|terbanyak|top|tertinggi|terbesar|mayoritas)\b/i', $lower)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Helper: cek apakah ada kata tanya di pesan.
+     */
+    private function hasAskingWord(string $lower): bool
+    {
+        return (bool) preg_match(
+            '/\b(apa|apa saja|apa aja|berapa|jumlah|total|type|tipe|model|brand|merek|merk|list|daftar|sebutkan|tampilkan)\b/i',
+            $lower
+        );
     }
     private function tryOllamaIntent(string $pesan, ChatMemoryService $memory, string $requestId): ?array
     {
@@ -3475,6 +3643,14 @@ class ChatController extends Controller
             . "KHUSUS — KODE ASET:\n"
             . "Kode seperti `NB-T14-005`, `AST-2026-0001` adalah HOSTNAME / SN / ASSET CODE dari aset IT perusahaan.\n"
             . "JANGAN menganggapnya sebagai nomor meteran listrik, nomor rekening, atau nomor seri barang lain.\n\n"
+
+            . "KHUSUS — PERTANYAAN TYPE/MODEL:\n"
+            . "• Kalau user tanya 'type apa' atau 'model apa' → jawab dengan DAFTAR type/model, bukan jumlah.\n"
+            . "• Kalau user tanya 'berapa' → jawab dengan JUMLAH.\n"
+            . "• Kalau user tanya 'type apa tahun 2024' → sebutkan model yang dibeli tahun 2024.\n"
+            . "• Kalau user tanya 'type apa yang ready' → sebutkan model yang statusnya available.\n"
+            . "• JANGAN jawab 'type terbanyak' kalau user cuma tanya 'type apa'.\n\n"
+
 
             . "GAYA:\n"
             . "Ramah, profesional, sedikit humor kalau cocok. Gunakan emoji secukupnya.\n"
