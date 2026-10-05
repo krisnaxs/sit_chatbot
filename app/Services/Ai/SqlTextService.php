@@ -108,8 +108,12 @@ ATURAN KETAT:
 8. Batasi hasil: LIMIT 50 (kecuali COUNT/agregat).
 9. Untuk COUNT: SELECT COUNT(*) AS total FROM ...
 10. Kalau butuh nama user: JOIN users ON users.id = assets.current_user_id.
+11. PENTING: Kalau pertanyaan tentang "type/tipe/model/brand/merek/spek/spesifikasi"
+    TANPA menyebut "consumable/konsumable/ATK/habis pakai", maka query ke tabel `assets`.
+12. PENTING: Kalau pertanyaan tentang "stok/konsumable/habis pakai/ATK", baru query ke `consumables`.
 
 CONTOH:
+
 Q: "berapa laptop rusak?"
 A: SELECT COUNT(*) AS total FROM assets a JOIN asset_categories c ON c.id = a.category_id WHERE a.status = 'maintenance' AND c.name LIKE '%laptop%'
 
@@ -121,6 +125,30 @@ A: SELECT c.name AS kategori, COUNT(*) AS total FROM assets a JOIN asset_categor
 
 Q: "siapa saja yang pakai mouse"
 A: SELECT u.name AS pemegang, c.name AS item, SUM(ct.quantity) AS total FROM consumable_transactions ct JOIN consumables c ON c.id = ct.consumable_id JOIN users u ON u.id = ct.user_id WHERE ct.type = 'out' AND c.name LIKE '%mouse%' GROUP BY u.name, c.name LIMIT 50
+
+Q: "ada aset berapa?"
+A: SELECT COUNT(*) AS total FROM assets
+
+Q: "berapa total aset?"
+A: SELECT COUNT(*) AS total FROM assets
+
+Q: "type apa saja?" atau "tipe apa saja?" atau "model apa saja?"
+A: SELECT DISTINCT model AS tipe, brand FROM assets WHERE model IS NOT NULL AND model != '' ORDER BY brand, model LIMIT 50
+
+Q: "brand apa saja?" atau "merek apa saja?"
+A: SELECT DISTINCT brand FROM assets WHERE brand IS NOT NULL AND brand != '' ORDER BY brand LIMIT 50
+
+Q: "spek apa saja?" atau "spesifikasi apa?"
+A: SELECT serial_number, hostname, brand, model, specification FROM assets WHERE specification IS NOT NULL AND specification != '' LIMIT 20
+
+Q: "berapa aset tersedia?"
+A: SELECT COUNT(*) AS total FROM assets WHERE status = 'available'
+
+Q: "berapa aset rusak?"
+A: SELECT COUNT(*) AS total FROM assets WHERE status = 'maintenance'
+
+Q: "berapa laptop?"
+A: SELECT COUNT(*) AS total FROM assets a JOIN asset_categories c ON c.id = a.category_id WHERE c.name LIKE '%laptop%'
 
 Kalau pertanyaan TIDAK BISA dijawab dengan SQL (misal: "cara reset password", "apa itu SIS"), output: SELECT NULL AS not_applicable LIMIT 1
 PROMPT;
