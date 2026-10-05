@@ -576,6 +576,37 @@ class ChatController extends Controller
         // ★★★ END BARU ★★★
         // ============================================================
 
+        // ============================================================
+        // ★ BARU: Deteksi "tahun pembelian XXXX" sebagai query baru ★
+        // Jangan dijawab sebagai field follow-up dari aset sebelumnya
+        // ============================================================
+        if (
+            preg_match('/\b(tahun|thn|year)\s+(pembelian|beli|perolehan|pengadaan)\b/i', $lower) &&
+            preg_match('/\b(20\d{2})\b/', $lower)
+        ) {
+            Log::info('followup.detected_year_query_as_new', [
+                'pesan' => $pesan,
+            ]);
+            return null;  // ← biar jatuh ke cariJawaban() → SQL-to-Text
+        }
+
+        // Kalau user cuma bilang "2024" tanpa konteks aset spesifik
+        if (
+            preg_match('/\b(20\d{2})\b/', $lower) &&
+            !preg_match('/\b(dari|sejak|sampai|semenjak|mulai)\b/i', $lower)
+        ) {
+            $lastAsset = $memory->recall('asset');
+
+            // Kalau tidak ada asset context atau tidak ada kata "nya/itu/ini"
+            if (!$lastAsset || !preg_match('/\b(nya|itu|ini|tersebut)\b/i', $lower)) {
+                Log::info('followup.detected_year_only_as_new', [
+                    'pesan' => $pesan,
+                    'has_asset_ctx' => $lastAsset !== null,
+                ]);
+                return null;  // ← biar jatuh ke SQL-to-Text
+            }
+        }
+
         $ref = $this->resolveReference($lower, $memory);
         if ($ref) {
             if (isset($ref['user_id']) && $this->matchAny($lower, ['aset', 'pegang', 'punya', 'pakai'])) {

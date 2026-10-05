@@ -169,8 +169,8 @@
             <div class="max-w-4xl w-full mx-auto px-4 flex flex-col flex-1 min-h-0">
 
                 {{-- CHAT CARD --}}
-                <div class="glass rounded-3xl shadow-2xl overflow-hidden flex flex-col flex-1 min-h-0" x-data="chatApp()"
-                    @click="focusInput()">
+                <div class="glass rounded-3xl shadow-2xl overflow-hidden flex flex-col flex-1 min-h-0"
+                    x-data="chatApp()">
 
                     {{-- Chat Header --}}
                     <div class="px-6 py-4 border-b border-white/15 flex items-center gap-4 bg-white/5 shrink-0">
@@ -445,8 +445,8 @@
                     <div class="px-6 py-4 border-t border-white/15 bg-white/5 shrink-0">
                         <form @submit.prevent="sendMessage()" class="flex items-end gap-3">
                             <div class="flex-1 relative">
-                                <textarea x-ref="chatInput" x-model="input" @keydown.enter.prevent="sendMessage()"
-                                    @keydown.shift.enter="input += '\n'" :disabled="isTyping" rows="1" placeholder="Ketik pesan Anda..."
+                                <textarea x-model="input" @keydown.enter.prevent="sendMessage()" @keydown.shift.enter="input += '\n'"
+                                    :disabled="isTyping" rows="1" placeholder="Ketik pesan Anda..."
                                     class="w-full bg-white/10 border border-white/20 rounded-2xl
                                            px-4 py-3 pr-12
                                            text-white placeholder-white/40 text-sm
@@ -535,27 +535,7 @@
                         @endforeach
                     @endif
 
-                    // Auto-focus saat halaman pertama kali dibuka
-                    this.$nextTick(() => {
-                        this.scrollToBottom();
-                        this.focusInput();
-                    });
-
-                    // Auto-focus saat window/tab kembali aktif
-                    window.addEventListener('focus', () => this.focusInput());
-                },
-
-                // ====== FOKUS KE TEXTAREA ======
-                focusInput() {
-                    this.$nextTick(() => {
-                        const el = this.$refs.chatInput;
-                        if (el && !el.disabled) {
-                            el.focus();
-                            // Pindahkan kursor ke akhir teks
-                            const len = el.value.length;
-                            el.setSelectionRange(len, len);
-                        }
-                    });
+                    this.$nextTick(() => this.scrollToBottom());
                 },
 
                 async sendMessage() {
@@ -577,10 +557,9 @@
                     this.isTyping = true;
 
                     this.$nextTick(() => {
-                        const ta = this.$refs.chatInput;
+                        const ta = document.querySelector('textarea');
                         if (ta) ta.style.height = 'auto';
                         this.scrollToBottom();
-                        // Fokus akan dikembalikan di finally setelah isTyping = false
                     });
 
                     try {
@@ -635,10 +614,7 @@
                         });
                     } finally {
                         this.isTyping = false;
-                        this.$nextTick(() => {
-                            this.scrollToBottom();
-                            this.focusInput(); // ← Kembalikan fokus setelah bot selesai
-                        });
+                        this.$nextTick(() => this.scrollToBottom());
                     }
                 },
 
