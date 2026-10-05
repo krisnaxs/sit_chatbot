@@ -862,6 +862,34 @@ class ChatController extends Controller
         $lower = Str::lower($pesan);
 
         // ═══════════════════════════════════════════════════════════
+        // STEP 0: KNOWLEDGE BASE (paling awal)
+        // Skip kalau pesan jelas query data (butuh DB real-time),
+        // supaya KB tidak "mencuri" pertanyaan seperti "berapa laptop ready".
+        // ═══════════════════════════════════════════════════════════
+        $looksLikeDataQuery = (bool) preg_match(
+            '/\b(berapa|jumlah|total|daftar|list|sebutkan|tampilkan|lihat)\b/i',
+            $lower
+        );
+
+        if (!$looksLikeDataQuery) {
+            try {
+                $kb = $this->tryKnowledge($pesan);
+                if ($kb) {
+                    Log::info('answer.via_knowledge_step0', [
+                        'request_id' => $requestId,
+                        'pesan' => $pesan,
+                    ]);
+                    return $kb;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Knowledge step0 error', [
+                    'request_id' => $requestId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
         // STEP 1: SN Pattern (paling spesifik, paling akurat)
         // ═══════════════════════════════════════════════════════════
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
@@ -899,22 +927,9 @@ class ChatController extends Controller
         }
 
         // ═══════════════════════════════════════════════════════════
-        // STEP 5: KNOWLEDGE BASE (dipindah ke sini)
-        // Cek dulu sebelum SQL/QueryRouter supaya pertanyaan non-data
-        // (SOP, definisi, cara pakai) tidak "nyasar" ke DB.
+        // STEP 5: (DIHAPUS — dulu duplikat tryKnowledge)
+        // Knowledge Base sudah dicek di STEP 0 di atas.
         // ═══════════════════════════════════════════════════════════
-        try {
-            $knowledgeAnswer = $this->tryKnowledge($pesan);
-            if ($knowledgeAnswer) {
-                Log::info('answer.via_knowledge', ['request_id' => $requestId]);
-                return $knowledgeAnswer;
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Knowledge search error', [
-                'request_id' => $requestId,
-                'error' => $e->getMessage(),
-            ]);
-        }
 
         // ═══════════════════════════════════════════════════════════
         // STEP 6: SQL-to-Text untuk query kompleks (PRIORITY)
@@ -1355,38 +1370,156 @@ class ChatController extends Controller
 
     private function tryKnowledge(string $pesan): ?array
     {
-        $pesanBersih = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($pesan));
-        $pesanBersih = preg_replace('/\s+/', ' ', trim($pesanBersih));
+        // ═══════════════════════════════════════════════════════════
+        // Helper: normalisasi — buang semua karakter non-alfanumerik,
+        // lowercase, rapikan spasi. Dipakai untuk kedua sisi (pesan & KB).
+        // ═══════════════════════════════════════════════════════════
+        $normalize = function (string $s): string {
+            $s = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($s));
+            return preg_replace('/\s+/', ' ', trim($s));
+        };
+
+        $pesanBersih = $normalize($pesan);
 
         if (empty($pesanBersih)) {
             return null;
         }
 
-        $knowledge = Knowledge::whereRaw('LOWER(kata_kunci) = ?', [$pesanBersih])
-            ->with('attachments')          // ← eager load attachments
-            ->first();
+        // ═══════════════════════════════════════════════════════════
+        // Ambil semua KB (untuk DB kecil < 1000 baris, ini OK & cepat).
+        // Kalau KB besar, ganti jadi query LIKE dulu, baru normalize di PHP.
+        // ═══════════════════════════════════════════════════════════
+        $allKb = Knowledge::with('attachments')->get();
 
-        if ($knowledge) {
-            return [
-                $knowledge->jawaban,
-                'database',
-                $this->extractFiles($knowledge),       // ← extractFiles (array)
-            ];
+        if ($allKb->isEmpty()) {
+            return null;
         }
 
-        $candidates = Knowledge::with('attachments')   // ← eager load
-            ->search($pesanBersih)
-            ->take(20)
-            ->get();
+        // ═══════════════════════════════════════════════════════════
+        // LEVEL 1: EXACT MATCH
+        // Setelah normalisasi, kata_kunci === pesan.
+        // Contoh: user ketik "password wifi INDONESIAPOWER & RAKOR apa"
+        //         KB punya  "password wifi INDONESIAPOWER & RAKOR apa"
+        //         → keduanya dinormalisasi jadi sama → MATCH
+        // ═══════════════════════════════════════════════════════════
+        foreach ($allKb as $kb) {
+            if ($normalize($kb->kata_kunci) === $pesanBersih) {
+                Log::info('tryKnowledge.exact_match', [
+                    'id' => $kb->id,
+                    'kata_kunci' => $kb->kata_kunci,
+                ]);
+                return [$kb->jawaban, 'database', $this->extractFiles($kb)];
+            }
+        }
 
-        $best = $this->pickBestMatch($candidates, $pesanBersih);
+        // ═══════════════════════════════════════════════════════════
+        // LEVEL 2: SUBSTRING MATCH
+        // kata_kunci ada di dalam pesan, atau sebaliknya.
+        // Ambil yang paling panjang (paling spesifik).
+        //
+        // Contoh yang akan match:
+        //   KB: "password wifi INDONESIAPOWER & RAKOR apa"
+        //   User: "password wifi INDONESIAPOWER"  → KB di dalam pesan? TIDAK
+        //                                           Pesan di dalam KB? YA → MATCH
+        //
+        //   User: "apa password wifi indonesiapower rakor"
+        //   KB: "password wifi INDONESIAPOWER & RAKOR apa"
+        //   → setelah normalisasi jadi sama-sama "password wifi indonesiapower rakor apa"
+        //   → MATCH (exact)
+        // ═══════════════════════════════════════════════════════════
+        $bestSubstring = null;
+        $bestSubstringLen = 0;
 
-        if ($best) {
-            return [
-                $best->jawaban,
-                'database',
-                $this->extractFiles($best),            // ← extractFiles (array)
-            ];
+        foreach ($allKb as $kb) {
+            $kbNorm = $normalize($kb->kata_kunci);
+
+            // Skip KB yang terlalu pendek (hindari false positive)
+            if (strlen($kbNorm) < 8) {
+                continue;
+            }
+
+            if (str_contains($pesanBersih, $kbNorm) || str_contains($kbNorm, $pesanBersih)) {
+                // Ambil yang paling panjang (paling spesifik)
+                if (strlen($kbNorm) > $bestSubstringLen) {
+                    $bestSubstringLen = strlen($kbNorm);
+                    $bestSubstring = $kb;
+                }
+            }
+        }
+
+        if ($bestSubstring) {
+            Log::info('tryKnowledge.substring_match', [
+                'id' => $bestSubstring->id,
+                'kata_kunci' => $bestSubstring->kata_kunci,
+            ]);
+            return [$bestSubstring->jawaban, 'database', $this->extractFiles($bestSubstring)];
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // LEVEL 3: TOKEN-BASED MATCHING (fallback)
+        // Hitung berapa token pesan yang match dengan token KB.
+        // Threshold 0.4 → cukup toleran untuk typo & variasi kata.
+        // ═══════════════════════════════════════════════════════════
+        $pesanTokens = collect(explode(' ', $pesanBersih))
+            ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
+            ->values()
+            ->all();
+
+        if (empty($pesanTokens)) {
+            return null;
+        }
+
+        $best = null;
+        $bestScore = 0;
+
+        foreach ($allKb as $kb) {
+            $kbNorm = $normalize($kb->kata_kunci);
+            $kbTokens = collect(explode(' ', $kbNorm))
+                ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
+                ->values()
+                ->all();
+
+            if (empty($kbTokens)) {
+                continue;
+            }
+
+            // Hitung berapa token pesan yang "match" dengan token KB
+            $matched = 0;
+            foreach ($pesanTokens as $pt) {
+                foreach ($kbTokens as $kt) {
+                    if (
+                        $pt === $kt ||
+                        levenshtein($pt, $kt) <= 1 ||
+                        str_contains($kt, $pt) ||
+                        str_contains($pt, $kt)
+                    ) {
+                        $matched++;
+                        break;
+                    }
+                }
+            }
+
+            $score = $matched / count($pesanTokens);
+
+            // Penalti kalau panjang token beda jauh (biar adil)
+            $lengthRatio = min(count($kbTokens), count($pesanTokens))
+                / max(count($kbTokens), count($pesanTokens));
+            $score = $score * (0.7 + 0.3 * $lengthRatio);
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $kb;
+            }
+        }
+
+        // Threshold 0.4 — cukup longgar untuk toleransi
+        if ($best && $bestScore >= 0.4) {
+            Log::info('tryKnowledge.token_match', [
+                'id' => $best->id,
+                'score' => round($bestScore, 2),
+                'kata_kunci' => $best->kata_kunci,
+            ]);
+            return [$best->jawaban, 'database', $this->extractFiles($best)];
         }
 
         return null;
@@ -3442,6 +3575,9 @@ class ChatController extends Controller
 
         foreach ($candidates as $item) {
             $keyLower = Str::lower($item->kata_kunci);
+            if (str_contains($keyLower, $pesanBersih) || str_contains($pesanBersih, $keyLower)) {
+                return $item;
+            }
             $keyWords = collect(explode(' ', $keyLower))
                 ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
                 ->values()
@@ -3476,7 +3612,7 @@ class ChatController extends Controller
             }
         }
 
-        return $bestScore >= 0.6 ? $best : null;
+        return $bestScore >= 0.4 ? $best : null;
     }
 
     /**
