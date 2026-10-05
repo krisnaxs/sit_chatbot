@@ -469,11 +469,13 @@ class ChatController extends Controller
             }
         }
 
-        // ============================================================
-        // ★★★ BARU: Handle ownership follow-up tanpa aset spesifik ★★★
-        // Contoh: "ini sewa apa hak milik", "itu milik atau sewa"
-        // ============================================================
+        $isCountQueryOwnership = (bool) preg_match(
+            '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
+            $lower
+        );
+
         if (
+            !$isCountQueryOwnership &&  // ← TAMBAH INI
             preg_match('/\b(sewa|hak milik|milik|owned|leased)\b/i', $lower) &&
             preg_match('/\b(apa|atau|ini|itu|nya|yang)\b/i', $lower)
         ) {
