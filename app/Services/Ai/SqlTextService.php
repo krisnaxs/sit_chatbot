@@ -163,6 +163,26 @@ A: SELECT ownership_type, COUNT(*) AS total FROM assets GROUP BY ownership_type
 Q: "berapa laptop yang hak milik?" atau "berapa laptop sewa?"
 A: SELECT COUNT(*) AS total FROM assets a JOIN asset_categories c ON c.id = a.category_id WHERE a.ownership_type = 'owned' AND c.name LIKE '%laptop%'
 
+Q: "laptop tahun 2024 type apa saja?" atau "laptop 2024 model apa?"
+A: SELECT model AS tipe, brand, COUNT(*) AS total FROM assets a JOIN asset_categories c ON c.id = a.category_id WHERE YEAR(a.purchase_date) = 2024 AND c.name LIKE '%laptop%' GROUP BY model, brand ORDER BY total DESC LIMIT 50
+
+Q: "aset tahun 2023 merek apa saja?" atau "brand aset 2023?"
+A: SELECT brand, COUNT(*) AS total FROM assets WHERE YEAR(purchase_date) = 2023 GROUP BY brand ORDER BY total DESC LIMIT 50
+
+Q: "laptop yang dibeli tahun 2022 ada berapa?"
+A: SELECT COUNT(*) AS total FROM assets a JOIN asset_categories c ON c.id = a.category_id WHERE YEAR(a.purchase_date) = 2022 AND c.name LIKE '%laptop%'
+
+Q: "berapa mouse yang habis pakai?"
+A: SELECT COUNT(*) AS total FROM consumables c JOIN consumable_transactions ct ON ct.consumable_id = c.id WHERE ct.type = 'out' AND c.name LIKE '%mouse%'
+
+Q: "berapa mouse yang dipinjam?"
+A: SELECT COUNT(*) AS total FROM consumables c JOIN consumable_transactions ct ON ct.consumable_id = c.id WHERE ct.type = 'out' AND c.name LIKE '%mouse%'
+
+Q: "berapa mouse yang tersedia?"
+A: SELECT COUNT(*) AS total FROM consumables c JOIN consumable_transactions ct ON ct.consumable_id = c.id WHERE ct.type = 'in' AND c.name LIKE '%mouse%'
+
+
+
 Kalau pertanyaan TIDAK BISA dijawab dengan SQL (misal: "cara reset password", "apa itu SIS"), output: SELECT NULL AS not_applicable LIMIT 1
 PROMPT;
     }
