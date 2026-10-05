@@ -432,6 +432,11 @@ class ChatController extends Controller
     private function handleFollowUp(string $pesan, Request $request, ChatMemoryService $memory): ?array
     {
         $lower = Str::lower(trim($pesan));
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 1: Handler spesifik (user, SN, consumable)
+        // ═══════════════════════════════════════════════════════════
+
         $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
         if ($userAssetsByName) {
             if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
@@ -439,16 +444,23 @@ class ChatController extends Controller
             }
             return $userAssetsByName;
         }
+
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
         if ($snAnswer) {
             return $snAnswer;
         }
+
         if ($this->isConsumableQuery($lower, $memory)) {
             $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
             if ($consumableAnswer) {
                 return $consumableAnswer;
             }
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 2: Deteksi query "list distinct" (type, brand, model, tahun)
+        // ═══════════════════════════════════════════════════════════
+
         $isListDistinctQuery = (
             // "type apa saja", "brand apa saja"
             preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower) &&
@@ -469,7 +481,7 @@ class ChatController extends Controller
             preg_match('/\b(20\d{2}|tahun)\b/i', $lower) &&
             preg_match('/\b(apa|tipe|type|model)\b/i', $lower)
         ) || (
-            // ★ BARU: "laptop ready apa", "laptop tersedia apa"
+            // "laptop ready apa", "laptop tersedia apa"
             preg_match('/\b(laptop|pc|komputer|printer|monitor|server)\b/i', $lower) &&
             preg_match('/\b(ready|tersedia|available|dipakai|rusak|maintenance|dipinjam|loaned)\b/i', $lower) &&
             preg_match('/\b(apa|apa saja|list|daftar)\b/i', $lower)
@@ -481,6 +493,78 @@ class ChatController extends Controller
             ]);
             return null;  // ← biar jatuh ke cariJawaban() → SQL-to-Text
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 3: Deteksi query dengan filter kompleks (tahun, brand, model spesifik)
+        // ═══════════════════════════════════════════════════════════
+
+        // "laptop tahun pembelian 2024" / "tahun 2024 laptop"
+        if (
+            preg_match('/\b(tahun|thn|year)\s+(pembelian|beli|perolehan|pengadaan)\b/i', $lower) &&
+            preg_match('/\b(20\d{2})\b/', $lower)
+        ) {
+            Log::info('followup.detected_year_pembelian_as_new', [
+                'pesan' => $pesan,
+            ]);
+            return null;  // ← jatuh ke cariJawaban() → SQL-to-Text
+        }
+
+        // "tahun 2024" + kategori (laptop/pc/dll) tanpa "nya/itu"
+        if (
+            preg_match('/\b(tahun|thn|year)\s+(20\d{2})\b/i', $lower) &&
+            preg_match('/\b(laptop|pc|komputer|printer|monitor|server|router)\b/i', $lower)
+        ) {
+            $lastAsset = $memory->recall('asset');
+            if (!$lastAsset || !preg_match('/\b(nya|itu|ini|tersebut)\b/i', $lower)) {
+                Log::info('followup.detected_year_kategori_as_new', [
+                    'pesan' => $pesan,
+                    'has_asset_ctx' => $lastAsset !== null,
+                ]);
+                return null;
+            }
+        }
+
+        // "2024" saja (tanpa kata lain yang mengikat)
+        if (
+            preg_match('/\b(20\d{2})\b/', $lower) &&
+            !preg_match('/\b(dari|sejak|sampai|semenjak|mulai)\b/i', $lower)
+        ) {
+            $lastAsset = $memory->recall('asset');
+            if (!$lastAsset || !preg_match('/\b(nya|itu|ini|tersebut)\b/i', $lower)) {
+                Log::info('followup.detected_year_only_as_new', [
+                    'pesan' => $pesan,
+                    'has_asset_ctx' => $lastAsset !== null,
+                ]);
+                return null;
+            }
+        }
+
+        // "laptop e14 gen 5" / "untuk laptop e14" (kategori + model spesifik)
+        if (
+            preg_match('/\b(laptop|pc|komputer|printer|monitor)\b/i', $lower) &&
+            preg_match('/\b(e\d+|gen\s*\d+|thinkpad|zenbook|macbook|ideapad|latitude|probook|elitebook)\b/i', $lower)
+        ) {
+            Log::info('followup.detected_kategori_model_as_new', [
+                'pesan' => $pesan,
+            ]);
+            return null;  // ← SQL-to-Text
+        }
+
+        // "brand X tahun Y" / "merk X tahun Y"
+        if (
+            preg_match('/\b(brand|merek|merk)\s+(dell|hp|lenovo|asus|acer|apple|samsung|toshiba|epson|canon|brother)\b/i', $lower) &&
+            preg_match('/\b(20\d{2}|tahun)\b/i', $lower)
+        ) {
+            Log::info('followup.detected_brand_tahun_as_new', [
+                'pesan' => $pesan,
+            ]);
+            return null;  // ← SQL-to-Text
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 4: Field query (via memory asset context)
+        // ═══════════════════════════════════════════════════════════
+
         $field = $this->detectFieldQuery($lower);
         $isCountQuery = (bool) preg_match(
             '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
@@ -507,13 +591,17 @@ class ChatController extends Controller
             }
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // STEP 5: Ownership follow-up ("ini sewa atau hak milik")
+        // ═══════════════════════════════════════════════════════════
+
         $isCountQueryOwnership = (bool) preg_match(
             '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
             $lower
         );
 
         if (
-            !$isCountQueryOwnership &&  // ← TAMBAH INI
+            !$isCountQueryOwnership &&
             preg_match('/\b(sewa|hak milik|milik|owned|leased)\b/i', $lower) &&
             preg_match('/\b(apa|atau|ini|itu|nya|yang)\b/i', $lower)
         ) {
@@ -572,40 +660,10 @@ class ChatController extends Controller
                 return $this->answerAssetField($asset->id, 'ownership', $memory);
             }
         }
-        // ============================================================
-        // ★★★ END BARU ★★★
-        // ============================================================
 
-        // ============================================================
-        // ★ BARU: Deteksi "tahun pembelian XXXX" sebagai query baru ★
-        // Jangan dijawab sebagai field follow-up dari aset sebelumnya
-        // ============================================================
-        if (
-            preg_match('/\b(tahun|thn|year)\s+(pembelian|beli|perolehan|pengadaan)\b/i', $lower) &&
-            preg_match('/\b(20\d{2})\b/', $lower)
-        ) {
-            Log::info('followup.detected_year_query_as_new', [
-                'pesan' => $pesan,
-            ]);
-            return null;  // ← biar jatuh ke cariJawaban() → SQL-to-Text
-        }
-
-        // Kalau user cuma bilang "2024" tanpa konteks aset spesifik
-        if (
-            preg_match('/\b(20\d{2})\b/', $lower) &&
-            !preg_match('/\b(dari|sejak|sampai|semenjak|mulai)\b/i', $lower)
-        ) {
-            $lastAsset = $memory->recall('asset');
-
-            // Kalau tidak ada asset context atau tidak ada kata "nya/itu/ini"
-            if (!$lastAsset || !preg_match('/\b(nya|itu|ini|tersebut)\b/i', $lower)) {
-                Log::info('followup.detected_year_only_as_new', [
-                    'pesan' => $pesan,
-                    'has_asset_ctx' => $lastAsset !== null,
-                ]);
-                return null;  // ← biar jatuh ke SQL-to-Text
-            }
-        }
+        // ═══════════════════════════════════════════════════════════
+        // STEP 6: Reference resolution ("dia", "yang tadi")
+        // ═══════════════════════════════════════════════════════════
 
         $ref = $this->resolveReference($lower, $memory);
         if ($ref) {
@@ -616,23 +674,37 @@ class ChatController extends Controller
                 return $this->answerAssetField((int) $ref['asset_id'], 'full', $memory);
             }
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 7: Follow-up top asset by model
+        // ═══════════════════════════════════════════════════════════
+
         $ctxTopAsset = $memory->recall('top_asset_by_model');
         if ($ctxTopAsset && $this->matchAny($lower, ['pegang', 'dipegang', 'pemegang', 'yang pakai', 'siapa yang pakai'])) {
             return $this->followUpTopAssetByModel($ctxTopAsset, 0, 10, $memory);
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 8: Implicit user query
+        // ═══════════════════════════════════════════════════════════
+
         $implicitUser = $this->tryAnswerImplicitUser($pesan, $memory);
         if ($implicitUser) {
             return $implicitUser;
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // STEP 9: Deteksi query baru vs follow-up
+        // ═══════════════════════════════════════════════════════════
 
         if ($this->isNewQuery($lower)) {
             Log::info('followup.detected_new_query', [
                 'pesan' => $pesan,
                 'field' => $field,
             ]);
-            return null;  // biarkan jatuh ke cariJawaban
+            return null;
         }
+
         foreach (self::QUESTION_WORDS as $qw) {
             if (str_contains($lower, $qw)) {
                 if ($field)
@@ -640,6 +712,7 @@ class ChatController extends Controller
                 return null;
             }
         }
+
         $isFollowUp = false;
         foreach (self::FOLLOWUP_KEYWORDS as $kw) {
             if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $lower)) {
@@ -651,6 +724,10 @@ class ChatController extends Controller
         if (!$isFollowUp) {
             return null;
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // STEP 10: Execute follow-up dengan context yang tersimpan
+        // ═══════════════════════════════════════════════════════════
 
         $ctx = $memory->recall('asset_by_status')
             ?? $memory->recall('list_asset_by_status')
