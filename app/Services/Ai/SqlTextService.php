@@ -111,6 +111,10 @@ ATURAN KETAT:
 11. PENTING: Kalau pertanyaan tentang "type/tipe/model/brand/merek/spek/spesifikasi"
     TANPA menyebut "consumable/konsumable/ATK/habis pakai", maka query ke tabel `assets`.
 12. PENTING: Kalau pertanyaan tentang "stok/konsumable/habis pakai/ATK", baru query ke `consumables`.
+13. PENTING: Kalau pertanyaan tentang "hak milik/sewa/ownership" TANPA menyebut konsumable,
+    maka query kolom `ownership_type` di tabel `assets`.
+14. Kalau pertanyaan menggunakan kata "ini", "itu", "nya" (ambigu), tetap generate SQL yang
+    paling masuk akal ke tabel `assets`, JANGAN output not_applicable.
 
 CONTOH:
 
@@ -149,6 +153,15 @@ A: SELECT COUNT(*) AS total FROM assets WHERE status = 'maintenance'
 
 Q: "berapa laptop?"
 A: SELECT COUNT(*) AS total FROM assets a JOIN asset_categories c ON c.id = a.category_id WHERE c.name LIKE '%laptop%'
+
+Q: "ini sewa atau hak milik?" atau "milik atau sewa?" atau "sewa apa owned?"
+A: SELECT DISTINCT ownership_type FROM assets WHERE status = 'available' LIMIT 10
+
+Q: "berapa aset hak milik?" atau "berapa aset sewa?"
+A: SELECT ownership_type, COUNT(*) AS total FROM assets GROUP BY ownership_type
+
+Q: "berapa laptop yang hak milik?" atau "berapa laptop sewa?"
+A: SELECT COUNT(*) AS total FROM assets a JOIN asset_categories c ON c.id = a.category_id WHERE a.ownership_type = 'owned' AND c.name LIKE '%laptop%'
 
 Kalau pertanyaan TIDAK BISA dijawab dengan SQL (misal: "cara reset password", "apa itu SIS"), output: SELECT NULL AS not_applicable LIMIT 1
 PROMPT;

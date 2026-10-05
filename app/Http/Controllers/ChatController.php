@@ -468,6 +468,74 @@ class ChatController extends Controller
                 }
             }
         }
+
+        // ============================================================
+        // ★★★ BARU: Handle ownership follow-up tanpa aset spesifik ★★★
+        // Contoh: "ini sewa apa hak milik", "itu milik atau sewa"
+        // ============================================================
+        if (
+            preg_match('/\b(sewa|hak milik|milik|owned|leased)\b/i', $lower) &&
+            preg_match('/\b(apa|atau|ini|itu|nya|yang)\b/i', $lower)
+        ) {
+            // 1. Coba dari memory 'asset' dulu
+            $assetCtx = $memory->recall('asset');
+            if ($assetCtx && isset($assetCtx['asset_id'])) {
+                Log::info('followup.ownership.via_asset_memory', [
+                    'asset_id' => $assetCtx['asset_id'],
+                ]);
+                return $this->answerAssetField((int) $assetCtx['asset_id'], 'ownership', $memory);
+            }
+
+            // 2. Coba dari session last_query_context
+            $lastQuery = session()->get('last_query_context');
+            if ($lastQuery && isset($lastQuery['status'])) {
+                $assetQuery = \App\Models\Asset::query();
+                $assetQuery->where('status', $lastQuery['status']);
+
+                if (isset($lastQuery['category']) && $lastQuery['category']) {
+                    $assetQuery->where(function ($x) use ($lastQuery) {
+                        $x->whereHas('category', fn($c) => $c->where('name', 'like', "%{$lastQuery['category']}%"))
+                            ->orWhere('model', 'like', "%{$lastQuery['category']}%");
+                    });
+                }
+
+                $asset = $assetQuery->first();
+                if ($asset) {
+                    $memory->remember('asset', [
+                        'asset_id' => $asset->id,
+                        'serial_number' => $asset->serial_number,
+                        'hostname' => $asset->hostname,
+                    ], self::CONTEXT_TTL, "Aset {$asset->hostname}");
+
+                    Log::info('followup.ownership.via_last_query', [
+                        'asset_id' => $asset->id,
+                        'status' => $lastQuery['status'],
+                    ]);
+
+                    return $this->answerAssetField($asset->id, 'ownership', $memory);
+                }
+            }
+
+            // 3. Fallback: ambil aset pertama yang statusnya available
+            $asset = \App\Models\Asset::where('status', 'available')->first();
+            if ($asset) {
+                $memory->remember('asset', [
+                    'asset_id' => $asset->id,
+                    'serial_number' => $asset->serial_number,
+                    'hostname' => $asset->hostname,
+                ], self::CONTEXT_TTL, "Aset {$asset->hostname}");
+
+                Log::info('followup.ownership.via_fallback', [
+                    'asset_id' => $asset->id,
+                ]);
+
+                return $this->answerAssetField($asset->id, 'ownership', $memory);
+            }
+        }
+        // ============================================================
+        // ★★★ END BARU ★★★
+        // ============================================================
+
         $ref = $this->resolveReference($lower, $memory);
         if ($ref) {
             if (isset($ref['user_id']) && $this->matchAny($lower, ['aset', 'pegang', 'punya', 'pakai'])) {
@@ -1105,18 +1173,97 @@ class ChatController extends Controller
             'serial_number' => ['sn', 'serial', 'nomor seri', 'serial number', 'no seri', 'noseri', 's/n', 'kode seri'],
             'hostname' => ['hostname', 'host name', 'nama komputer', 'nama pc', 'nama laptop', 'nama device', 'nama perangkat', 'pc name', 'nama host'],
             'asset_code' => ['asset code', 'kode aset', 'kode barang', 'kode inventaris', 'no aset', 'no asset', 'barcode', 'id aset', 'id asset', 'nomor aset', 'kd aset'],
-            'brand' => ['brand', 'merek', 'merk', 'vendor barang', 'pembuat', 'pabrikan', 'manufaktur'],
-            'model' => ['model', 'tipe', 'type', 'seri laptop', 'seri pc', 'varian'],
-            'status' => ['status', 'kondisi', 'keadaan', 'posisi aset', 'aktif atau tidak', 'bisa dipakai', 'ready ga', 'ready gak'],
-            'ownership' => ['hak kepemilikan', 'kepemilikan', 'milik', 'sewa', 'rental', 'status kepemilikan', 'punya siapa', 'hak milik'],
+            'brand' => [
+                'brand',
+                'merek',
+                'merk',
+                'vendor barang',
+                'pembuat',
+                'pabrikan',
+                'manufaktur',
+                'brand apa',
+                'merek apa',
+                'brand apa saja',
+                'merek apa saja',
+                'apa brand',
+                'apa merek',
+            ],
+            'model' => [
+                'model',
+                'tipe',
+                'type',
+                'seri laptop',
+                'seri pc',
+                'varian',
+                'tipe apa',
+                'type apa',
+                'model apa',
+                'tipe apa saja',
+                'type apa saja',
+                'apa tipe',
+                'apa type',
+                'apa model',
+            ],
+            'status' => [
+                'status',
+                'kondisi',
+                'keadaan',
+                'posisi aset',
+                'aktif atau tidak',
+                'bisa dipakai',
+                'ready ga',
+                'ready gak',
+                'statusnya',
+                'statuse',
+                'itu status',
+                'status nya',
+            ],
+            'ownership' => [
+                'hak kepemilikan',
+                'kepemilikan',
+                'milik',
+                'sewa',
+                'rental',
+                'status kepemilikan',
+                'punya siapa',
+                'hak milik',
+                'itu sewa',
+                'itu milik',
+                'sewa apa',
+                'milik apa',
+                'sewa atau hak milik',
+                'milik atau sewa',
+                'owned atau leased',
+                'leased atau owned',
+                'ini sewa',
+                'ini milik',
+                'sewa atau',
+                'milik atau',
+            ],
             'location' => ['lokasi', 'ruangan', 'ruang', 'tempat', 'posisi', 'ditaruh mana', 'ada di mana', 'disimpan di mana', 'site', 'cabang', 'lantai'],
             'user' => ['pemegang', 'pengguna', 'user', 'pic', 'penanggung jawab', 'siapa yang bawa', 'dipakai siapa', 'yang pegang', 'dipegang siapa', 'karyawan mana'],
-            'spec' => ['spek', 'spesifikasi', 'spec', 'ram', 'prosesor', 'processor', 'ssd', 'harddisk', 'hdd', 'vga', 'jeroan', 'dapur pacu'],
+            'spec' => ['spek', 'spesifikasi', 'spec', 'ram', 'prosesor', 'processor', 'ssd', 'harddisk', 'hdd', 'vga', 'jeroan', 'dapur pacu', 'spek nya', 'spec nya', 'spesifikasinya'],
             'os' => ['os', 'sistem operasi', 'windows', 'linux', 'mac', 'macos', 'ubuntu', 'operating system', 'win 10', 'win 11'],
             'garansi' => ['garansi', 'warranty', 'masa garansi', 'expired garansi', 'garansi sampai kapan', 'abis garansi'],
             'tanggal_beli' => ['tanggal beli', 'tanggal pembelian', 'kapan dibeli', 'tgl beli', 'kapan pengadaan', 'nota beli', 'tgl pengadaan', 'tanggal berapa', 'dari tanggal', 'tanggal', 'tgl'],
             'tahun_beli' => ['tahun beli', 'tahun pembelian', 'tahun pengadaan', 'tahun berapa beli', 'tahun berapa dibeli', 'beli tahun berapa', 'tahun perolehan', 'dibeli tahun', 'dibeli kapan'],
-            'full' => ['detail lengkap', 'semua info', 'info lengkap', 'full detail', 'semuanya', 'tampilkan semua', 'all info', 'selengkapnya', 'profil aset'],
+            'full' => [
+                'detail lengkap',
+                'semua info',
+                'info lengkap',
+                'full detail',
+                'semuanya',
+                'tampilkan semua',
+                'all info',
+                'selengkapnya',
+                'profil aset',
+                'detailnya',
+                'detail nya',
+                'detail',
+                'jelaskan',
+                'info detail',
+                'detail apa',
+            ],
             'assigned_at' => ['sejak kapan', 'semenjak kapan', 'semenjak', 'dari kapan', 'kapan dipegang', 'mulai kapan', 'kapan di-assign', 'kapan diassign', 'sejak dipegang', 'dari dipegang', 'kapan mulai', 'tgl serah terima', 'kapan dikasih ke', 'mulai pakai'],
             'returned_at' => ['kapan dikembalikan', 'kapan selesai', 'kapan return', 'kapan kembali', 'tgl pengembalian', 'kapan dibalikin', 'dibalikin kapan'],
             'riwayat' => ['riwayat lengkap', 'riwayat aset', 'history lengkap', 'history aset', 'rekam jejak', 'log aset', 'jurnal aset'],
@@ -3083,11 +3230,19 @@ class ChatController extends Controller
             . "• **Obrolan ringan / small talk** (sapaan, candaan, ngobrol santai)\n"
             . "• Dan topik umum lain yang tidak berbahaya\n\n"
 
+            . "KONTEKS BISNIS (BUKAN topik sensitif):\n"
+            . "• 'hak milik' = ownership_type 'owned' (aset milik perusahaan sendiri).\n"
+            . "• 'sewa' = ownership_type 'leased' (aset yang disewa dari vendor).\n"
+            . "• Kalau user tanya 'ini sewa atau hak milik', jawab dengan status kepemilikan aset yang relevan.\n"
+            . "• INI BUKAN topik finansial/properti yang sensitif — ini data aset biasa.\n"
+            . "• User sering tanya soal: aset, laptop, printer, monitor, konsumable, stok, garansi, pemegang aset, sewa, hak milik, lokasi aset.\n"
+            . "• JANGAN menolak pertanyaan tentang topik aset — itu adalah domain utama SIAM.\n\n"
+
             . "YANG HARUS DITOLAK:\n"
             . "• Konten berbahaya (bom, hack, senjata, narkoba)\n"
             . "• Konten SARA, ujaran kebencian, diskriminasi\n"
             . "• Konten pornografi, judi, kekerasan\n"
-            . "• Nasihat medis/hukum/finansial serius\n"
+            . "• Nasihat medis/hukum/finansial serius (bukan 'hak milik aset')\n"
             . "• Data pribadi orang lain, doxing\n\n"
 
             . "CARA JAWAB:\n"
@@ -3116,7 +3271,8 @@ class ChatController extends Controller
             . "CONTOH JAWABAN — SIS/SIAM/IT:\n"
             . "User: 'berapa laptop tersedia?' → Jawab dengan data.\n"
             . "User: 'cara reset password?' → Panduan reset password.\n"
-            . "User: 'printer saya error' → Troubleshooting singkat.\n\n"
+            . "User: 'printer saya error' → Troubleshooting singkat.\n"
+            . "User: 'ini sewa atau hak milik?' → 'Aset ini berstatus Sewa (leased) — disewa dari vendor.'\n\n"
 
             . "CONTOH JAWABAN — TOPIK UMUM:\n"
             . "User: 'gimana cara fokus kerja?' → Tips Pomodoro, hilangkan distraksi, istirahat cukup.\n"
