@@ -213,58 +213,80 @@ PROMPT;
     // ============================================================
     private function getSchema(): string
     {
-        // Cache 1 jam
-        return \Illuminate\Support\Facades\Cache::remember('siam_schema_v1', 3600, function () {
-            $tables = [
-                'assets' => [
-                    'id',
-                    'asset_code',
-                    'serial_number',
-                    'hostname',
-                    'brand',
-                    'model',
-                    'category_id',
-                    'status',
-                    'ownership_type',
-                    'purchase_date',
-                    'purchase_price',
-                    'warranty_expire',
-                    'current_user_id',
-                    'current_location_id',
-                    'specification',
-                    'os',
-                    'notes',
-                ],
-                'asset_categories' => ['id', 'name', 'is_consumable'],
-                'users' => ['id', 'name', 'email', 'nip', 'position', 'department_id', 'location_id', 'is_active'],
-                'locations' => ['id', 'building', 'floor', 'room', 'division', 'is_active'],
-                'asset_assignments' => ['id', 'asset_id', 'user_id', 'assigned_by', 'assigned_at', 'returned_at', 'condition_on_assign', 'condition_on_return', 'notes'],
-                'asset_loans' => ['id', 'asset_id', 'user_id', 'loan_date', 'due_date', 'returned_at', 'status', 'purpose'],
-                'asset_maintenances' => ['id', 'asset_id', 'type', 'issue', 'action', 'technician', 'vendor_id', 'start_date', 'end_date', 'cost', 'status'],
-                'asset_movements' => ['id', 'asset_id', 'from_location_id', 'to_location_id', 'type', 'moved_at', 'notes'],
-                'asset_ownerships' => ['id', 'asset_id', 'vendor_id', 'ownership_type', 'contract_start', 'contract_end', 'monthly_cost'],
-                'consumables' => ['id', 'name', 'brand', 'model', 'unit', 'stock_available', 'stock_total', 'stock_minimum', 'last_price', 'notes'],
-                'consumable_transactions' => ['id', 'consumable_id', 'user_id', 'type', 'quantity', 'transaction_date', 'notes'],
-                'vendors' => ['id', 'name', 'type', 'phone', 'email', 'address', 'is_active'],
-                'departments' => ['id', 'name', 'is_active'],
+        // Cache 6 jam — schema jarang berubah
+        return \Illuminate\Support\Facades\Cache::remember('siam_schema_v2', 21600, function () {
+            // Tabel sistem yang TIDAK perlu dibaca chatbot
+            $excludedTables = [
+                'migrations',
+                'failed_jobs',
+                'personal_access_tokens',
+                'sessions',
+                'cache',
+                'cache_locks',
+                'jobs',
+                'job_batches',
+                'password_reset_tokens',
+                'settings',
+            ];
+
+            // Kolom sensitif yang TIDAK boleh muncul di schema (keamanan)
+            $sensitiveColumns = [
+                'password',
+                'remember_token',
+                'api_token',
+                'token',
+                'secret',
+                'api_key',
+                'private_key',
             ];
 
             $out = "";
-            foreach ($tables as $table => $cols) {
-                // Ambil tipe kolom asli dari DB
-                try {
-                    $columns = DB::select("SHOW COLUMNS FROM `{$table}`");
-                    $out .= "TABLE {$table}:\n";
-                    foreach ($columns as $c) {
-                        $out .= "  - {$c->Field} ({$c->Type})\n";
+            $original = DB::getDefaultConnection();
+            DB::setDefaultConnection('ai_readonly');
+
+            try {
+                // Ambil SEMUA tabel dari database
+                $allTables = DB::select('SHOW TABLES');
+                $dbName = DB::connection('ai_readonly')->getDatabaseName();
+                $key = 'Tables_in_' . $dbName;
+
+                foreach ($allTables as $t) {
+                    $tableName = $t->$key;
+
+                    // Skip tabel sistem
+                    if (in_array($tableName, $excludedTables, true)) {
+                        continue;
                     }
-                } catch (\Throwable $e) {
-                    // Fallback: pakai daftar kolom statis
-                    $out .= "TABLE {$table}: " . implode(', ', $cols) . "\n";
+
+                    try {
+                        $columns = DB::select("SHOW COLUMNS FROM `{$tableName}`");
+                        if (empty($columns)) {
+                            continue;
+                        }
+
+                        $out .= "TABLE {$tableName}:\n";
+                        foreach ($columns as $c) {
+                            // Skip kolom sensitif
+                            if (in_array(strtolower($c->Field), $sensitiveColumns, true)) {
+                                continue;
+                            }
+
+                            $type = $c->Type;
+                            $nullable = $c->Null === 'YES' ? ' (nullable)' : '';
+                            $out .= "  - {$c->Field} ({$type}){$nullable}\n";
+                        }
+                        $out .= "\n";
+                    } catch (\Throwable $e) {
+                        Log::debug("SqlTextService: skip table {$tableName}", [
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
-                $out .= "\n";
+            } finally {
+                DB::setDefaultConnection($original);
             }
-            return $out;
+
+            return $out ?: "(schema kosong)";
         });
     }
 
