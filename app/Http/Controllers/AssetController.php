@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Exports\AssetsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\QueryException;
 
 class AssetController extends Controller
 {
@@ -644,10 +645,6 @@ class AssetController extends Controller
         ));
     }
 
-    /**
-     * Preview serial & asset code yang akan di-generate (AJAX, tanpa simpan).
-     * Support 2 mode: auto-generate & manual (paste list).
-     */
     public function bulkPreview(Request $request)
     {
         $qty = max(1, (int) $request->input('quantity', 1));
@@ -703,17 +700,33 @@ class AssetController extends Controller
             ];
         }
 
-        // === Cek duplikat ===
+        // === Cek duplikat vs database ===
         $dupSerial = $serials ? Asset::whereIn('serial_number', $serials)->pluck('serial_number')->toArray() : [];
         $dupCode = $codes ? Asset::whereIn('asset_code', $codes)->pluck('asset_code')->toArray() : [];
 
+        // === Cek duplikat DI DALAM batch ===
+        $dupSerialInBatch = [];
+        if (!empty($serials)) {
+            $counts = array_count_values($serials);
+            $dupSerialInBatch = array_keys(array_filter($counts, fn($c) => $c > 1));
+        }
+
+        $dupCodeInBatch = [];
+        if (!empty($codes)) {
+            $counts = array_count_values($codes);
+            $dupCodeInBatch = array_keys(array_filter($counts, fn($c) => $c > 1));
+        }
+
         return response()->json([
             'rows' => $rows,
-            'dup_serial' => $dupSerial,
-            'dup_code' => $dupCode,
+            'dup_serial' => array_values(array_unique(array_merge($dupSerial, $dupSerialInBatch))),
+            'dup_code' => array_values(array_unique(array_merge($dupCode, $dupCodeInBatch))),
         ]);
     }
-
+    /**
+     * Simpan banyak unit aset sekaligus.
+     * Support 2 mode: auto-generate & manual (paste list).
+     */
     /**
      * Simpan banyak unit aset sekaligus.
      * Support 2 mode: auto-generate & manual (paste list).
@@ -811,7 +824,17 @@ class AssetController extends Controller
             }
         }
 
-        // Cek duplikat serial (1 query)
+        // === Cek duplikat DI DALAM batch (serial) ===
+        $dupSerialInBatch = array_filter(array_count_values($serials), fn($c) => $c > 1);
+        if (!empty($dupSerialInBatch)) {
+            return back()->withInput()->with(
+                'error',
+                'Serial number duplikat di dalam daftar input: '
+                . implode(', ', array_slice(array_keys($dupSerialInBatch), 0, 10))
+            );
+        }
+
+        // === Cek duplikat serial vs database (1 query) ===
         $dupSerial = Asset::whereIn('serial_number', $serials)->pluck('serial_number')->toArray();
         if (!empty($dupSerial)) {
             return back()->withInput()
@@ -847,8 +870,19 @@ class AssetController extends Controller
             }
         }
 
-        // Cek duplikat code
+        // === Cek duplikat code ===
         if (!empty($codes)) {
+            // Duplikat di dalam batch
+            $dupCodeInBatch = array_filter(array_count_values($codes), fn($c) => $c > 1);
+            if (!empty($dupCodeInBatch)) {
+                return back()->withInput()->with(
+                    'error',
+                    'Asset code duplikat di dalam daftar input: '
+                    . implode(', ', array_slice(array_keys($dupCodeInBatch), 0, 10))
+                );
+            }
+
+            // Duplikat vs database
             $dupCode = Asset::whereIn('asset_code', $codes)->pluck('asset_code')->toArray();
             if (!empty($dupCode)) {
                 return back()->withInput()
@@ -874,113 +908,131 @@ class AssetController extends Controller
         // ============================================================
         // === SIMPAN (1 transaksi, batch insert) ===
         // ============================================================
-        $count = DB::transaction(function () use ($validated, $qty, $serials, $codes, $hostnames) {
-            $now = now();
-            $assignUserId = $validated['assign']['user_id'] ?? null;
-            $assignLocationId = $validated['assign']['location_id'] ?? null;
-            $isAssign = $validated['status'] === 'in_use' && $assignUserId;
+        try {
+            $count = DB::transaction(function () use ($validated, $qty, $serials, $codes, $hostnames) {
+                $now = now();
+                $assignUserId = $validated['assign']['user_id'] ?? null;
+                $assignLocationId = $validated['assign']['location_id'] ?? null;
+                $isAssign = $validated['status'] === 'in_use' && $assignUserId;
 
-            // Build rows untuk Asset::insert()
-            $rows = [];
-            for ($i = 0; $i < $qty; $i++) {
-                $rows[] = [
-                    'asset_code' => $codes[$i] ?? null,
-                    'serial_number' => $serials[$i],
-                    'hostname' => $hostnames[$i] ?? null,
-                    'brand' => $validated['brand'],
-                    'model' => $validated['model'],
-                    'category_id' => $validated['category_id'],
-                    'specification' => isset($validated['specification'])
-                        ? json_encode($validated['specification'])
-                        : null,
-                    'os' => $validated['os'] ?? null,
-                    'os_license' => $validated['os_license'] ?? null,
-                    'ownership_type' => $validated['ownership_type'],
-                    'purchase_date' => $validated['purchase_date'] ?? null,
-                    'purchase_price' => $validated['purchase_price'] ?? null,
-                    'warranty_expire' => $validated['warranty_expire'] ?? null,
-                    'status' => $validated['status'],
-                    'condition_percent' => $validated['condition_percent'] ?? 100,
-                    'condition_notes' => $validated['condition_notes'] ?? null,
-                    'notes' => $validated['notes'] ?? null,
-                    'current_user_id' => $isAssign ? $assignUserId : null,
-                    'current_location_id' => $isAssign ? $assignLocationId : null,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }
-
-            Asset::insert($rows);
-
-            // Ambil ID baru
-            $newAssets = Asset::whereIn('serial_number', $serials)
-                ->get(['id', 'serial_number']);
-
-            // === Ownership batch ===
-            $ownerships = [];
-            foreach ($newAssets as $a) {
-                $ownerships[] = [
-                    'asset_id' => $a->id,
-                    'vendor_id' => $validated['vendor_id'] ?? null,
-                    'ownership_type' => $validated['ownership_type'],
-                    'purchase_price' => $validated['ownership_type'] === 'owned'
-                        ? ($validated['purchase_price'] ?? null) : null,
-                    'invoice_number' => $validated['ownership_type'] === 'owned'
-                        ? ($validated['invoice_number'] ?? null) : null,
-                    'contract_number' => $validated['ownership_type'] === 'leased'
-                        ? ($validated['invoice_number'] ?? null) : null,
-                    'contract_start' => $validated['ownership_type'] === 'leased'
-                        ? ($validated['purchase_date'] ?? null) : null,
-                    'contract_end' => $validated['ownership_type'] === 'leased'
-                        ? ($validated['contract_end'] ?? null) : null,
-                    'monthly_cost' => $validated['ownership_type'] === 'leased'
-                        ? ($validated['monthly_cost'] ?? null) : null,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }
-            AssetOwnership::insert($ownerships);
-
-            // === Assignment batch ===
-            if ($isAssign) {
-                $assignments = [];
-                foreach ($newAssets as $a) {
-                    $assignments[] = [
-                        'asset_id' => $a->id,
-                        'user_id' => $assignUserId,
-                        'location_id' => $validated['assign']['location_id'] ?? null,
-                        'department_id' => $validated['assign']['department_id'] ?? null,
-                        'assigned_at' => $validated['assign']['assigned_at'] ?? $now,
-                        'condition_on_assign' => $validated['assign']['condition_on_assign']
-                            ?? ($validated['condition_percent'] ?? 100),
-                        'notes' => $validated['assign']['notes'] ?? null,
-                        'assigned_by' => auth()->id(),
-                        'received_by' => $assignUserId,
+                // Build rows untuk Asset::insert()
+                $rows = [];
+                for ($i = 0; $i < $qty; $i++) {
+                    $rows[] = [
+                        'asset_code' => $codes[$i] ?? null,
+                        'serial_number' => $serials[$i],
+                        'hostname' => $hostnames[$i] ?? null,
+                        'brand' => $validated['brand'],
+                        'model' => $validated['model'],
+                        'category_id' => $validated['category_id'],
+                        'specification' => isset($validated['specification'])
+                            ? json_encode($validated['specification'])
+                            : null,
+                        'os' => $validated['os'] ?? null,
+                        'os_license' => $validated['os_license'] ?? null,
+                        'ownership_type' => $validated['ownership_type'],
+                        'purchase_date' => $validated['purchase_date'] ?? null,
+                        'purchase_price' => $validated['purchase_price'] ?? null,
+                        'warranty_expire' => $validated['warranty_expire'] ?? null,
+                        'status' => $validated['status'],
+                        'condition_percent' => $validated['condition_percent'] ?? 100,
+                        'condition_notes' => $validated['condition_notes'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                        'current_user_id' => $isAssign ? $assignUserId : null,
+                        'current_location_id' => $isAssign ? $assignLocationId : null,
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
                 }
-                AssetAssignment::insert($assignments);
+
+                Asset::insert($rows);
+
+                // Ambil ID baru
+                $newAssets = Asset::whereIn('serial_number', $serials)
+                    ->get(['id', 'serial_number']);
+
+                // === Ownership batch ===
+                $ownerships = [];
+                foreach ($newAssets as $a) {
+                    $ownerships[] = [
+                        'asset_id' => $a->id,
+                        'vendor_id' => $validated['vendor_id'] ?? null,
+                        'ownership_type' => $validated['ownership_type'],
+                        'purchase_price' => $validated['ownership_type'] === 'owned'
+                            ? ($validated['purchase_price'] ?? null) : null,
+                        'invoice_number' => $validated['ownership_type'] === 'owned'
+                            ? ($validated['invoice_number'] ?? null) : null,
+                        'contract_number' => $validated['ownership_type'] === 'leased'
+                            ? ($validated['invoice_number'] ?? null) : null,
+                        'contract_start' => $validated['ownership_type'] === 'leased'
+                            ? ($validated['purchase_date'] ?? null) : null,
+                        'contract_end' => $validated['ownership_type'] === 'leased'
+                            ? ($validated['contract_end'] ?? null) : null,
+                        'monthly_cost' => $validated['ownership_type'] === 'leased'
+                            ? ($validated['monthly_cost'] ?? null) : null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                AssetOwnership::insert($ownerships);
+
+                // === Assignment batch ===
+                if ($isAssign) {
+                    $assignments = [];
+                    foreach ($newAssets as $a) {
+                        $assignments[] = [
+                            'asset_id' => $a->id,
+                            'user_id' => $assignUserId,
+                            'location_id' => $validated['assign']['location_id'] ?? null,
+                            'department_id' => $validated['assign']['department_id'] ?? null,
+                            'assigned_at' => $validated['assign']['assigned_at'] ?? $now,
+                            'condition_on_assign' => $validated['assign']['condition_on_assign']
+                                ?? ($validated['condition_percent'] ?? 100),
+                            'notes' => $validated['assign']['notes'] ?? null,
+                            'assigned_by' => auth()->id(),
+                            'received_by' => $assignUserId,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                    AssetAssignment::insert($assignments);
+                }
+
+                return $newAssets->count();
+            });
+        } catch (QueryException $e) {
+            // MySQL duplicate entry = 1062
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                // Ambil nilai duplikat dari pesan MySQL
+                preg_match("/Duplicate entry '(.+?)' for key '(.+?)'/", $e->getMessage(), $m);
+                $value = $m[1] ?? 'tidak diketahui';
+                $key = $m[2] ?? '';
+
+                $label = str_contains($key, 'serial_number')
+                    ? 'Serial number'
+                    : (str_contains($key, 'asset_code') ? 'Asset code' : 'Data');
+
+                return back()->withInput()
+                    ->with('error', "{$label} '{$value}' sudah terdaftar di database. Kemungkinan ada duplikat — cek kembali daftar input.");
             }
 
-            return $newAssets->count();
-        });
+            // Error DB lain
+            report($e);
+            return back()->withInput()
+                ->with('error', 'Gagal menyimpan data ke database: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
 
         return redirect()
             ->route('siam.assets.index')
             ->with('success', "{$count} aset berhasil ditambahkan sekaligus.");
     }
-    /**
-     * Halaman monitoring realtime semua aset agent-monitored.
-     */
-    /**
-     * Halaman monitoring realtime semua aset agent-monitored.
-     */
     public function monitoring(Request $request)
     {
-        // ============================================================
-        // === QUERY DASAR (dipakai untuk CARD + TABEL) ===
-        // ============================================================
+
         $baseQuery = Asset::with(['category', 'currentUser', 'currentLocation'])
             ->whereHas('category', fn($q) => $q->where('is_agent_monitored', true));
 
@@ -1009,9 +1061,6 @@ class AssetController extends Controller
             });
         }
 
-        // ============================================================
-        // === STATS (dihitung dari baseQuery — IKUT TERFILTER) ===
-        // ============================================================
         $now = now();
 
         $stats = [

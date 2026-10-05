@@ -38,10 +38,21 @@
             @endif
 
             {{-- ERROR CUSTOM (dari controller) --}}
-            @if (session('error'))
-                <div class="p-4 rounded-lg bg-red-100 text-red-800 border border-red-200">
-                    <p class="font-semibold mb-1">Gagal menyimpan:</p>
-                    <p class="text-sm">{{ session('error') }}</p>
+            @if (session('error') || session('success'))
+                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 6000)" x-show="show" x-transition
+                    class="fixed top-4 right-4 z-[200] max-w-sm" style="display:none">
+                    @if (session('error'))
+                        <div class="bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-start gap-3">
+                            <span class="text-lg">⚠️</span>
+                            <div class="text-sm leading-snug">{{ session('error') }}</div>
+                        </div>
+                    @endif
+                    @if (session('success'))
+                        <div class="bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-start gap-3">
+                            <span class="text-lg">✅</span>
+                            <div class="text-sm leading-snug">{{ session('success') }}</div>
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -716,8 +727,7 @@
                     // === MODE MANUAL SERIAL ===
                     if (!this.autoSerial) {
                         const serials = this.parseLines(this.serialList);
-                        const codes = this.autoCode ?
-                            [] :
+                        const codes = this.autoCode ? [] :
                             this.parseLines(this.codeList);
                         return serials.map((s, i) => ({
                             no: i + 1,
