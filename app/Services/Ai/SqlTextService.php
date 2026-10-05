@@ -135,10 +135,8 @@ PROMPT;
         DB::setDefaultConnection('ai_readonly');
 
         try {
-            // Timeout query di level DB
-            DB::statement('SET SESSION MAX_EXECUTION_TIME=5000');
-
             $rows = DB::select($sql);
+
 
             // Deteksi "not_applicable"
             if (count($rows) === 1 && isset($rows[0]->not_applicable)) {

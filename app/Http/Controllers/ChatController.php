@@ -694,6 +694,30 @@ class ChatController extends Controller
             // JANGAN re-assign $learning di sini
         }
 
+        // === 3.5. SQL-to-Text (BARU) ===
+        try {
+            $sqlAnswer = app(\App\Services\Ai\SqlTextService::class)->tryAnswer($pesan);
+            if ($sqlAnswer) {
+                Log::info('answer.via_sql_text', [
+                    'request_id' => $requestId,
+                    'sql' => $sqlAnswer[2]['sql'] ?? null,
+                    'row_count' => $sqlAnswer[2]['row_count'] ?? 0,
+                ]);
+
+                // Simpan context biar follow-up "lanjut" bisa kerja
+                if (isset($sqlAnswer[2]) && is_array($sqlAnswer[2])) {
+                    $memory->remember('sql_text', $sqlAnswer[2], self::CONTEXT_TTL);
+                }
+
+                return [$sqlAnswer[0], 'database', null];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('SqlTextService error', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         // === 4. Ollama Intent (dalam try-catch) ===
         try {
             $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
