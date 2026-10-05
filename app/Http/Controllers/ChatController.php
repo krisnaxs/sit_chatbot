@@ -442,7 +442,21 @@ class ChatController extends Controller
                 return $consumableAnswer;
             }
         }
+        $isListDistinctQuery = (
+            preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower) &&
+            preg_match('/\b(apa|apa saja|apa aja|list|daftar|sebutkan|tampilkan)\b/i', $lower)
+        ) || (
+            // Atau: "tahun pembelian 2024 type apa"
+            preg_match('/\b(tahun|year)\b/i', $lower) &&
+            preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower)
+        );
 
+        if ($isListDistinctQuery) {
+            Log::info('followup.detected_list_distinct', [
+                'pesan' => $pesan,
+            ]);
+            return null;  // ← biar jatuh ke cariJawaban() → SQL-to-Text
+        }
         $field = $this->detectFieldQuery($lower);
         $isCountQuery = (bool) preg_match(
             '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
