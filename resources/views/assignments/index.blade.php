@@ -13,15 +13,27 @@
                     <h1 class="text-2xl font-bold text-gray-800">Serah Terima Aset</h1>
                     <p class="text-sm text-gray-500">History penyerahan aset ke pegawai</p>
                 </div>
-                <a href="{{ route('siam.assignments.create') }}"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium
-                           inline-flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Assign Aset
-                </a>
+                <div class="flex gap-2">
+                    <a href="{{ route('siam.berita-acara.index') }}"
+                        class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 text-sm font-medium
+                               inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Berita Acara
+                    </a>
+                    <a href="{{ route('siam.assignments.create') }}"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium
+                               inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Assign Aset
+                    </a>
+                </div>
             </div>
 
             {{-- FILTER --}}
@@ -224,6 +236,8 @@
                                 @php
                                     $assignData = [
                                         'id' => $a->id,
+                                        'asset_id' => $a->asset_id,
+                                        'asset_category' => $a->asset?->category?->name,
                                         'asset_brand' => $a->asset?->brand,
                                         'asset_model' => $a->asset?->model,
                                         'asset_sn' => $a->asset?->serial_number,
@@ -331,7 +345,7 @@
 
         </div>
 
-        {{-- MODAL AKSI --}}
+        {{-- MODAL AKSI (existing) --}}
         <div x-show="showModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
@@ -428,7 +442,7 @@
                         </a>
 
                         <template x-if="selected?.is_active">
-                            <button type="button" @click="showReturnConfirm = true"
+                            <button type="button" @click="openReturnForm()"
                                 class="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200
                                        hover:border-emerald-300 hover:bg-emerald-50 transition text-left">
                                 <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
@@ -440,7 +454,7 @@
                                 </div>
                                 <div>
                                     <div class="font-semibold text-sm text-gray-800">Kembalikan Aset</div>
-                                    <div class="text-xs text-gray-500">Set aset jadi tersedia</div>
+                                    <div class="text-xs text-gray-500">Set aset jadi tersedia + buat BAP</div>
                                 </div>
                             </button>
                         </template>
@@ -476,37 +490,141 @@
             </div>
         </div>
 
-        {{-- MODAL KONFIRMASI RETURN --}}
-        <div x-show="showReturnConfirm" x-cloak
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center"
+        {{-- ============================================================ --}}
+        {{-- 🆕 MODAL FORM RETURN + BERITA ACARA PENGEMBALIAN --}}
+        {{-- ============================================================ --}}
+        <div x-show="showReturnForm" x-cloak
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 relative" @click.away="showReturnConfirm = false">
-                <div class="flex justify-center mb-4">
-                    <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-emerald-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                        </svg>
+
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+                @click.away="showReturnForm = false">
+
+                {{-- HEADER --}}
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-600 px-6 py-5 text-white shrink-0">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold">Kembalikan Aset</h3>
+                            <p class="text-sm text-white/80">Isi data pengembalian & berita acara</p>
+                        </div>
+                        <button type="button" @click="showReturnForm = false"
+                            class="p-1.5 rounded-lg hover:bg-white/20 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Kembalikan Aset?</h3>
-                <p class="text-sm text-gray-500 text-center mb-6">
-                    Aset <strong class="text-gray-800"
-                        x-text="selected ? selected.asset_brand + ' ' + selected.asset_model : ''"></strong>
-                    akan dikembalikan dan berstatus <strong>tersedia</strong>.
-                </p>
-                <div class="flex gap-2">
-                    <button type="button" @click="showReturnConfirm = false"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200
-                               text-gray-700 font-semibold transition">
+
+                {{-- FORM --}}
+                <form x-ref="returnForm" method="POST" class="flex-1 overflow-y-auto p-6 space-y-4">
+                    @csrf
+
+                    {{-- Info aset --}}
+                    <div class="p-3 rounded-lg bg-gray-50 border">
+                        <div class="text-xs text-gray-500">Aset yang akan dikembalikan</div>
+                        <div class="font-semibold text-gray-800"
+                            x-text="selected ? selected.asset_brand + ' ' + selected.asset_model : ''"></div>
+                        <div class="text-xs font-mono text-gray-500" x-text="'SN: ' + (selected?.asset_sn || '')"></div>
+                        <div class="text-xs text-gray-500 mt-1" x-text="'Dipinjam oleh: ' + (selected?.user_name || '-')">
+                        </div>
+                    </div>
+
+                    {{-- Tanggal & kondisi --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                Tanggal Kembali <span class="text-red-500">*</span>
+                            </label>
+                            <input type="datetime-local" name="returned_at" required
+                                value="{{ now()->format('Y-m-d\TH:i') }}"
+                                class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Kondisi (%)</label>
+                            <input type="number" name="condition_on_return" min="0" max="100"
+                                value="100"
+                                class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+
+                    {{-- Hostname --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Hostname (Opsional)</label>
+                        <input type="text" name="hostname" placeholder="Kosongkan kalau tidak berubah"
+                            class="w-full border rounded-lg px-3 py-2 text-sm font-mono">
+                    </div>
+
+                    {{-- Catatan --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan</label>
+                        <textarea name="notes" rows="2" placeholder="Contoh: Baik, minus baret halus di body"
+                            class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+                    </div>
+
+                    {{-- 🆕 Opsi BAP --}}
+                    <div x-data="{ buatBA: true }" class="border-t pt-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <input type="checkbox" name="buat_berita_acara" value="1" x-model="buatBA" checked
+                                class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-5 h-5">
+                            <label class="font-semibold text-gray-700 text-sm cursor-pointer">
+                                📄 Buat Berita Acara Pengembalian Otomatis
+                            </label>
+                        </div>
+
+                        <div x-show="buatBA" x-cloak x-transition
+                            class="space-y-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Pihak Pertama (Penerima Kembali) <span class="text-red-500">*</span>
+                                </label>
+                                <select name="pihak_pertama_id" :required="buatBA"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                                    <option value="">-- Pilih Pejabat --</option>
+                                    @foreach (\App\Models\User::active()->whereIn('role', ['admin', 'support'])->orderBy('name')->get() as $p)
+                                        <option value="{{ $p->id }}">
+                                            {{ $p->name }} — {{ $p->position ?? 'Staff' }}
+                                            ({{ strtoupper($p->role) }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Jabatan
+                                        (Opsional)</label>
+                                    <input type="text" name="pihak_pertama_jabatan" placeholder="Auto-fill dari user"
+                                        class="w-full border rounded-lg px-3 py-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Tempat BA</label>
+                                    <input type="text" name="tempat_ba" value="Suralaya"
+                                        class="w-full border rounded-lg px-3 py-2 text-sm">
+                                </div>
+                            </div>
+
+                            <div class="text-xs text-emerald-700">
+                                ℹ️ BAP akan dibuat dengan nomor format
+                                <code class="font-mono font-bold">BAP-{{ now()->format('Y') }}-0001</code>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                {{-- FOOTER --}}
+                <div class="px-6 py-3 bg-gray-50 border-t flex justify-end gap-2 shrink-0">
+                    <button type="button" @click="showReturnForm = false"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium">
                         Batal
                     </button>
                     <button type="button" @click="submitReturn()"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700
-                               text-white font-semibold transition shadow-lg shadow-emerald-500/30">
+                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium
+                                   shadow-lg shadow-emerald-500/30">
                         Ya, Kembalikan
                     </button>
                 </div>
@@ -552,13 +670,7 @@
             </div>
         </div>
 
-        {{-- HIDDEN FORMS --}}
-        <form x-ref="returnForm" method="POST" class="hidden">
-            @csrf
-            <input type="hidden" name="returned_at" :value="new Date().toISOString().slice(0, 19).replace('T', ' ')">
-            <input type="hidden" name="condition_on_return" value="100">
-        </form>
-
+        {{-- HIDDEN DELETE FORM --}}
         <form x-ref="deleteForm" method="POST" class="hidden">
             @csrf
             @method('DELETE')
@@ -615,7 +727,7 @@
         function assignmentManager() {
             return {
                 showModal: false,
-                showReturnConfirm: false,
+                showReturnForm: false, // 🆕 ganti dari showReturnConfirm
                 showDeleteConfirm: false,
                 selected: null,
 
@@ -635,9 +747,15 @@
                     this.selected = null;
                 },
 
-                submitReturn() {
-                    this.showReturnConfirm = false;
+                // 🆕 Buka form return (form lengkap)
+                openReturnForm() {
                     this.showModal = false;
+                    this.showReturnForm = true;
+                },
+
+                // 🆕 Submit form return
+                submitReturn() {
+                    this.showReturnForm = false;
 
                     localStorage.setItem('flash_message', 'Aset berhasil dikembalikan.');
                     localStorage.setItem('flash_type', 'success');
@@ -690,7 +808,7 @@
 
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
-                            if (this.showReturnConfirm) this.showReturnConfirm = false;
+                            if (this.showReturnForm) this.showReturnForm = false;
                             else if (this.showDeleteConfirm) this.showDeleteConfirm = false;
                             else if (this.showModal) this.closeModal();
                         }

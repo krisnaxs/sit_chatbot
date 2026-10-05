@@ -4,14 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\AssetAssignment;
+use App\Models\BeritaAcara;
 use App\Models\Department;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\BeritaAcaraService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AssetAssignmentController extends Controller
 {
+    public function __construct(
+        protected BeritaAcaraService $baService
+    ) {
+    }
+
     /**
      * Daftar assignment dengan filter lengkap + summary statistik aset.
      */
@@ -32,7 +39,7 @@ class AssetAssignmentController extends Controller
                         $qa->where('serial_number', 'like', "%{$search}%")
                             ->orWhere('brand', 'like', "%{$search}%")
                             ->orWhere('model', 'like', "%{$search}%")
-                            ->orWhere('hostname', 'like', "%{$search}%");   //
+                            ->orWhere('hostname', 'like', "%{$search}%");
                     })
                     ->orWhereHas('user', function ($qu) use ($search) {
                         $qu->where('name', 'like', "%{$search}%");
@@ -70,6 +77,7 @@ class AssetAssignmentController extends Controller
                 $query->whereNotNull('returned_at');
             }
         }
+
         $assetSummaryQuery = Asset::query();
 
         if ($request->filled('search')) {
@@ -77,7 +85,7 @@ class AssetAssignmentController extends Controller
                 $q->where('serial_number', 'like', "%{$request->search}%")
                     ->orWhere('brand', 'like', "%{$request->search}%")
                     ->orWhere('model', 'like', "%{$request->search}%")
-                    ->orWhere('hostname', 'like', "%{$request->search}%");   //
+                    ->orWhere('hostname', 'like', "%{$request->search}%");
             });
         }
 
@@ -102,6 +110,7 @@ class AssetAssignmentController extends Controller
             'retired' => (clone $assetSummaryQuery)->where('status', 'retired')->count(),
             'lost' => (clone $assetSummaryQuery)->where('status', 'lost')->count(),
         ];
+
         $hasFilter = $request->filled('search')
             || $request->filled('asset_id')
             || $request->filled('brand')
@@ -109,9 +118,11 @@ class AssetAssignmentController extends Controller
             || $request->filled('user_id')
             || $request->filled('location_id')
             || $request->filled('status');
-        $assignments = $query->orderByDesc('assigned_at')
+
+        $assignments = $query->orderByDesc('updated_at')
             ->paginate($request->get('per_page', 25))
             ->withQueryString();
+
         $assets = Asset::orderBy('serial_number')->get();
         $users = User::active()->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
@@ -165,17 +176,24 @@ class AssetAssignmentController extends Controller
         $locations = Location::active()->orderBy('full_name')->get();
         $departments = Department::active()->orderBy('name')->get();
 
+        // 🆕 Pejabat penandatangan (admin & support only)
+        $penandatangan = User::active()
+            ->whereIn('role', ['admin'])
+            ->orderBy('name')
+            ->get();
+
         return view('assignments.create', compact(
             'asset',
             'assets',
             'users',
             'locations',
-            'departments'
+            'departments',
+            'penandatangan'
         ));
     }
 
     /**
-     * Simpan assignment baru.
+     * Simpan assignment baru + opsional generate BAST.
      */
     public function store(Request $request)
     {
@@ -188,14 +206,33 @@ class AssetAssignmentController extends Controller
             'condition_on_assign' => 'nullable|integer|min:0|max:100',
             'hostname' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+
+            // 🆕 Data Berita Acara Serah Terima
+            'buat_berita_acara' => 'nullable|boolean',
+            'pihak_pertama_id' => 'required_if:buat_berita_acara,1|nullable|exists:users,id',
+            'pihak_pertama_jabatan' => 'nullable|string|max:100',
+            'pihak_pertama_nip' => 'nullable|string|max:30',
+            'tempat_ba' => 'nullable|string|max:100',
         ]);
 
-        DB::transaction(function () use ($request, $validated) {
+        // Validasi kondisional: hanya role admin/support yang bisa jadi pihak pertama
+        if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
+            $pihakPertama = User::find($validated['pihak_pertama_id']);
+            if (!$pihakPertama || !in_array($pihakPertama->role, ['admin', 'support'])) {
+                return back()->withInput()
+                    ->with('error', 'Pihak Pertama harus Admin atau Support.');
+            }
+        }
+
+        $result = DB::transaction(function () use ($request, $validated) {
             $asset = Asset::findOrFail($validated['asset_id']);
+
+            // Tutup assignment lama kalau ada
             AssetAssignment::where('asset_id', $asset->id)
                 ->whereNull('returned_at')
                 ->update(['returned_at' => now()]);
-            AssetAssignment::create([
+
+            $assignment = AssetAssignment::create([
                 'asset_id' => $validated['asset_id'],
                 'user_id' => $validated['user_id'],
                 'location_id' => $validated['location_id'] ?? null,
@@ -206,51 +243,125 @@ class AssetAssignmentController extends Controller
                 'assigned_by' => auth()->id(),
                 'received_by' => $validated['user_id'],
             ]);
+
             $updateData = [
                 'status' => 'in_use',
                 'current_user_id' => $validated['user_id'],
                 'current_location_id' => $validated['location_id'] ?? null,
             ];
-
             if (!empty($validated['hostname'])) {
                 $updateData['hostname'] = $validated['hostname'];
             }
-
             $asset->update($updateData);
+
+            // 🆕 Generate BAST
+            $ba = null;
+            if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
+                $pihakPertama = User::find($validated['pihak_pertama_id']);
+                $ba = $this->baService->createSerahTerima(
+                    $assignment->fresh(['asset.category', 'user']),
+                    $pihakPertama,
+                    [
+                        'pihak_pertama_jabatan' => $validated['pihak_pertama_jabatan'] ?? null,
+                        'pihak_pertama_nip' => $validated['pihak_pertama_nip'] ?? null,
+                        'tempat_ba' => $validated['tempat_ba'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                    ]
+                );
+            }
+
+            return ['assignment' => $assignment, 'ba' => $ba];
         });
+
+        $message = 'Aset berhasil di-assign / dipindahkan ke user baru.';
+        if ($result['ba']) {
+            $message .= " Berita Acara Serah Terima {$result['ba']->nomor_ba} berhasil dibuat.";
+        }
 
         return redirect()
             ->route('siam.assets.show', $validated['asset_id'])
-            ->with('success', 'Aset berhasil di-assign / dipindahkan ke user baru.');
+            ->with('success', $message);
     }
 
     /**
-     * Kembalikan aset ke kantor.
+     * Kembalikan aset ke kantor + opsional generate BAP.
      */
     public function returnAsset(Request $request, AssetAssignment $assignment)
     {
         $validated = $request->validate([
             'returned_at' => 'required|date',
             'condition_on_return' => 'nullable|integer|min:0|max:100',
-            'hostname' => 'nullable|string|max:100',   //
+            'hostname' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+
+            // 🆕 Data Berita Acara Pengembalian
+            'buat_berita_acara' => 'nullable|boolean',
+            'pihak_pertama_id' => 'required_if:buat_berita_acara,1|nullable|exists:users,id',
+            'pihak_pertama_jabatan' => 'nullable|string|max:100',
+            'pihak_pertama_nip' => 'nullable|string|max:30',
+            'tempat_ba' => 'nullable|string|max:100',
         ]);
 
-        $assignment->update($validated);
-        $assetUpdateData = [
-            'status' => 'available',
-            'current_user_id' => null,
-            'current_location_id' => null,
-        ];
-        if ($request->filled('hostname')) {
-            $assetUpdateData['hostname'] = $request->hostname;
+        // Cegah double return
+        if ($assignment->returned_at) {
+            return back()->with('error', 'Aset ini sudah pernah dikembalikan.');
         }
 
-        $assignment->asset->update($assetUpdateData);
+        // Validasi kondisional: pihak pertama harus admin/support
+        if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
+            $pihakPertama = User::find($validated['pihak_pertama_id']);
+            if (!$pihakPertama || !in_array($pihakPertama->role, ['admin', 'support'])) {
+                return back()->withInput()
+                    ->with('error', 'Pihak Pertama harus Admin atau Support.');
+            }
+        }
+
+        $ba = DB::transaction(function () use ($request, $validated, $assignment) {
+            // 1. Update assignment
+            $assignment->update([
+                'returned_at' => $validated['returned_at'],
+                'condition_on_return' => $validated['condition_on_return'] ?? null,
+                'notes' => $validated['notes'] ?? $assignment->notes,
+            ]);
+
+            // 2. Update asset jadi available
+            $assetUpdateData = [
+                'status' => 'available',
+                'current_user_id' => null,
+                'current_location_id' => null,
+            ];
+            if ($request->filled('hostname')) {
+                $assetUpdateData['hostname'] = $request->hostname;
+            }
+            $assignment->asset->update($assetUpdateData);
+
+            // 3. 🆕 Generate BAP
+            $ba = null;
+            if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
+                $pihakPertama = User::find($validated['pihak_pertama_id']);
+                $ba = $this->baService->createPengembalian(
+                    $assignment->fresh(['asset.category', 'user']),
+                    $pihakPertama,
+                    [
+                        'pihak_pertama_jabatan' => $validated['pihak_pertama_jabatan'] ?? null,
+                        'pihak_pertama_nip' => $validated['pihak_pertama_nip'] ?? null,
+                        'tempat_ba' => $validated['tempat_ba'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                    ]
+                );
+            }
+
+            return $ba;
+        });
+
+        $message = 'Aset berhasil dikembalikan.';
+        if ($ba) {
+            $message .= " Berita Acara Pengembalian {$ba->nomor_ba} berhasil dibuat.";
+        }
 
         return redirect()
             ->route('siam.assets.show', $assignment->asset_id)
-            ->with('success', 'Aset berhasil dikembalikan.');
+            ->with('success', $message);
     }
 
     /**

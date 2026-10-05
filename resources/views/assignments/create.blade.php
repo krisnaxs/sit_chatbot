@@ -4,7 +4,6 @@
 
 @section('content')
     <div class="max-w-7xl mx-auto">
-
         <div class="max-w-3xl mx-auto space-y-6">
 
             {{-- HEADER --}}
@@ -249,7 +248,74 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan</label>
                     <textarea name="notes" rows="3"
                         class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Contoh: BAST-2026-0001...">{{ old('notes') }}</textarea>
+                        placeholder="Contoh: Diserahkan lengkap dengan tas dan charger">{{ old('notes') }}</textarea>
+                </div>
+
+                {{-- ============================================================ --}}
+                {{-- 🆕 SECTION BERITA ACARA SERAH TERIMA --}}
+                {{-- ============================================================ --}}
+                <div x-data="{ buatBA: {{ old('buat_berita_acara', true) ? 'true' : 'false' }} }" class="border-t pt-5">
+
+                    <div class="flex items-center gap-3 mb-4">
+                        <input type="checkbox" name="buat_berita_acara" id="buat_berita_acara" value="1"
+                            x-model="buatBA" @checked(old('buat_berita_acara', true))
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-5 h-5">
+                        <label for="buat_berita_acara" class="font-semibold text-gray-700 cursor-pointer">
+                            📄 Buat Berita Acara Serah Terima Otomatis
+                        </label>
+                    </div>
+
+                    <div x-show="buatBA" x-cloak x-transition
+                        class="space-y-4 p-4 rounded-xl bg-indigo-50 border border-indigo-200">
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                    Pihak Pertama (Yang Menyerahkan) <span class="text-red-500">*</span>
+                                </label>
+                                <select name="pihak_pertama_id" :required="buatBA"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">-- Pilih Pejabat Penandatangan --</option>
+                                    @foreach ($penandatangan as $p)
+                                        <option value="{{ $p->id }}" @selected(old('pihak_pertama_id') == $p->id)>
+                                            {{ $p->name }} — {{ $p->position ?? 'Staff' }}
+                                            ({{ strtoupper($p->role) }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Hanya user dengan role <b>admin</b> atau <b>support</b> yang bisa menjadi penandatangan.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Jabatan (Opsional)</label>
+                                <input type="text" name="pihak_pertama_jabatan"
+                                    value="{{ old('pihak_pertama_jabatan') }}"
+                                    placeholder="Kosongkan untuk auto-fill dari user"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">NIP (Opsional)</label>
+                                <input type="text" name="pihak_pertama_nip" value="{{ old('pihak_pertama_nip') }}"
+                                    placeholder="Kosongkan untuk auto-fill dari user"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm font-mono">
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Tempat BA</label>
+                                <input type="text" name="tempat_ba" value="{{ old('tempat_ba', 'Suralaya') }}"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm">
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-lg bg-white border border-indigo-200 text-xs text-indigo-700">
+                            ℹ️ Berita Acara akan dibuat otomatis dengan nomor format
+                            <code class="font-mono font-bold">BAST-{{ now()->format('Y') }}-0001</code>.
+                            Judul BA akan menyesuaikan kategori aset yang dipilih.
+                        </div>
+                    </div>
                 </div>
 
                 {{-- TOMBOL --}}
@@ -259,7 +325,8 @@
                         Batal
                     </a>
                     <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium
+                               shadow-lg shadow-indigo-500/30">
                         Assign Aset
                     </button>
                 </div>

@@ -30,6 +30,7 @@ use App\Http\Controllers\AssetPublicController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\AgentRegistryController;
+use App\Http\Controllers\BeritaAcaraController;  // 🆕 TAMBAHKAN INI
 
 /*
 |--------------------------------------------------------------------------
@@ -201,6 +202,24 @@ Route::middleware(['auth'])->group(function () {
             Route::get('user-assets', [UserAssetController::class, 'index'])->name('user-assets.index');
             Route::get('user-assets/export/excel', [UserAssetController::class, 'exportExcel'])->name('user-assets.export.excel');
             Route::get('user-assets/export/pdf', [UserAssetController::class, 'exportPdf'])->name('user-assets.export.pdf');
+
+            // === 🆕 BERITA ACARA ===
+            // Admin & Support bisa lihat, admin bisa regenerate/delete
+            Route::prefix('berita-acara')
+                ->name('berita-acara.')
+                ->group(function () {
+                // View list & detail (admin & support)
+                Route::get('/', [BeritaAcaraController::class, 'index'])->name('index');
+                Route::get('/{beritaAcara}', [BeritaAcaraController::class, 'show'])->name('show');
+                Route::get('/{beritaAcara}/preview', [BeritaAcaraController::class, 'preview'])->name('preview');
+                Route::get('/{beritaAcara}/download', [BeritaAcaraController::class, 'download'])->name('download');
+
+                // Regenerate & delete (admin only)
+                Route::middleware(['role:admin'])->group(function () {
+                    Route::post('/{beritaAcara}/regenerate', [BeritaAcaraController::class, 'regenerate'])->name('regenerate');
+                    Route::delete('/{beritaAcara}', [BeritaAcaraController::class, 'destroy'])->name('destroy');
+                });
+            });
 
             // === AGENT REGISTRY ===
             Route::prefix('agent-registry')

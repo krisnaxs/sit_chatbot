@@ -95,7 +95,7 @@
                             </label>
                             <select name="model" required x-model="selectedModel" :disabled="!selectedBrand"
                                 class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500
-                                           disabled:bg-gray-100 disabled:cursor-not-allowed">
+                                       disabled:bg-gray-100 disabled:cursor-not-allowed">
                                 <option value="">-- Pilih Brand dulu --</option>
                                 @foreach ($assetTypes as $t)
                                     <option value="{{ $t->model }}" data-brand="{{ $t->brand }}"
@@ -252,22 +252,44 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
                             <select name="status" required
                                 @change="
-                                    showMaintWarning = false;
-                                    showLoanWarning = false;
-                                    showAssignWarning = false;
-                                    if ($event.target.value === 'maintenance' && oldStatus !== 'maintenance') {
-                                        showMaintenanceModal = true;
-                                        showMaintWarning = true;
-                                    }
-                                    if ($event.target.value === 'loaned' && oldStatus !== 'loaned') {
-                                        showLoanModal = true;
-                                        showLoanWarning = true;
-                                    }
-                                    if ($event.target.value === 'in_use' && oldStatus !== 'in_use') {
-                                        showAssignModal = true;
-                                        showAssignWarning = true;
-                                    }
-                                "
+                                        showMaintWarning = false;
+                                        showLoanWarning = false;
+                                        showAssignWarning = false;
+                                        showReturnWarning = false;
+                                        showMaintBlockWarning = false;
+                                        const newVal = $event.target.value;
+                                        const oldVal = oldStatus;
+
+                                        // 🆕 BLOCK: maintenance → available (harus lewat menu Perbaikan)
+                                        if (newVal === 'available' && oldVal === 'maintenance') {
+                                            showMaintBlockWarning = true;
+                                            showMaintenanceModal = false;
+                                            // Balikkan status ke maintenance
+                                            $event.target.value = 'maintenance';
+                                            return;
+                                        }
+
+                                        // RETURN: dari in_use/loaned ke available
+                                        if (newVal === 'available' && (oldVal === 'in_use' || oldVal === 'loaned')) {
+                                            showReturnModal = true;
+                                            showReturnWarning = true;
+                                            return;
+                                        }
+
+                                        // Assign baru
+                                        if (newVal === 'maintenance' && oldVal !== 'maintenance') {
+                                            showMaintenanceModal = true;
+                                            showMaintWarning = true;
+                                        }
+                                        if (newVal === 'loaned' && oldVal !== 'loaned') {
+                                            showLoanModal = true;
+                                            showLoanWarning = true;
+                                        }
+                                        if (newVal === 'in_use' && oldVal !== 'in_use') {
+                                            showAssignModal = true;
+                                            showAssignWarning = true;
+                                        }
+                                    "
                                 class="w-full border rounded-lg px-3 py-2 text-sm">
                                 <option value="available" @selected(old('status', $asset->status) === 'available')>Tersedia</option>
                                 <option value="in_use" @selected(old('status', $asset->status) === 'in_use')>Dipakai</option>
@@ -276,6 +298,49 @@
                                 <option value="retired" @selected(old('status', $asset->status) === 'retired')>Pensiun</option>
                                 <option value="lost" @selected(old('status', $asset->status) === 'lost')>Hilang</option>
                             </select>
+
+                            {{-- 🆕 BLOCK WARNING: Maintenance → Available --}}
+                            <div x-show="showMaintBlockWarning" x-cloak x-transition
+                                class="mt-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm">
+                                <p class="font-semibold text-red-800 flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Tidak Bisa Diubah
+                                </p>
+                                <p class="text-red-700 text-xs mt-1 leading-relaxed">
+                                    Aset sedang <strong>dalam perbaikan</strong>. Untuk mengembalikan status ke
+                                    <strong>Tersedia</strong>,
+                                    Anda harus <strong>menyelesaikan perbaikan</strong> terlebih dahulu di menu
+                                    <strong>Perbaikan</strong>.
+                                </p>
+                                <a href="{{ route('siam.maintenances.index', ['asset_id' => $asset->id]) }}"
+                                    class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-red-800 underline hover:text-red-900">
+                                    → Buka Menu Perbaikan
+                                </a>
+                            </div>
+
+                            {{-- Warning: Return --}}
+                            <div x-show="showReturnWarning" x-cloak x-transition
+                                class="mt-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-sm">
+                                <p class="font-semibold text-emerald-800 flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                    </svg>
+                                    Info
+                                </p>
+                                <p class="text-emerald-700 text-xs mt-1 leading-relaxed">
+                                    Status <strong>"Tersedia"</strong> = user mengembalikan aset.
+                                </p>
+                                <button type="button" @click="showReturnModal = true"
+                                    class="mt-2 text-xs font-semibold text-emerald-800 underline hover:text-emerald-900">
+                                    + Isi Detail Pengembalian
+                                </button>
+                            </div>
 
                             <div x-show="showMaintWarning" x-cloak x-transition
                                 class="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
@@ -289,7 +354,6 @@
                                 </p>
                                 <p class="text-amber-700 text-xs mt-1 leading-relaxed">
                                     Status <strong>"Perbaikan"</strong> hanya menandai aset sedang diperbaiki.
-                                    Isi detail perbaikan untuk mencatat issue, vendor, biaya, dll.
                                 </p>
                                 <button type="button" @click="showMaintenanceModal = true"
                                     class="mt-2 text-xs font-semibold text-amber-800 underline hover:text-amber-900">
@@ -390,6 +454,21 @@
                 <input type="hidden" name="assign[condition_on_assign]" :value="assignForm.condition_on_assign">
                 <input type="hidden" name="assign[notes]" :value="assignForm.notes">
 
+                {{-- BAST Hidden Inputs --}}
+                <input type="hidden" name="assign[buat_berita_acara]" :value="assignForm.buat_berita_acara ? 1 : 0">
+                <input type="hidden" name="assign[pihak_pertama_id]" :value="assignForm.pihak_pertama_id">
+                <input type="hidden" name="assign[pihak_pertama_jabatan]" :value="assignForm.pihak_pertama_jabatan">
+                <input type="hidden" name="assign[pihak_pertama_nip]" :value="assignForm.pihak_pertama_nip">
+                <input type="hidden" name="assign[tempat_ba]" :value="assignForm.tempat_ba">
+
+                {{-- BAP Hidden Inputs (return) --}}
+                <input type="hidden" name="return[buat_berita_acara]" :value="returnForm.buat_berita_acara ? 1 : 0">
+                <input type="hidden" name="return[pihak_pertama_id]" :value="returnForm.pihak_pertama_id">
+                <input type="hidden" name="return[pihak_pertama_jabatan]" :value="returnForm.pihak_pertama_jabatan">
+                <input type="hidden" name="return[pihak_pertama_nip]" :value="returnForm.pihak_pertama_nip">
+                <input type="hidden" name="return[tempat_ba]" :value="returnForm.tempat_ba">
+                <input type="hidden" name="return[notes]" :value="returnForm.notes">
+
                 {{-- TOMBOL --}}
                 <div class="flex gap-2 pt-4 border-t">
                     <a href="{{ route('siam.assets.show', $asset) }}"
@@ -401,6 +480,140 @@
                                shadow-lg shadow-indigo-500/30 transition">
                         Update Aset
                     </button>
+                </div>
+
+                {{-- MODAL RETURN --}}
+                <div x-show="showReturnModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
+
+                    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="cancelReturn()"></div>
+
+                    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+                        @click.away="cancelReturn()">
+
+                        <div class="bg-gradient-to-br from-emerald-500 to-teal-600 px-6 py-5 text-white shrink-0">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold">Kembalikan Aset</h3>
+                                        <p class="text-sm text-white/80">Status jadi Tersedia & BAP dibuat</p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="cancelReturn()"
+                                    class="p-1.5 rounded-lg hover:bg-white/20 transition shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                            <div class="p-3 rounded-xl bg-gray-50 border">
+                                <div class="text-xs text-gray-500">Aset yang akan dikembalikan</div>
+                                <div class="font-semibold text-gray-800">{{ $asset->brand }} {{ $asset->model }}</div>
+                                <div class="text-xs font-mono text-gray-500">SN: {{ $asset->serial_number }}</div>
+                                @if ($asset->currentUser)
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Dipinjam oleh: <strong>{{ $asset->currentUser->name }}</strong>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                        Tanggal Kembali <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="datetime-local" x-model="returnForm.returned_at"
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Kondisi (%)</label>
+                                    <input type="number" x-model="returnForm.condition_on_return" min="0"
+                                        max="100"
+                                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan</label>
+                                <textarea x-model="returnForm.notes" rows="2" placeholder="Contoh: Baik, minus baret halus"
+                                    class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+                            </div>
+
+                            <div class="border-t pt-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <input type="checkbox" x-model="returnForm.buat_berita_acara"
+                                        class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-5 h-5">
+                                    <label class="font-semibold text-gray-700 text-sm cursor-pointer">
+                                        📄 Buat Berita Acara Pengembalian Otomatis
+                                    </label>
+                                </div>
+
+                                <div x-show="returnForm.buat_berita_acara" x-cloak x-transition
+                                    class="space-y-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                            Pihak Pertama (Penerima Kembali) <span class="text-red-500">*</span>
+                                        </label>
+                                        <select x-model="returnForm.pihak_pertama_id"
+                                            :required="returnForm.buat_berita_acara"
+                                            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
+                                            <option value="">-- Pilih Pejabat --</option>
+                                            @foreach (\App\Models\User::active()->whereIn('role', ['admin', 'support'])->orderBy('name')->get() as $p)
+                                                <option value="{{ $p->id }}">
+                                                    {{ $p->name }} — {{ $p->position ?? 'Staff' }}
+                                                    ({{ strtoupper($p->role) }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">Jabatan</label>
+                                            <input type="text" x-model="returnForm.pihak_pertama_jabatan"
+                                                placeholder="Auto-fill"
+                                                class="w-full border rounded-lg px-3 py-2 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">Tempat BA</label>
+                                            <input type="text" x-model="returnForm.tempat_ba" value="Suralaya"
+                                                class="w-full border rounded-lg px-3 py-2 text-sm">
+                                        </div>
+                                    </div>
+
+                                    <div class="text-xs text-emerald-700">
+                                        ℹ️ BAP akan dibuat otomatis saat menyimpan
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-3 bg-gray-50 border-t flex justify-end gap-2 shrink-0">
+                            <button type="button" @click="cancelReturn()"
+                                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition">
+                                Batal
+                            </button>
+                            <button type="button" @click="confirmReturn()"
+                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-500/30">
+                                Ya, Kembalikan
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- MODAL PERBAIKAN --}}
@@ -762,6 +975,59 @@
                                 <textarea x-model="assignForm.notes" rows="2" placeholder="Contoh: BAST-2026-0001"
                                     class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
                             </div>
+
+                            {{-- BAST section --}}
+                            <div class="border-t pt-4 mt-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <input type="checkbox" id="edit_buat_ba" x-model="assignForm.buat_berita_acara"
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-5 h-5">
+                                    <label for="edit_buat_ba" class="font-semibold text-gray-700 text-sm cursor-pointer">
+                                        📄 Buat Berita Acara Serah Terima Otomatis
+                                    </label>
+                                </div>
+
+                                <div x-show="assignForm.buat_berita_acara" x-cloak x-transition
+                                    class="space-y-3 p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                            Pihak Pertama (Yang Menyerahkan) <span class="text-red-500">*</span>
+                                        </label>
+                                        <select x-model="assignForm.pihak_pertama_id"
+                                            :required="assignForm.buat_berita_acara"
+                                            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                            <option value="">-- Pilih Pejabat Penandatangan --</option>
+                                            @foreach (\App\Models\User::active()->whereIn('role', ['admin', 'support'])->orderBy('name')->get() as $p)
+                                                <option value="{{ $p->id }}">
+                                                    {{ $p->name }} — {{ $p->position ?? 'Staff' }}
+                                                    ({{ strtoupper($p->role) }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">Jabatan</label>
+                                            <input type="text" x-model="assignForm.pihak_pertama_jabatan"
+                                                placeholder="Auto-fill"
+                                                class="w-full border rounded-lg px-3 py-2 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">NIP</label>
+                                            <input type="text" x-model="assignForm.pihak_pertama_nip"
+                                                placeholder="Auto-fill"
+                                                class="w-full border rounded-lg px-3 py-2 text-sm font-mono">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Tempat BA</label>
+                                        <input type="text" x-model="assignForm.tempat_ba" value="Suralaya"
+                                            class="w-full border rounded-lg px-3 py-2 text-sm">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="px-6 py-3 bg-gray-50 border-t flex justify-between items-center shrink-0">
@@ -820,43 +1086,6 @@
             </div>
         </div>
 
-        {{-- MODAL KONFIRMASI PERBAIKAN --}}
-        <div x-show="showConfirmMaintenance" x-cloak class="fixed inset-0 z-[120] flex items-center justify-center p-4"
-            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="display: none;">
-
-            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showConfirmMaintenance = false"></div>
-
-            <div class="relative bg-white rounded-2xl shadow-2xl p-6 w-96">
-                <div class="flex justify-center mb-4">
-                    <div class="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-orange-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </div>
-                </div>
-                <h3 class="text-lg font-bold text-gray-900 text-center mb-1">Simpan Perbaikan?</h3>
-                <p class="text-sm text-gray-500 text-center mb-6">
-                    Aset akan diupdate & perbaikan dicatat. Status berubah jadi
-                    <strong class="text-orange-600">Perbaikan</strong>.
-                </p>
-                <div class="flex gap-2">
-                    <button type="button" @click="showConfirmMaintenance = false"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition">
-                        Batal
-                    </button>
-                    <button type="button" @click="submitMaintenance()"
-                        class="flex-1 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold transition shadow-lg shadow-orange-500/30">
-                        Ya, Simpan
-                    </button>
-                </div>
-            </div>
-        </div>
-
         {{-- TOAST --}}
         <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
@@ -908,12 +1137,21 @@
 
                 get filteredModels() {
                     if (!this.selectedBrand) return [];
-                    return this.allTypes.filter(t => t.brand === this.selectedBrand);
+                    const brandLower = this.selectedBrand.toLowerCase().trim();
+                    return this.allTypes.filter(t =>
+                        t.brand && t.brand.toLowerCase().trim() === brandLower
+                    );
                 },
 
                 onBrandChange() {
-                    const stillValid = this.filteredModels.some(m => m.model === this.selectedModel);
-                    if (!stillValid) this.selectedModel = '';
+                    const stillValid = this.filteredModels.some(m =>
+                        m.model.toLowerCase().trim() === (this.selectedModel || '').toLowerCase().trim()
+                    );
+                    if (!stillValid) {
+                        if (this._initialized) {
+                            this.selectedModel = '';
+                        }
+                    }
                     this.refreshModelOptions();
                 },
 
@@ -923,13 +1161,17 @@
                     Array.from(select.options).forEach(opt => {
                         if (!opt.value) return;
                         const brand = opt.getAttribute('data-brand');
-                        opt.hidden = this.selectedBrand && brand !== this.selectedBrand;
+                        opt.hidden = this.selectedBrand &&
+                            brand &&
+                            brand.toLowerCase().trim() !== this.selectedBrand.toLowerCase().trim();
                     });
                 },
 
                 init() {
+                    this._initialized = false;
                     this.$nextTick(() => {
                         this.refreshModelOptions();
+                        this._initialized = true;
                     });
                 }
             }
@@ -939,12 +1181,18 @@
             return {
                 showMaintenanceModal: false,
                 showMaintWarning: false,
+                showMaintBlockWarning: false, // 🆕 BLOCK: maintenance → available
                 showConfirmUpdate: false,
                 showConfirmMaintenance: false,
                 showLoanModal: false,
                 showLoanWarning: false,
                 showAssignModal: false,
                 showAssignWarning: false,
+
+                // State modal return
+                showReturnModal: false,
+                showReturnWarning: false,
+
                 oldStatus: @json($asset->status),
 
                 loanForm: {
@@ -964,6 +1212,23 @@
                     assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
                     condition_on_assign: {{ $asset->condition_percent ?? 100 }},
                     notes: '',
+                    buat_berita_acara: true,
+                    pihak_pertama_id: '',
+                    pihak_pertama_jabatan: '',
+                    pihak_pertama_nip: '',
+                    tempat_ba: 'Suralaya',
+                },
+
+                // Return form
+                returnForm: {
+                    buat_berita_acara: true,
+                    pihak_pertama_id: '',
+                    pihak_pertama_jabatan: '',
+                    pihak_pertama_nip: '',
+                    tempat_ba: 'Suralaya',
+                    returned_at: '{{ now()->format('Y-m-d\TH:i') }}',
+                    condition_on_return: {{ $asset->condition_percent ?? 100 }},
+                    notes: '',
                 },
 
                 toast: {
@@ -972,9 +1237,52 @@
                     type: 'success'
                 },
 
+                // Cancel return → balikkan status
+                cancelReturn() {
+                    this.showReturnModal = false;
+                    this.showReturnWarning = false;
+                    this.showMaintBlockWarning = false;
+                    const statusSelect = document.querySelector('select[name="status"]');
+                    if (statusSelect) statusSelect.value = this.oldStatus;
+                    this.returnForm.buat_berita_acara = true;
+                    this.returnForm.pihak_pertama_id = '';
+                    this.returnForm.pihak_pertama_jabatan = '';
+                    this.returnForm.pihak_pertama_nip = '';
+                    this.returnForm.tempat_ba = 'Suralaya';
+                    this.returnForm.notes = '';
+                },
+
+                // Confirm return → submit
+                confirmReturn() {
+                    if (this.returnForm.buat_berita_acara && !this.returnForm.pihak_pertama_id) {
+                        this.showToast('Pihak Pertama wajib dipilih', 'error');
+                        return;
+                    }
+                    this.showReturnModal = false;
+                    this.showReturnWarning = false;
+                    this.showConfirmUpdate = true;
+                },
+
                 confirmUpdate() {
                     const statusSelect = document.querySelector('select[name="status"]');
                     const newStatus = statusSelect.value;
+
+                    // 🆕 BLOCK: maintenance → available
+                    if (newStatus === 'available' && this.oldStatus === 'maintenance') {
+                        this.showMaintBlockWarning = true;
+                        statusSelect.value = 'maintenance';
+                        return;
+                    }
+
+                    // Kalau ubah dari in_use/loaned ke available → paksa return
+                    if (
+                        newStatus === 'available' &&
+                        (this.oldStatus === 'in_use' || this.oldStatus === 'loaned')
+                    ) {
+                        this.showReturnModal = true;
+                        this.showReturnWarning = true;
+                        return;
+                    }
 
                     if (newStatus === 'loaned' && this.oldStatus !== 'loaned' && !this.loanForm.user_id) {
                         this.showLoanWarning = true;
@@ -1000,6 +1308,10 @@
                         this.showToast('Tanggal diserahkan wajib diisi', 'error');
                         return;
                     }
+                    if (this.assignForm.buat_berita_acara && !this.assignForm.pihak_pertama_id) {
+                        this.showToast('Pihak Pertama (penandatangan BA) wajib dipilih', 'error');
+                        return;
+                    }
                     this.showAssignModal = false;
                     this.showAssignWarning = false;
                     this.showConfirmUpdate = true;
@@ -1008,6 +1320,7 @@
                 cancelAssign() {
                     this.showAssignModal = false;
                     this.showAssignWarning = false;
+                    this.showMaintBlockWarning = false;
                     const statusSelect = document.querySelector('select[name="status"]');
                     if (statusSelect) statusSelect.value = this.oldStatus;
                     this.assignForm = {
@@ -1018,6 +1331,11 @@
                         assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
                         condition_on_assign: {{ $asset->condition_percent ?? 100 }},
                         notes: '',
+                        buat_berita_acara: true,
+                        pihak_pertama_id: '',
+                        pihak_pertama_jabatan: '',
+                        pihak_pertama_nip: '',
+                        tempat_ba: 'Suralaya',
                     };
                 },
 
@@ -1038,6 +1356,7 @@
                 cancelLoan() {
                     this.showLoanModal = false;
                     this.showLoanWarning = false;
+                    this.showMaintBlockWarning = false;
                     const statusSelect = document.querySelector('select[name="status"]');
                     if (statusSelect) statusSelect.value = this.oldStatus;
                     this.loanForm = {
@@ -1099,7 +1418,9 @@
 
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
-                            if (this.showAssignModal) this.cancelAssign();
+                            if (this.showMaintBlockWarning) this.showMaintBlockWarning = false;
+                            else if (this.showReturnModal) this.cancelReturn();
+                            else if (this.showAssignModal) this.cancelAssign();
                             else if (this.showLoanModal) this.cancelLoan();
                             else if (this.showConfirmMaintenance) this.showConfirmMaintenance = false;
                             else if (this.showConfirmUpdate) this.showConfirmUpdate = false;

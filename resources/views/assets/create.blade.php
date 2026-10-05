@@ -358,6 +358,13 @@
                 <input type="hidden" name="assign[condition_on_assign]" :value="assignForm.condition_on_assign">
                 <input type="hidden" name="assign[notes]" :value="assignForm.notes">
 
+                {{-- 🆕 HIDDEN INPUTS BAST --}}
+                <input type="hidden" name="assign[buat_berita_acara]" :value="assignForm.buat_berita_acara ? 1 : 0">
+                <input type="hidden" name="assign[pihak_pertama_id]" :value="assignForm.pihak_pertama_id">
+                <input type="hidden" name="assign[pihak_pertama_jabatan]" :value="assignForm.pihak_pertama_jabatan">
+                <input type="hidden" name="assign[pihak_pertama_nip]" :value="assignForm.pihak_pertama_nip">
+                <input type="hidden" name="assign[tempat_ba]" :value="assignForm.tempat_ba">
+
                 {{-- ============ TOMBOL ============ --}}
                 <div class="flex gap-2 pt-4 border-t">
                     <a href="{{ route('siam.assets.index') }}"
@@ -668,6 +675,70 @@
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Catatan</label>
                                 <textarea x-model="assignForm.notes" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
                             </div>
+
+                            {{-- 🆕 SECTION BERITA ACARA --}}
+                            <div class="border-t pt-4 mt-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <input type="checkbox" id="create_buat_ba" x-model="assignForm.buat_berita_acara"
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-5 h-5">
+                                    <label for="create_buat_ba"
+                                        class="font-semibold text-gray-700 text-sm cursor-pointer">
+                                        📄 Buat Berita Acara Serah Terima Otomatis
+                                    </label>
+                                </div>
+
+                                <div x-show="assignForm.buat_berita_acara" x-cloak x-transition
+                                    class="space-y-3 p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                            Pihak Pertama (Yang Menyerahkan) <span class="text-red-500">*</span>
+                                        </label>
+                                        <select x-model="assignForm.pihak_pertama_id"
+                                            :required="assignForm.buat_berita_acara"
+                                            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                            <option value="">-- Pilih Pejabat Penandatangan --</option>
+                                            @foreach (\App\Models\User::active()->whereIn('role', ['admin', 'support'])->orderBy('name')->get() as $p)
+                                                <option value="{{ $p->id }}">
+                                                    {{ $p->name }} — {{ $p->position ?? 'Staff' }}
+                                                    ({{ strtoupper($p->role) }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Hanya admin/support yang bisa jadi penandatangan.
+                                        </p>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">Jabatan
+                                                (Opsional)</label>
+                                            <input type="text" x-model="assignForm.pihak_pertama_jabatan"
+                                                placeholder="Auto-fill dari user"
+                                                class="w-full border rounded-lg px-3 py-2 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-gray-700 mb-1">NIP
+                                                (Opsional)</label>
+                                            <input type="text" x-model="assignForm.pihak_pertama_nip"
+                                                placeholder="Auto-fill dari user"
+                                                class="w-full border rounded-lg px-3 py-2 text-sm font-mono">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Tempat BA</label>
+                                        <input type="text" x-model="assignForm.tempat_ba" value="Suralaya"
+                                            class="w-full border rounded-lg px-3 py-2 text-sm">
+                                    </div>
+
+                                    <div class="text-xs text-indigo-700">
+                                        ℹ️ BAST akan dibuat dengan nomor format
+                                        <code class="font-mono font-bold">BAST-{{ now()->format('Y') }}-0001</code>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="px-6 py-3 bg-gray-50 border-t flex justify-end items-center gap-2 shrink-0">
@@ -731,6 +802,7 @@
                     notes: '',
                 },
 
+                // 🆕 assignForm dengan field BA
                 assignForm: {
                     user_id: '',
                     location_id: '',
@@ -739,6 +811,13 @@
                     assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
                     condition_on_assign: 100,
                     notes: '',
+
+                    // 🆕 Field BA
+                    buat_berita_acara: true,
+                    pihak_pertama_id: '',
+                    pihak_pertama_jabatan: '',
+                    pihak_pertama_nip: '',
+                    tempat_ba: 'Suralaya',
                 },
 
                 confirmLoan() {
@@ -753,6 +832,10 @@
                 confirmAssign() {
                     if (!this.assignForm.user_id) {
                         alert('Pegawai penerima wajib dipilih');
+                        return;
+                    }
+                    if (this.assignForm.buat_berita_acara && !this.assignForm.pihak_pertama_id) {
+                        alert('Pihak Pertama (penandatangan BA) wajib dipilih');
                         return;
                     }
                     this.showAssignModal = false;
