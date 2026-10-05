@@ -137,9 +137,11 @@ PROMPT;
         try {
             $rows = DB::select($sql);
 
-
-            // Deteksi "not_applicable"
-            if (count($rows) === 1 && isset($rows[0]->not_applicable)) {
+            // Deteksi "not_applicable" — pakai property_exists karena value-nya NULL
+            if (count($rows) === 1 && property_exists($rows[0], 'not_applicable')) {
+                Log::info('SqlTextService: not_applicable detected, skipping', [
+                    'sql' => mb_substr($sql, 0, 200),
+                ]);
                 return null;
             }
 
