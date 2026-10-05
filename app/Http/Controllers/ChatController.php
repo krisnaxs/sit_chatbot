@@ -415,9 +415,16 @@ class ChatController extends Controller
     private function isWriteIntent(string $pesan): bool
     {
         $lower = Str::lower($pesan);
+
+        // Kalau ada kata tanya → kemungkinan bukan write intent
+        if (preg_match('/\b(berapa|jumlah|total|daftar|list|siapa|apa|dimana|kapan|cari|tampilkan|lihat)\b/i', $lower)) {
+            return false;
+        }
+
+        // Hapus 'set' dan 'reset' dari blacklist (terlalu umum)
         return (bool) preg_match(
             '/\b(hapus|delete|ubah|update|edit|ganti|tambah|create|insert|'
-            . 'pindah|move|set|reset|hilangkan|buang|remove|drop|truncate)\b/i',
+            . 'pindah|move|hilangkan|buang|remove|drop|truncate)\b/i',
             $lower
         );
     }
@@ -443,6 +450,7 @@ class ChatController extends Controller
             }
         }
         $isListDistinctQuery = (
+            // "type apa saja", "brand apa saja"
             preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower) &&
             preg_match('/\b(apa|apa saja|apa aja|list|daftar|sebutkan|tampilkan)\b/i', $lower)
         ) || (
@@ -450,16 +458,21 @@ class ChatController extends Controller
             preg_match('/\b(tahun|year)\b/i', $lower) &&
             preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower)
         ) || (
-            // ★ BARU: "type apa itu", "tipe apa itu"
+            // "type apa itu", "tipe apa itu"
             preg_match('/\b(type|tipe|model)\s+apa\s+itu\b/i', $lower)
         ) || (
-            // ★ BARU: "apa type-nya", "apa tipenya"
+            // "apa type-nya", "apa tipenya"
             preg_match('/\bapa\s+(type|tipe|model)(nya)?\b/i', $lower)
         ) || (
-            // ★ BARU: "laptop tahun 2024 laptop apa" (kategori + tahun + apa)
+            // "laptop tahun 2024 laptop apa"
             preg_match('/\b(laptop|pc|komputer|printer|monitor)\b/i', $lower) &&
             preg_match('/\b(20\d{2}|tahun)\b/i', $lower) &&
             preg_match('/\b(apa|tipe|type|model)\b/i', $lower)
+        ) || (
+            // ★ BARU: "laptop ready apa", "laptop tersedia apa"
+            preg_match('/\b(laptop|pc|komputer|printer|monitor|server)\b/i', $lower) &&
+            preg_match('/\b(ready|tersedia|available|dipakai|rusak|maintenance|dipinjam|loaned)\b/i', $lower) &&
+            preg_match('/\b(apa|apa saja|list|daftar)\b/i', $lower)
         );
 
         if ($isListDistinctQuery) {
@@ -728,25 +741,29 @@ class ChatController extends Controller
             }
         }
 
-        // ============================================================
-        // ★ DETEKSI KOMPLEKSITAS QUERY ★
-        // Kalau ada filter kompleks (tahun, brand, bulan, dll),
-        // SKIP QueryRouter manual → langsung ke SQL-to-Text
-        // ============================================================
+
         $hasComplexFilter = (
-            // Ada tahun (2024, 2023, 2025)
+            // 1. Ada tahun (2024, 2023, 2025)
             preg_match('/\b(20\d{2})\b/', $lower) ||
-            // Ada "tahun XXXX"
+            // 2. Ada "tahun XXXX"
             preg_match('/\b(tahun|year)\s+\d{4}\b/i', $lower) ||
-            // Ada bulan
+            // 3. Ada bulan
             preg_match('/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i', $lower) ||
-            // Ada brand spesifik + kata "brand/merek"
+            // 4. Ada brand spesifik + kata "brand/merek"
             preg_match('/\b(brand|merek|model)\s+(dell|hp|lenovo|asus|acer|apple|samsung|toshiba|epson|canon|brother)\b/i', $lower) ||
-                // Kombinasi kategori + waktu
+                // 5. Kombinasi kategori + waktu
             (
                 preg_match('/\b(laptop|pc|komputer|printer|monitor|server|router|proyektor|scanner)\b/i', $lower) &&
                 preg_match('/\b(20\d{2}|tahun|bulan|januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/i', $lower)
-            )
+            ) ||
+                // ★ BARU: 6. Kategori + status + "apa" (list distinct)
+            (
+                preg_match('/\b(laptop|pc|komputer|printer|monitor|server|router|proyektor|scanner)\b/i', $lower) &&
+                preg_match('/\b(ready|tersedia|available|rusak|maintenance|dipinjam|loaned)\b/i', $lower) &&
+                preg_match('/\b(apa|apa saja|list|daftar)\b/i', $lower)
+            ) ||
+            // ★ BARU: 7. "type apa saja", "brand apa saja"
+            preg_match('/\b(type|tipe|model|brand|merek|merk)\s+(apa|apa saja|apa aja)\b/i', $lower)
         );
 
         // === 1. QueryRouter (skip kalau filter kompleks) ===

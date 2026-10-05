@@ -3,11 +3,11 @@
 namespace App\Services\Query;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class QueryRouter
 {
-
     private const ASSET_KEYWORDS = [
         'aset',
         'asset',
@@ -85,7 +85,6 @@ class QueryRouter
         'ruangan',
     ];
 
-
     public function tryAnswer(string $pesan): ?array
     {
         $user = auth()->user();
@@ -101,6 +100,17 @@ class QueryRouter
             ];
         }
 
+        // ============================================================
+        // ★ STEP 1: Coba QueryMapping (cepat, < 100ms) ★
+        // ============================================================
+        $mappingResult = $this->tryMapping($pesan);
+        if ($mappingResult) {
+            return $mappingResult;
+        }
+
+        // ============================================================
+        // STEP 2: Fallback ke service-service existing
+        // ============================================================
         $services = [
             app(AssetQueryService::class),
             app(CrossQueryService::class),
@@ -134,6 +144,53 @@ class QueryRouter
         return null;
     }
 
+    /**
+     * ★ Coba cocokkan pesan dengan QueryMapping.
+     * Return [answer, 'database', context] atau null kalau tidak match.
+     */
+    protected function tryMapping(string $pesan): ?array
+    {
+        $handlers = \App\Services\Query\QueryMapping::handlers();
+
+        // Cek koneksi ai_readonly juga untuk mapping
+        $original = DB::getDefaultConnection();
+        DB::setDefaultConnection('ai_readonly');
+
+        try {
+            foreach ($handlers as $pattern => $callback) {
+                if (preg_match($pattern, $pesan)) {
+                    try {
+                        $result = $callback();
+
+                        if ($result && isset($result[0])) {
+                            Log::info('queryrouter.mapping_hit', [
+                                'pattern' => $pattern,
+                                'pesan' => $pesan,
+                            ]);
+
+                            // Return format standar: [answer, sumber, context]
+                            return [
+                                $result[0],
+                                $result[1] ?? 'database',
+                                $result[2] ?? null,
+                            ];
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('queryrouter.mapping_error', [
+                            'pattern' => $pattern,
+                            'pesan' => $pesan,
+                            'error' => $e->getMessage(),
+                        ]);
+                        // Lanjut cek pattern berikutnya
+                    }
+                }
+            }
+        } finally {
+            DB::setDefaultConnection($original);
+        }
+
+        return null;
+    }
 
     protected function isAssetRelated(string $pesan): bool
     {
