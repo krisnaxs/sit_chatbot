@@ -1370,37 +1370,22 @@ class ChatController extends Controller
 
     private function tryKnowledge(string $pesan): ?array
     {
-        // ═══════════════════════════════════════════════════════════
-        // Helper: normalisasi — buang semua karakter non-alfanumerik,
-        // lowercase, rapikan spasi. Dipakai untuk kedua sisi (pesan & KB).
-        // ═══════════════════════════════════════════════════════════
+        // Helper: normalisasi
         $normalize = function (string $s): string {
             $s = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($s));
             return preg_replace('/\s+/', ' ', trim($s));
         };
 
         $pesanBersih = $normalize($pesan);
-
-        if (empty($pesanBersih)) {
+        if (empty($pesanBersih))
             return null;
-        }
 
-        // ═══════════════════════════════════════════════════════════
-        // Ambil semua KB (untuk DB kecil < 1000 baris, ini OK & cepat).
-        // Kalau KB besar, ganti jadi query LIKE dulu, baru normalize di PHP.
-        // ═══════════════════════════════════════════════════════════
         $allKb = Knowledge::with('attachments')->get();
-
-        if ($allKb->isEmpty()) {
+        if ($allKb->isEmpty())
             return null;
-        }
 
         // ═══════════════════════════════════════════════════════════
         // LEVEL 1: EXACT MATCH
-        // Setelah normalisasi, kata_kunci === pesan.
-        // Contoh: user ketik "password wifi INDONESIAPOWER & RAKOR apa"
-        //         KB punya  "password wifi INDONESIAPOWER & RAKOR apa"
-        //         → keduanya dinormalisasi jadi sama → MATCH
         // ═══════════════════════════════════════════════════════════
         foreach ($allKb as $kb) {
             if ($normalize($kb->kata_kunci) === $pesanBersih) {
@@ -1414,18 +1399,8 @@ class ChatController extends Controller
 
         // ═══════════════════════════════════════════════════════════
         // LEVEL 2: SUBSTRING MATCH
-        // kata_kunci ada di dalam pesan, atau sebaliknya.
-        // Ambil yang paling panjang (paling spesifik).
-        //
-        // Contoh yang akan match:
-        //   KB: "password wifi INDONESIAPOWER & RAKOR apa"
-        //   User: "password wifi INDONESIAPOWER"  → KB di dalam pesan? TIDAK
-        //                                           Pesan di dalam KB? YA → MATCH
-        //
-        //   User: "apa password wifi indonesiapower rakor"
-        //   KB: "password wifi INDONESIAPOWER & RAKOR apa"
-        //   → setelah normalisasi jadi sama-sama "password wifi indonesiapower rakor apa"
-        //   → MATCH (exact)
+        // ⭐ FIX: Skip KB yang cuma 1 kata DAN pendek (mis. "password").
+        //   KB 1 kata masih boleh kalau panjang (mis. "helpdesk").
         // ═══════════════════════════════════════════════════════════
         $bestSubstring = null;
         $bestSubstringLen = 0;
@@ -1433,11 +1408,15 @@ class ChatController extends Controller
         foreach ($allKb as $kb) {
             $kbNorm = $normalize($kb->kata_kunci);
 
-            // Skip KB yang terlalu pendek (hindari false positive)
-            if (strlen($kbNorm) < 8) {
+            // ⭐ FIX: hitung jumlah kata
+            $kbWordCount = count(array_filter(explode(' ', $kbNorm), fn($w) => $w !== ''));
+
+            // Skip KB 1 kata yang pendek (< 12 char)
+            if ($kbWordCount < 2 && strlen($kbNorm) < 12) {
                 continue;
             }
 
+            // Cek substring (dua arah)
             if (str_contains($pesanBersih, $kbNorm) || str_contains($kbNorm, $pesanBersih)) {
                 // Ambil yang paling panjang (paling spesifik)
                 if (strlen($kbNorm) > $bestSubstringLen) {
@@ -1457,33 +1436,37 @@ class ChatController extends Controller
 
         // ═══════════════════════════════════════════════════════════
         // LEVEL 3: TOKEN-BASED MATCHING (fallback)
-        // Hitung berapa token pesan yang match dengan token KB.
-        // Threshold 0.4 → cukup toleran untuk typo & variasi kata.
+        // ⭐ FIX: threshold 0.5 (lebih ketat)
+        // ⭐ FIX: skip KB 1 kata pendek juga di sini
         // ═══════════════════════════════════════════════════════════
         $pesanTokens = collect(explode(' ', $pesanBersih))
             ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
             ->values()
             ->all();
 
-        if (empty($pesanTokens)) {
+        if (empty($pesanTokens))
             return null;
-        }
 
         $best = null;
         $bestScore = 0;
 
         foreach ($allKb as $kb) {
             $kbNorm = $normalize($kb->kata_kunci);
+
+            // ⭐ FIX: skip KB 1 kata pendek juga di level 3
+            $kbWordCount = count(array_filter(explode(' ', $kbNorm), fn($w) => $w !== ''));
+            if ($kbWordCount < 2 && strlen($kbNorm) < 12) {
+                continue;
+            }
+
             $kbTokens = collect(explode(' ', $kbNorm))
                 ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
                 ->values()
                 ->all();
 
-            if (empty($kbTokens)) {
+            if (empty($kbTokens))
                 continue;
-            }
 
-            // Hitung berapa token pesan yang "match" dengan token KB
             $matched = 0;
             foreach ($pesanTokens as $pt) {
                 foreach ($kbTokens as $kt) {
@@ -1500,8 +1483,6 @@ class ChatController extends Controller
             }
 
             $score = $matched / count($pesanTokens);
-
-            // Penalti kalau panjang token beda jauh (biar adil)
             $lengthRatio = min(count($kbTokens), count($pesanTokens))
                 / max(count($kbTokens), count($pesanTokens));
             $score = $score * (0.7 + 0.3 * $lengthRatio);
@@ -1512,8 +1493,8 @@ class ChatController extends Controller
             }
         }
 
-        // Threshold 0.4 — cukup longgar untuk toleransi
-        if ($best && $bestScore >= 0.4) {
+        // ⭐ FIX: threshold 0.5 (naik dari 0.4)
+        if ($best && $bestScore >= 0.5) {
             Log::info('tryKnowledge.token_match', [
                 'id' => $best->id,
                 'score' => round($bestScore, 2),
