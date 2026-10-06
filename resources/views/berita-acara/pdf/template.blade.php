@@ -77,7 +77,7 @@
         .judul {
             text-align: center;
             margin-top: 5mm;
-            margin-bottom: 2mm;
+            margin-bottom: 1mm;
             font-size: 12pt;
             font-weight: bold;
             line-height: 1.5;
