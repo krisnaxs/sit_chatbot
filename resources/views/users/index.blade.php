@@ -118,19 +118,53 @@
             </div>
         </div>
 
-        {{-- SEARCH --}}
-        <div class="mb-4 relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+        {{-- SEARCH (SERVER-SIDE) --}}
+        <form method="GET" action="{{ route('users.index') }}" class="mb-4" id="searchForm">
+            <div class="relative flex gap-2">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" name="search" id="searchInput" value="{{ request('search') }}"
+                        placeholder="Cari nama, email, NIP, atau username... (tekan Enter)" autocomplete="off"
+                        class="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                               bg-white shadow-sm transition">
+
+                    {{-- Tombol clear kalau ada keyword --}}
+                    @if (request('search'))
+                        <a href="{{ route('users.index') }}"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </a>
+                    @endif
+                </div>
+                <button type="submit"
+                    class="px-5 py-3 bg-gradient-to-br from-blue-500 to-violet-600
+                           hover:from-blue-600 hover:to-violet-700
+                           text-white font-semibold text-sm rounded-xl
+                           shadow-lg shadow-blue-500/30 transition-all
+                           hover:scale-105 active:scale-95">
+                    Cari
+                </button>
             </div>
-            <input type="text" id="searchInput" placeholder="Cari nama atau email..."
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       bg-white shadow-sm transition">
-        </div>
+
+            {{-- Info hasil pencarian --}}
+            @if (request('search'))
+                <p class="text-xs text-gray-500 mt-2">
+                    Menampilkan hasil untuk:
+                    <strong class="text-gray-700">"{{ request('search') }}"</strong>
+                    — {{ $users->total() }} hasil ditemukan
+                </p>
+            @endif
+        </form>
 
         {{-- TABLE --}}
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -263,9 +297,21 @@
                                             </svg>
                                         </div>
                                         <div>
-                                            <p class="font-semibold text-gray-900">Belum ada user</p>
-                                            <p class="text-sm text-gray-500 mt-1">Tambahkan user pertama atau import dari
-                                                Excel</p>
+                                            @if (request('search'))
+                                                <p class="font-semibold text-gray-900">Tidak ada hasil</p>
+                                                <p class="text-sm text-gray-500 mt-1">
+                                                    Tidak ditemukan user dengan keyword
+                                                    "<strong>{{ request('search') }}</strong>"
+                                                </p>
+                                                <a href="{{ route('users.index') }}"
+                                                    class="inline-block mt-3 text-xs text-blue-600 hover:text-blue-700 font-semibold">
+                                                    ← Kembali ke semua user
+                                                </a>
+                                            @else
+                                                <p class="font-semibold text-gray-900">Belum ada user</p>
+                                                <p class="text-sm text-gray-500 mt-1">Tambahkan user pertama atau import
+                                                    dari Excel</p>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
@@ -623,6 +669,7 @@
                     form.action = this.deleteTarget.action;
                     form.submit();
                 },
+
                 confirmResetPassword() {
                     this.resetTarget = {
                         id: this.selectedUser.id,
@@ -657,24 +704,16 @@
                         this.showToast(@json(session('error')), 'error');
                     @endif
 
+                    // Auto-submit search dengan debounce (opsional: hapus kalau mau manual enter)
                     const searchInput = document.getElementById('searchInput');
-                    const table = document.getElementById('usersTable');
-                    if (searchInput && table) {
-                        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-
-                        searchInput.addEventListener('keyup', function() {
-                            const filter = searchInput.value.toLowerCase();
-                            Array.from(rows).forEach(row => {
-                                const cells = row.getElementsByTagName('td');
-                                let match = false;
-                                for (let i = 1; i < cells.length; i++) {
-                                    if (cells[i].textContent.toLowerCase().includes(filter)) {
-                                        match = true;
-                                        break;
-                                    }
-                                }
-                                row.style.display = match ? '' : 'none';
-                            });
+                    const searchForm = document.getElementById('searchForm');
+                    if (searchInput && searchForm) {
+                        let debounceTimer;
+                        searchInput.addEventListener('input', function() {
+                            clearTimeout(debounceTimer);
+                            debounceTimer = setTimeout(() => {
+                                searchForm.submit();
+                            }, 600);
                         });
                     }
 
