@@ -686,7 +686,7 @@
                         <div>
                             <div class="text-xs text-gray-500">Kondisi</div>
                             <div class="text-xs font-medium"
-                                x-text="selectedAsset?.condition_percent !== null ? selectedAsset.condition_percent + '%' : '-'">
+                                x-text="selectedAsset?.condition_percent != null ? selectedAsset.condition_percent + '%' : '-'">
                             </div>
                         </div>
 
