@@ -695,7 +695,6 @@
                                             Pihak Pertama (Yang Menyerahkan) <span class="text-red-500">*</span>
                                         </label>
                                         <select x-model="assignForm.pihak_pertama_id"
-                                            :required="assignForm.buat_berita_acara"
                                             class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
                                             <option value="">-- Pilih Pejabat Penandatangan --</option>
                                             @foreach (\App\Models\User::active()->whereIn('role', ['admin'])->orderBy('name')->get() as $p)
