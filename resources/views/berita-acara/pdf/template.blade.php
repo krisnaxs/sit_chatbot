@@ -32,7 +32,7 @@
         .kop {
             width: 100%;
             border-bottom: 1px solid #000;
-            padding-bottom: 2mm;
+            padding-bottom: 1mm;
         }
 
         .kop-table {
@@ -86,7 +86,7 @@
         .nomor-ba {
             text-align: center;
             font-size: 10pt;
-            margin-bottom: 8mm;
+            margin-bottom: 5mm;
             color: #000;
         }
 
@@ -98,7 +98,7 @@
             font-size: 10pt;
             line-height: 1.5;
             text-align: justify;
-            margin-bottom: 5mm;
+            margin-bottom: 2mm;
         }
 
         .paragraf:last-child {
