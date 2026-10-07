@@ -79,13 +79,39 @@ class AgentRegistryController extends Controller
                 ->count(),
         ];
 
-        // === Daftar aset untuk dropdown approve ===
+        // === Daftar aset untuk dropdown approve (format array untuk JSON) ===
         $assets = Asset::with('category')
             ->whereDoesntHave('agentToken')
             ->whereHas('category', fn($q) => $q->where('is_agent_monitored', true))
             ->orderBy('asset_code')
             ->limit(500)
-            ->get();
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'id' => $a->id,
+                    'asset_code' => $a->asset_code ?? '-',
+                    'serial_number' => $a->serial_number,
+                    'hostname' => $a->hostname,
+                    'brand' => $a->brand,
+                    'model' => $a->model,
+                    'category' => $a->category?->name,
+                    'label' => trim("{$a->asset_code} — {$a->brand} {$a->model} ({$a->category?->name})"),
+                    'search_text' => strtolower(trim(
+                        "{$a->asset_code} {$a->serial_number} {$a->hostname} {$a->brand} {$a->model} {$a->category?->name}"
+                    )),
+                ];
+            })
+            ->values();
+
+        // === Pre-match pending agent dengan asset yang ada ===
+        $pending->getCollection()->transform(function ($p) use ($assets) {
+            $matched = $p->serial_number
+                ? $assets->firstWhere('serial_number', $p->serial_number)
+                : null;
+
+            $p->suggested_asset_id = $matched['id'] ?? null;
+            return $p;
+        });
 
         return view('agent-registry.index', compact(
             'pending',

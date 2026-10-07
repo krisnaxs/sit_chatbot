@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\PendingAgent;
+use App\Models\AgentToken;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -73,6 +75,54 @@ class Asset extends Model
                 $asset->asset_code = static::generateAssetCode();
             }
         });
+
+        // === TAMBAHKAN INI ===
+        static::created(function (Asset $asset) {
+            static::autoApprovePendingAgent($asset);
+        });
+    }
+
+    /**
+     * Auto-approve pending agent kalau serial number-nya cocok
+     * dengan asset yang baru dibuat.
+     */
+    protected static function autoApprovePendingAgent(Asset $asset): void
+    {
+        // Skip kalau asset tidak punya serial number
+        if (empty($asset->serial_number)) {
+            return;
+        }
+
+        // Cari pending agent yang serial-nya cocok & belum di-approve/reject
+        $pending = PendingAgent::pending()
+            ->where('serial_number', $asset->serial_number)
+            ->first();
+
+        if (!$pending) {
+            return;
+        }
+
+        // Buat token agent
+        $token = AgentToken::create([
+            'token' => Str::random(64),
+            'name' => "{$asset->asset_code} Agent",
+            'asset_id' => $asset->id,
+            'is_active' => true,
+            'device_serial' => $pending->serial_number,
+            'device_hostname' => $pending->hostname,
+        ]);
+
+        // Update hostname asset kalau belum ada
+        if (empty($asset->hostname)) {
+            $asset->update(['hostname' => $pending->hostname]);
+        }
+
+        // Tandai pending sudah di-approve
+        $pending->update([
+            'approved_at' => now(),
+            'approved_by' => auth()->id() ?? null,
+            'asset_id' => $asset->id,
+        ]);
     }
 
     public static function generateAssetCode(): string

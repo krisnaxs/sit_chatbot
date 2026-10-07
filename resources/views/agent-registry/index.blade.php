@@ -93,6 +93,7 @@
                             <tr>
                                 <th class="px-4 py-2 text-left">Hostname</th>
                                 <th class="px-4 py-2 text-left">Serial BIOS</th>
+                                <th class="px-4 py-2 text-left">Match Asset</th>
                                 <th class="px-4 py-2 text-left">IP / WiFi</th>
                                 <th class="px-4 py-2 text-left">User</th>
                                 <th class="px-4 py-2 text-left">Attempts</th>
@@ -109,6 +110,17 @@
                                     </td>
                                     <td class="px-4 py-3 font-mono text-xs">
                                         {{ $p->serial_number ?? '-' }}
+                                    </td>
+                                    <td class="px-4 py-3 text-xs">
+                                        @if ($p->suggested_asset_id)
+                                            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
+                                                ✓ Ada di asset
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                                                Belum ada
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-xs">
                                         <div>{{ $p->ip ?? '-' }}</div>
@@ -133,13 +145,18 @@
                                         @else
                                             <div class="inline-flex gap-2">
                                                 <button type="button"
-                                                    onclick="openApproveModal({{ $p->id }}, '{{ $p->hostname }}', '{{ $p->serial_number }}')"
+                                                    onclick="openApproveModal(
+                                                        {{ $p->id }},
+                                                        @js($p->hostname),
+                                                        @js($p->serial_number),
+                                                        {{ $p->suggested_asset_id ?? 'null' }}
+                                                    )"
                                                     class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium">
                                                     Approve
                                                 </button>
 
                                                 <button type="button"
-                                                    onclick="openRejectModal({{ $p->id }}, '{{ $p->hostname }}')"
+                                                    onclick="openRejectModal({{ $p->id }}, @js($p->hostname))"
                                                     class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-medium">
                                                     Reject
                                                 </button>
@@ -342,7 +359,7 @@
                 <p class="text-sm text-white/80">Link device ke asset di SIAM</p>
             </div>
 
-            <form id="approveForm" method="POST">
+            <form id="approveForm" method="POST" onsubmit="return validateApproveForm()">
                 @csrf
 
                 <div class="p-6 space-y-4">
@@ -354,21 +371,35 @@
                         <div class="font-mono text-xs" id="modalSerial">-</div>
                     </div>
 
-                    {{-- Pilih asset --}}
+                    {{-- Pilih asset — searchable dropdown --}}
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">
                             Pilih Aset <span class="text-red-500">*</span>
                         </label>
-                        <select name="asset_id" required
-                            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
-                            <option value="">-- Pilih Aset --</option>
-                            @foreach ($assets as $asset)
-                                <option value="{{ $asset->id }}">
-                                    {{ $asset->asset_code }} — {{ $asset->brand }} {{ $asset->model }}
-                                    ({{ $asset->category?->name }})
-                                </option>
-                            @endforeach
-                        </select>
+
+                        {{-- Hidden input: yang benar-benar dikirim ke server --}}
+                        <input type="hidden" name="asset_id" id="assetIdInput" required>
+
+                        {{-- Search input --}}
+                        <div class="relative">
+                            <input type="text" id="assetSearchInput"
+                                placeholder="Cari asset code / serial / hostname / brand / type..." autocomplete="off"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+
+                            {{-- Dropdown hasil --}}
+                            <div id="assetDropdown"
+                                class="hidden absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                                {{-- Diisi via JS --}}
+                            </div>
+                        </div>
+
+                        {{-- Preview asset terpilih --}}
+                        <div id="assetSelectedPreview"
+                            class="hidden mt-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
+                            <div class="font-semibold text-emerald-900" id="assetSelectedLabel"></div>
+                            <div class="text-emerald-700 mt-0.5" id="assetSelectedMeta"></div>
+                        </div>
+
                         <p class="text-xs text-gray-500 mt-1">
                             Hanya menampilkan aset yang belum punya token agent.
                         </p>
@@ -436,17 +467,147 @@
 
     {{-- SCRIPT --}}
     <script>
-        function openApproveModal(pendingId, hostname, serial) {
+        // === Data assets dari server (di-render sebagai JSON) ===
+        const ASSETS = @json($assets);
+
+        // === Element refs ===
+        const searchInput = document.getElementById('assetSearchInput');
+        const dropdown = document.getElementById('assetDropdown');
+        const hiddenInput = document.getElementById('assetIdInput');
+        const previewBox = document.getElementById('assetSelectedPreview');
+        const previewLabel = document.getElementById('assetSelectedLabel');
+        const previewMeta = document.getElementById('assetSelectedMeta');
+
+        // === Render dropdown berdasarkan query ===
+        function renderAssetDropdown(query = '') {
+            const q = query.trim().toLowerCase();
+
+            const filtered = q === '' ?
+                ASSETS :
+                ASSETS.filter(a => a.search_text.includes(q));
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = `
+                    <div class="px-3 py-4 text-xs text-gray-400 text-center italic">
+                        Tidak ada asset yang cocok
+                    </div>`;
+            } else {
+                dropdown.innerHTML = filtered.map(a => `
+                    <div class="px-3 py-2 hover:bg-emerald-50 cursor-pointer border-b border-gray-50 last:border-0"
+                        onclick="selectAsset(${a.id})">
+                        <div class="text-xs font-semibold text-gray-800 font-mono">${escapeHtml(a.asset_code)}</div>
+                        <div class="text-[11px] text-gray-600">${escapeHtml(a.brand ?? '')} ${escapeHtml(a.model ?? '')}</div>
+                        <div class="text-[10px] text-gray-400 font-mono">
+                            SN: ${escapeHtml(a.serial_number ?? '-')} · ${escapeHtml(a.hostname ?? '-')}
+                        </div>
+                        <div class="text-[10px] text-gray-400">${escapeHtml(a.category ?? '-')}</div>
+                    </div>
+                `).join('');
+            }
+
+            dropdown.classList.remove('hidden');
+        }
+
+        // === Escape HTML biar aman ===
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // === Pilih asset ===
+        function selectAsset(assetId) {
+            const asset = ASSETS.find(a => a.id === assetId);
+            if (!asset) return;
+
+            hiddenInput.value = assetId;
+            searchInput.value = asset.label;
+
+            // Preview
+            previewBox.classList.remove('hidden');
+            previewLabel.textContent = `${asset.asset_code} — ${asset.brand ?? ''} ${asset.model ?? ''}`;
+            previewMeta.textContent =
+                `SN: ${asset.serial_number ?? '-'} · Hostname: ${asset.hostname ?? '-'} · ${asset.category ?? '-'}`;
+
+            // Highlight
+            searchInput.classList.add('ring-2', 'ring-emerald-500');
+            searchInput.classList.remove('border-gray-300');
+
+            dropdown.classList.add('hidden');
+        }
+
+        // === Reset pilihan ===
+        function resetAssetSelection() {
+            hiddenInput.value = '';
+            previewBox.classList.add('hidden');
+            searchInput.classList.remove('ring-2', 'ring-emerald-500');
+            searchInput.classList.add('border-gray-300');
+        }
+
+        // === Event: fokus ===
+        searchInput.addEventListener('focus', () => {
+            if (!hiddenInput.value) renderAssetDropdown(searchInput.value);
+        });
+
+        // === Event: ketik ===
+        searchInput.addEventListener('input', () => {
+            resetAssetSelection();
+            renderAssetDropdown(searchInput.value);
+        });
+
+        // === Event: klik di luar ===
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // === Event: Escape ===
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') dropdown.classList.add('hidden');
+        });
+
+        // === Validate sebelum submit ===
+        function validateApproveForm() {
+            if (!hiddenInput.value) {
+                alert('Silakan pilih aset terlebih dahulu.');
+                searchInput.focus();
+                return false;
+            }
+            return true;
+        }
+
+        // === Open Modal Approve ===
+        function openApproveModal(pendingId, hostname, serial, suggestedAssetId) {
             document.getElementById('modalHostname').textContent = hostname;
             document.getElementById('modalSerial').textContent = serial || '-';
             document.getElementById('approveForm').action = `/siam/agent-registry/${pendingId}/approve`;
+
+            // Reset state dropdown
+            resetAssetSelection();
+            searchInput.value = '';
+
+            // Pre-select kalau ada suggested
+            if (suggestedAssetId) {
+                selectAsset(suggestedAssetId);
+            }
+
             document.getElementById('approveModal').classList.remove('hidden');
+
+            // Auto-focus ke search input
+            setTimeout(() => searchInput.focus(), 100);
         }
 
         function closeApproveModal() {
             document.getElementById('approveModal').classList.add('hidden');
+            dropdown.classList.add('hidden');
         }
 
+        // === Open Modal Reject ===
         function openRejectModal(pendingId, hostname) {
             document.getElementById('rejectHostname').textContent = hostname;
             document.getElementById('rejectForm').action = `/siam/agent-registry/${pendingId}/reject`;
