@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Asset;
+use App\Models\AssetAssignment;
+use App\Models\AssetLoan;
+use App\Models\ConsumableTransaction;
 use App\Models\Department;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -45,7 +50,12 @@ class UserController extends Controller
         $users = $query->orderByDesc('id')->paginate(10)->withQueryString();
         $departments = Department::active()->orderBy('name')->get();
 
-        return view('users.index', compact('users', 'departments'));
+        // 🆕 Trash count (admin only)
+        $trashCount = auth()->user()->isAdmin()
+            ? User::onlyTrashed()->count()
+            : 0;
+
+        return view('users.index', compact('users', 'departments', 'trashCount'));
     }
 
     /**
@@ -75,7 +85,7 @@ class UserController extends Controller
             'location_id' => ['nullable', 'exists:locations,id'],
             'role' => ['required', Rule::in(['admin', 'support', 'user'])],
             'is_active' => ['nullable'],
-            'waktu_pensiun' => ['nullable', 'date'], //  tambahan
+            'waktu_pensiun' => ['nullable', 'date'],
         ], [
             'nip.unique' => 'NIP sudah terdaftar.',
             'name.required' => 'Nama wajib diisi.',
@@ -89,7 +99,7 @@ class UserController extends Controller
             'role.in' => 'Role tidak valid.',
             'department_id.exists' => 'Departemen tidak valid.',
             'location_id.exists' => 'Lokasi tidak valid.',
-            'waktu_pensiun.date' => 'Format tanggal pensiun tidak valid.', //  tambahan
+            'waktu_pensiun.date' => 'Format tanggal pensiun tidak valid.',
         ]);
 
         $username = User::generateUsername($data['email']);
@@ -106,7 +116,7 @@ class UserController extends Controller
             'location_id' => $data['location_id'] ?? null,
             'role' => $data['role'],
             'is_active' => $request->has('is_active'),
-            'waktu_pensiun' => $data['waktu_pensiun'] ?? null, //  tambahan
+            'waktu_pensiun' => $data['waktu_pensiun'] ?? null,
         ]);
 
         return redirect()
@@ -169,7 +179,7 @@ class UserController extends Controller
             'location_id' => ['nullable', 'exists:locations,id'],
             'role' => ['required', Rule::in(['admin', 'support', 'user'])],
             'is_active' => ['nullable'],
-            'waktu_pensiun' => ['nullable', 'date'], //  tambahan
+            'waktu_pensiun' => ['nullable', 'date'],
         ], [
             'name.required' => 'Nama wajib diisi.',
             'email.required' => 'Email wajib diisi.',
@@ -177,7 +187,7 @@ class UserController extends Controller
             'nip.unique' => 'NIP sudah dipakai user lain.',
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
-            'waktu_pensiun.date' => 'Format tanggal pensiun tidak valid.', //  tambahan
+            'waktu_pensiun.date' => 'Format tanggal pensiun tidak valid.',
         ]);
 
         $user->nip = $data['nip'] ?? null;
@@ -189,7 +199,7 @@ class UserController extends Controller
         $user->location_id = $data['location_id'] ?? null;
         $user->role = $data['role'];
         $user->is_active = $request->has('is_active');
-        $user->waktu_pensiun = $data['waktu_pensiun'] ?? null; //  tambahan
+        $user->waktu_pensiun = $data['waktu_pensiun'] ?? null;
 
         if (!empty($data['password'])) {
             $user->password = Hash::make($data['password']);
@@ -296,7 +306,6 @@ class UserController extends Controller
 
     /**
      * Reset password user ke default (khusus admin).
-     * Langsung set tanpa form input.
      */
     public function resetPassword(User $user)
     {
@@ -320,7 +329,7 @@ class UserController extends Controller
     }
 
     /**
-     * Hapus user.
+     * Hapus user (soft delete — bisa direstore).
      */
     public function destroy(User $user)
     {
@@ -330,10 +339,182 @@ class UserController extends Controller
                 ->with('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
         }
 
+        // Soft delete — data tetap ada di DB, bisa direstore
         $user->delete();
 
         return redirect()
             ->route('users.index')
-            ->with('success', 'User berhasil dihapus.');
+            ->with('success', 'User berhasil dihapus. Data dapat direstore oleh admin bila diperlukan.');
+    }
+
+    // ============================================================
+    // 🆕 TRASH & RESTORE
+    // ============================================================
+
+    /**
+     * Daftar user yang di-soft-delete (Trash).
+     */
+    public function trash(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang bisa akses sampah user.');
+        }
+
+        $query = User::onlyTrashed()->with(['department', 'location']);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                    ->orWhere('username', 'like', "%{$s}%")
+                    ->orWhere('email', 'like', "%{$s}%")
+                    ->orWhere('nip', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('deleted_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('deleted_at', '<=', $request->date_to);
+        }
+
+        $users = $query->orderByDesc('deleted_at')
+            ->paginate($request->get('per_page', 25))
+            ->withQueryString();
+
+        $stats = [
+            'total' => User::onlyTrashed()->count(),
+            'bulan_ini' => User::onlyTrashed()
+                ->whereMonth('deleted_at', now()->month)
+                ->whereYear('deleted_at', now()->year)
+                ->count(),
+        ];
+
+        return view('users.trash', compact('users', 'stats'));
+    }
+
+    /**
+     * Restore user dari trash.
+     */
+    public function restore($id)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang bisa restore user.');
+        }
+
+        $user = User::onlyTrashed()->findOrFail($id);
+
+        // Cek konflik: email atau NIP mungkin sudah dipakai user lain
+        $emailConflict = User::where('email', $user->email)
+            ->where('id', '!=', $user->id)
+            ->exists();
+
+        if ($emailConflict) {
+            return redirect()
+                ->route('users.trash')
+                ->with('error', "Email {$user->email} sudah dipakai user lain. Ganti email user aktif dulu sebelum restore.");
+        }
+
+        if ($user->nip) {
+            $nipConflict = User::where('nip', $user->nip)
+                ->where('id', '!=', $user->id)
+                ->exists();
+
+            if ($nipConflict) {
+                return redirect()
+                    ->route('users.trash')
+                    ->with('error', "NIP {$user->nip} sudah dipakai user lain. Ganti NIP user aktif dulu sebelum restore.");
+            }
+        }
+
+        $user->restore();
+
+        return redirect()
+            ->route('users.trash')
+            ->with('success', "User {$user->name} berhasil direstore.");
+    }
+
+
+    /**
+     * Force delete user — DINONAKTIFKAN.
+     *
+     * User tidak bisa dihapus permanen karena banyak relasi (BA, assignment, loan, dll)
+     * yang membutuhkan data user sebagai referensi historis.
+     *
+     * Gunakan restore atau biarkan di trash.
+     */
+    public function forceDelete($id)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang bisa akses.');
+        }
+
+        $user = User::onlyTrashed()->findOrFail($id);
+
+        return redirect()
+            ->route('users.trash')
+            ->with('error', "User {$user->name} tidak bisa dihapus permanen karena terkait data historis (berita acara, assignment, dll). " .
+                "Data user tetap tersimpan di sampah untuk keperluan audit. Gunakan fitur Restore jika ingin mengaktifkan kembali.");
+    }
+
+    /**
+     * Restore semua user yang soft-deleted.
+     */
+    public function restoreAll()
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang bisa restore user.');
+        }
+
+        $trashed = User::onlyTrashed()->get();
+        $restored = 0;
+        $skipped = [];
+
+        foreach ($trashed as $user) {
+            // Skip kalau email/NIP konflik
+            $emailConflict = User::where('email', $user->email)
+                ->where('id', '!=', $user->id)
+                ->exists();
+
+            if ($emailConflict) {
+                $skipped[] = $user->name;
+                continue;
+            }
+
+            $user->restore();
+            $restored++;
+        }
+
+        $msg = "{$restored} user berhasil direstore.";
+        if (!empty($skipped)) {
+            $msg .= " Dilewati: " . count($skipped) . " user (email/NIP sudah dipakai).";
+        }
+
+        return redirect()
+            ->route('users.trash')
+            ->with('success', $msg);
+    }
+
+    /**
+     * Kosongkan trash (hapus permanen semua).
+     */
+    /**
+     * Kosongkan trash (hapus permanen semua user).
+     * Skip user yang masih pegang aset.
+     */
+    /**
+     * Kosongkan trash — DINONAKTIFKAN untuk user.
+     */
+    public function emptyTrash()
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang bisa akses.');
+        }
+
+        return redirect()
+            ->route('users.trash')
+            ->with('error', 'Trash user tidak bisa dikosongkan karena data user dibutuhkan untuk audit trail (berita acara, history aset, dll). ' .
+                'User yang dihapus tetap tersimpan di sampah.');
     }
 }

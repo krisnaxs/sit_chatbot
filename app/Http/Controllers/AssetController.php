@@ -1660,4 +1660,145 @@ class AssetController extends Controller
             ->route('siam.assets.index')
             ->with('success', 'Aset berhasil dihapus.');
     }
+    /**
+     * 🆕 Daftar asset yang soft-deleted (Trash).
+     */
+    public function trash(Request $request)
+    {
+        $query = Asset::onlyTrashed()->with(['category', 'currentUser', 'currentLocation']);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('serial_number', 'like', "%{$s}%")
+                    ->orWhere('asset_code', 'like', "%{$s}%")
+                    ->orWhere('brand', 'like', "%{$s}%")
+                    ->orWhere('model', 'like', "%{$s}%")
+                    ->orWhere('hostname', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('deleted_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('deleted_at', '<=', $request->date_to);
+        }
+
+        $assets = $query->orderByDesc('deleted_at')
+            ->paginate($request->get('per_page', 25))
+            ->withQueryString();
+
+        $stats = [
+            'total' => Asset::onlyTrashed()->count(),
+            'bulan_ini' => Asset::onlyTrashed()
+                ->whereMonth('deleted_at', now()->month)
+                ->whereYear('deleted_at', now()->year)
+                ->count(),
+            'bisa_direstore' => Asset::onlyTrashed()
+                ->where('deleted_at', '>=', now()->subDays(30))
+                ->count(),
+        ];
+
+        return view('assets.trash', compact('assets', 'stats'));
+    }
+
+    /**
+     * 🆕 Restore asset dari trash.
+     */
+    public function restore($id)
+    {
+        $asset = Asset::onlyTrashed()->findOrFail($id);
+
+        // Cek relasi: kalau ada assignment yang masih aktif, mungkin ada konflik
+        // Restore asset dulu
+        $asset->restore();
+
+        // 🆕 Optional: restore juga relasi turunan yang ikut ter-soft-delete
+        // $asset->assignments()->onlyTrashed()->restore();
+        // $asset->loans()->onlyTrashed()->restore();
+        // $asset->maintenances()->onlyTrashed()->restore();
+
+        return redirect()
+            ->route('siam.assets.trash')
+            ->with('success', "Aset {$asset->serial_number} berhasil direstore.");
+    }
+
+
+    public function forceDelete($id)
+    {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang bisa hapus permanen user.');
+        }
+
+        $user = User::onlyTrashed()->findOrFail($id);
+
+        if ($user->id === auth()->id()) {
+            return redirect()
+                ->route('users.trash')
+                ->with('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
+        }
+
+        // 🆕 Cek HANYA relasi KRITIS: asset yang masih dipegang user
+        // History (assignment, loan, consumable) boleh jadi orphan
+        if (Asset::where('current_user_id', $user->id)->exists()) {
+            $assetCount = Asset::where('current_user_id', $user->id)->count();
+            return redirect()
+                ->route('users.trash')
+                ->with('error', "User {$user->name} masih memegang {$assetCount} aset. " .
+                    "Kembalikan atau assign ulang aset tersebut ke user lain sebelum menghapus permanen.");
+        }
+
+        // Hapus foto profil
+        if ($user->photo_path && Storage::disk('public')->exists($user->photo_path)) {
+            Storage::disk('public')->delete($user->photo_path);
+        }
+
+        $name = $user->name;
+        $user->forceDelete();
+
+        return redirect()
+            ->route('users.trash')
+            ->with('success', "User {$name} berhasil dihapus permanen.");
+    }
+    public function restoreAll()
+    {
+        $count = Asset::onlyTrashed()->count();
+        Asset::onlyTrashed()->restore();
+
+        return redirect()
+            ->route('siam.assets.trash')
+            ->with('success', "{$count} aset berhasil direstore.");
+    }
+
+    //Kosongkan trash (hapus permanen semua).
+    public function emptyTrash()
+    {
+        $assets = Asset::onlyTrashed()->get();
+
+        if ($assets->isEmpty()) {
+            return redirect()
+                ->route('siam.assets.trash')
+                ->with('success', 'Tidak ada aset di sampah.');
+        }
+
+        foreach ($assets as $asset) {
+            // 1. Hapus foto
+            if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
+                Storage::disk('public')->delete($asset->photo_path);
+            }
+
+            // 2. Hapus relasi turunan (mereka TIDAK soft delete, pakai delete biasa)
+            \App\Models\AssetAssignment::where('asset_id', $asset->id)->forceDelete();
+            \App\Models\AssetLoan::where('asset_id', $asset->id)->forceDelete();
+            \App\Models\AssetMaintenance::where('asset_id', $asset->id)->forceDelete();
+            \App\Models\AssetOwnership::where('asset_id', $asset->id)->forceDelete();
+
+            // 3. Hapus asset
+            $asset->forceDelete();
+        }
+        return redirect()
+            ->route('siam.assets.trash')
+            ->with('success', "{$assets->count()} aset berhasil dihapus permanen.");
+    }
 }

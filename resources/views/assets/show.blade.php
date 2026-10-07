@@ -554,64 +554,161 @@
 
                     {{-- History Perbaikan --}}
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <div class="flex items-center justify-between mb-4">
+                        ...
+                    </div>
+
+                    {{-- ============================================================ --}}
+                    {{-- 🆕 SECTION BERITA ACARA --}}
+                    {{-- ============================================================ --}}
+                    @php
+                        $beritaAcaras = \App\Models\BeritaAcara::where('asset_id', $asset->id)
+                            ->with(['pihakPertama', 'pihakKedua', 'createdBy'])
+                            ->orderByDesc('tanggal_ba')
+                            ->get();
+
+                        $lastAssignment = $asset->assignments->sortByDesc('assigned_at')->first();
+                        $lastReturnedAssignment = $asset->assignments
+                            ->whereNotNull('returned_at')
+                            ->sortByDesc('returned_at')
+                            ->first();
+                    @endphp
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+
+                        {{-- HEADER --}}
+                        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
                             <h2 class="font-semibold text-gray-800">
-                                History Perbaikan
-                                <span class="text-xs text-gray-500 font-normal">({{ $asset->maintenances->count() }}
-                                    record)</span>
+                                Berita Acara
+                                <span class="text-xs text-gray-500 font-normal">
+                                    ({{ $beritaAcaras->count() }} dokumen)
+                                </span>
                             </h2>
-                            <a href="{{ route('siam.maintenances.create', ['asset_id' => $asset->id]) }}"
-                                class="text-xs px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium">
-                                + Catat Perbaikan
-                            </a>
+
+                            {{-- Quick Actions --}}
+                            <div class="flex flex-wrap gap-2">
+                                @if ($lastAssignment)
+                                    <a href="{{ route('siam.berita-acara.create-from-asset', [$asset, 'jenis' => 'serah_terima']) }}"
+                                        class="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Buat BAST
+                                    </a>
+                                @endif
+
+                                @if ($lastReturnedAssignment)
+                                    <a href="{{ route('siam.berita-acara.create-from-asset', [$asset, 'jenis' => 'pengembalian']) }}"
+                                        class="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium inline-flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Buat BAP
+                                    </a>
+                                @endif
+                            </div>
                         </div>
 
-                        @if ($asset->maintenances->isEmpty())
-                            <p class="text-sm text-gray-400 italic">Belum ada perbaikan.</p>
+                        {{-- EMPTY STATE --}}
+                        @if ($beritaAcaras->isEmpty())
+                            <div class="text-center py-8">
+                                <div class="text-4xl mb-2">📄</div>
+                                <p class="text-sm text-gray-500 font-medium">Belum ada berita acara untuk aset ini.</p>
+                                <p class="text-xs text-gray-400 mt-1">
+                                    @if ($lastAssignment)
+                                        Klik tombol <strong>Buat BAST</strong> atau <strong>Buat BAP</strong> di atas
+                                        untuk generate manual.
+                                    @else
+                                        Lakukan serah terima aset terlebih dahulu untuk bisa membuat berita acara.
+                                    @endif
+                                </p>
+                            </div>
                         @else
-                            <ul class="space-y-3">
-                                @foreach ($asset->maintenances as $m)
-                                    <li class="border-l-2 border-orange-400 pl-3">
-                                        <div class="flex items-center gap-2 flex-wrap">
-                                            <span class="text-sm font-medium">{{ $m->issue }}</span>
-                                            <span
-                                                class="px-2 py-0.5 text-xs rounded
-                                                {{ $m->status === 'done'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : ($m->status === 'in_progress'
-                                                        ? 'bg-blue-100 text-blue-700'
-                                                        : ($m->status === 'cancelled'
-                                                            ? 'bg-gray-100 text-gray-700'
-                                                            : 'bg-yellow-100 text-yellow-700')) }}">
-                                                {{ $m->status_label }}
-                                            </span>
+                            {{-- LIST BA --}}
+                            <div class="space-y-3">
+                                @foreach ($beritaAcaras as $ba)
+                                    @php
+                                        $isSt = $ba->jenis === 'serah_terima';
+                                        $badge = $isSt
+                                            ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                            : 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+                                        $jenisLabel = $isSt ? '📤 BAST' : '📥 BAP';
+                                    @endphp
+                                    <div
+                                        class="flex items-start gap-3 p-3 rounded-xl border
+                                            {{ $isSt ? 'border-blue-200 bg-blue-50/40' : 'border-emerald-200 bg-emerald-50/40' }}">
+
+                                        {{-- Icon --}}
+                                        <div
+                                            class="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
+                                                {{ $isSt ? 'bg-blue-100' : 'bg-emerald-100' }}">
+                                            <span class="text-lg">{{ $isSt ? '📤' : '📥' }}</span>
                                         </div>
-                                        <div class="text-xs text-gray-500 mt-1">
-                                            {{ $m->start_date?->format('d M Y') }}
-                                            @if ($m->end_date)
-                                                → {{ $m->end_date->format('d M Y') }}
-                                            @endif
-                                            • {{ $m->type_label }}
-                                            @if ($m->vendor)
-                                                • {{ $m->vendor->name }}
-                                            @endif
+
+                                        {{-- Content --}}
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <a href="{{ route('siam.berita-acara.show', $ba) }}"
+                                                    class="font-mono text-xs font-bold text-indigo-700 hover:underline">
+                                                    {{ $ba->nomor_ba }}
+                                                </a>
+                                                <span
+                                                    class="px-2 py-0.5 text-[10px] rounded font-semibold {{ $badge }}">
+                                                    {{ $jenisLabel }}
+                                                </span>
+                                            </div>
+
+                                            <div class="text-xs text-gray-600 mt-1">
+                                                <span class="font-medium">{{ $ba->pihakPertama?->name ?? '-' }}</span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="font-medium">{{ $ba->pihakKedua?->name ?? '-' }}</span>
+                                            </div>
+
+                                            <div class="text-[11px] text-gray-400 mt-0.5">
+                                                {{ $ba->tanggal_ba?->format('d M Y') ?? '-' }}
+                                                • {{ $ba->tempat_ba ?? '-' }}
+                                                @if ($ba->condition_percent !== null)
+                                                    • Kondisi {{ $ba->condition_percent }}%
+                                                @endif
+                                            </div>
                                         </div>
-                                        @if ($m->action)
-                                            <div class="text-xs text-gray-600 mt-1">Tindakan: {{ $m->action }}</div>
-                                        @endif
-                                        @if ($m->cost)
-                                            <div class="text-xs text-gray-600 mt-1">Biaya: Rp
-                                                {{ number_format($m->cost, 0, ',', '.') }}</div>
-                                        @endif
-                                    </li>
+
+                                        {{-- Actions --}}
+                                        <div class="flex items-center gap-1 shrink-0">
+                                            <a href="{{ route('siam.berita-acara.preview', $ba) }}" target="_blank"
+                                                title="Preview PDF"
+                                                class="p-1.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </a>
+                                            <a href="{{ route('siam.berita-acara.download', $ba) }}" title="Download PDF"
+                                                class="p-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    </div>
                                 @endforeach
-                            </ul>
+                            </div>
                         @endif
+
                     </div>
 
                 </div>
 
                 {{-- KOLOM KANAN (1/3) --}}
+
                 <div class="space-y-6">
 
                     {{-- Pemakai Saat Ini --}}

@@ -348,7 +348,6 @@
         {{ strtoupper($ba->judul) }}
     </div>
 
-    {{-- 🆕 NOMOR BA --}}
     <div class="nomor-ba">
         Nomor: {{ $ba->nomor_ba }}
     </div>
@@ -687,29 +686,45 @@
 
         <tr>
 
-            <td>
+            @if ($ba->jenis === 'serah_terima')
+                {{-- BAST: Pihak Pertama = Yang Menyerahkan (admin), Pihak Kedua = Yang Menerima (user) --}}
+                <td>
+                    <div>
+                        Diserahkan Oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}
+                    </div>
+                </td>
 
-                <div>
-                    Diserahkan Oleh,
-                </div>
+                <td>
+                    <div>
+                        Diterima oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}
+                    </div>
+                </td>
+            @else
+                {{-- BAP: Pihak Pertama = Yang Menerima Kembali (admin), Pihak Kedua = Yang Menyerahkan Kembali (user) --}}
+                <td>
+                    <div>
+                        Diterima Oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}
+                    </div>
+                </td>
 
-                <div class="ttd-jabatan">
-                    {{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}
-                </div>
-
-            </td>
-
-            <td>
-
-                <div>
-                    Diterima oleh,
-                </div>
-
-                <div class="ttd-jabatan">
-                    {{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}
-                </div>
-
-            </td>
+                <td>
+                    <div>
+                        Diserahkan oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}
+                    </div>
+                </td>
+            @endif
 
         </tr>
 

@@ -107,10 +107,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/users/import', [UserController::class, 'importForm'])->name('users.import.form');
         Route::get('/users/import/template', [UserController::class, 'downloadTemplate'])->name('users.import.template');
         Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
+
+        // 🆕 TRASH & RESTORE — HARUS DI ATAS /users/{user}
+        Route::get('/users/trash', [UserController::class, 'trash'])->name('users.trash');
+        Route::post('/users/trash/restore-all', [UserController::class, 'restoreAll'])->name('users.restore-all');
+        Route::delete('/users/trash/empty', [UserController::class, 'emptyTrash'])->name('users.empty-trash');
+        Route::post('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
+        Route::delete('/users/{id}/force-delete', [UserController::class, 'forceDelete'])->name('users.force-delete');
+
+        // Existing routes
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-
 
         Route::put('users/{user}/reset-password', [UserController::class, 'resetPassword'])
             ->name('users.reset-password');
@@ -184,6 +192,26 @@ Route::middleware(['auth'])->group(function () {
                 ->name('assets.monitoring');
 
             Route::get('assets/map', [AssetController::class, 'map'])->name('assets.map');
+            Route::middleware(['role:admin'])->group(function () {
+                // Halaman list trash
+                Route::get('assets/trash', [AssetController::class, 'trash'])
+                    ->name('assets.trash');
+
+                // Bulk actions — HARUS di atas route dengan {id}
+                Route::post('assets/trash/restore-all', [AssetController::class, 'restoreAll'])
+                    ->name('assets.restore-all');
+
+                Route::delete('assets/trash/empty', [AssetController::class, 'emptyTrash'])
+                    ->name('assets.empty-trash');
+
+                // Per-item action
+                Route::post('assets/{id}/restore', [AssetController::class, 'restore'])
+                    ->name('assets.restore');
+
+                Route::delete('assets/{id}/force-delete', [AssetController::class, 'forceDelete'])
+                    ->name('assets.force-delete');
+            });
+
             Route::resource('assets', AssetController::class);
             Route::resource('assignments', AssetAssignmentController::class)->except(['edit', 'update']);
             Route::post('assignments/{assignment}/return', [AssetAssignmentController::class, 'returnAsset'])->name('assignments.return');
@@ -208,16 +236,28 @@ Route::middleware(['auth'])->group(function () {
             Route::prefix('berita-acara')
                 ->name('berita-acara.')
                 ->group(function () {
+
                 // View list & detail (admin & support)
                 Route::get('/', [BeritaAcaraController::class, 'index'])->name('index');
+
+                // 🆕 Buat BA manual dari asset show — HARUS DI ATAS /{beritaAcara}
+                Route::get('/asset/{asset}/create', [BeritaAcaraController::class, 'createFromAsset'])
+                    ->name('create-from-asset');
+
+                Route::post('/asset/{asset}', [BeritaAcaraController::class, 'storeFromAsset'])
+                    ->name('store-from-asset');
+
+                // Detail, preview, download
                 Route::get('/{beritaAcara}', [BeritaAcaraController::class, 'show'])->name('show');
                 Route::get('/{beritaAcara}/preview', [BeritaAcaraController::class, 'preview'])->name('preview');
                 Route::get('/{beritaAcara}/download', [BeritaAcaraController::class, 'download'])->name('download');
 
                 // Regenerate & delete (admin only)
                 Route::middleware(['role:admin'])->group(function () {
-                    Route::post('/{beritaAcara}/regenerate', [BeritaAcaraController::class, 'regenerate'])->name('regenerate');
-                    Route::delete('/{beritaAcara}', [BeritaAcaraController::class, 'destroy'])->name('destroy');
+                    Route::post('/{beritaAcara}/regenerate', [BeritaAcaraController::class, 'regenerate'])
+                        ->name('regenerate');
+                    Route::delete('/{beritaAcara}', [BeritaAcaraController::class, 'destroy'])
+                        ->name('destroy');
                 });
             });
 

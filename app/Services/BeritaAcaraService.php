@@ -103,6 +103,55 @@ class BeritaAcaraService
     }
 
     /**
+     * 🆕 Cek apakah assignment sudah punya BA dengan jenis tertentu.
+     */
+    public function hasBeritaAcara(AssetAssignment $assignment, string $jenis): bool
+    {
+        return BeritaAcara::where('asset_assignment_id', $assignment->id)
+            ->where('jenis', $jenis)
+            ->exists();
+    }
+
+    /**
+     * 🆕 Ambil BA existing untuk assignment + jenis.
+     */
+    public function getBeritaAcara(AssetAssignment $assignment, string $jenis): ?BeritaAcara
+    {
+        return BeritaAcara::where('asset_assignment_id', $assignment->id)
+            ->where('jenis', $jenis)
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * 🆕 Generate BA manual dari assignment yang sudah ada.
+     * Dipakai di halaman asset show untuk bikin ulang BA yang terhapus.
+     */
+    public function generateFromAssignment(
+        AssetAssignment $assignment,
+        User $pihakPertama,
+        string $jenis,
+        array $options = []
+    ): BeritaAcara {
+        // Validasi jenis
+        if (!in_array($jenis, ['serah_terima', 'pengembalian'])) {
+            throw new \InvalidArgumentException("Jenis BA tidak valid: {$jenis}");
+        }
+
+        // Validasi: untuk pengembalian, assignment harus sudah returned
+        if ($jenis === 'pengembalian' && !$assignment->returned_at) {
+            throw new \RuntimeException('Aset belum dikembalikan, tidak bisa buat BAP.');
+        }
+
+        // Validasi role pihak pertama
+        if (!in_array($pihakPertama->role, ['admin', 'support'])) {
+            throw new \RuntimeException('Pihak Pertama harus Admin atau Support.');
+        }
+
+        return $this->create($jenis, $assignment, $pihakPertama, $options);
+    }
+
+    /**
      * Core: bikin record BA + generate PDF.
      */
     protected function create(
