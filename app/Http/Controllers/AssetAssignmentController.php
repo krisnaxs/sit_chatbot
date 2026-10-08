@@ -9,8 +9,11 @@ use App\Models\Department;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\BeritaAcaraService;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class AssetAssignmentController extends Controller
 {
@@ -204,7 +207,13 @@ class AssetAssignmentController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'assigned_at' => 'required|date',
             'condition_on_assign' => 'nullable|integer|min:0|max:100',
-            'hostname' => 'nullable|string|max:100',
+            'hostname' => [
+                'nullable',
+                'string',
+                'max:100',
+                // 🆕 Rule::unique ignore asset yang sedang di-assign (biar bisa re-assign hostname yg sama ke aset yg sama)
+                Rule::unique('assets', 'hostname')->ignore($request->input('asset_id')),
+            ],
             'notes' => 'nullable|string',
 
             // 🆕 Data Berita Acara Serah Terima
@@ -213,6 +222,9 @@ class AssetAssignmentController extends Controller
             'pihak_pertama_jabatan' => 'nullable|string|max:100',
             'pihak_pertama_nip' => 'nullable|string|max:30',
             'tempat_ba' => 'nullable|string|max:100',
+        ], [
+            // 🆕 Pesan custom untuk hostname duplicate
+            'hostname.unique' => 'Hostname ":input" sudah dipakai aset lain. Gunakan hostname lain.',
         ]);
 
         // Validasi kondisional: hanya role admin/support yang bisa jadi pihak pertama
@@ -224,54 +236,82 @@ class AssetAssignmentController extends Controller
             }
         }
 
-        $result = DB::transaction(function () use ($request, $validated) {
-            $asset = Asset::findOrFail($validated['asset_id']);
+        // 🆕 PRE-VALIDATE HOSTNAME (extra safety sebelum transaksi)
+        if (!empty($validated['hostname'])) {
+            $conflict = Asset::where('hostname', $validated['hostname'])
+                ->where('id', '!=', $validated['asset_id'])
+                ->first();
 
-            // Tutup assignment lama kalau ada
-            AssetAssignment::where('asset_id', $asset->id)
-                ->whereNull('returned_at')
-                ->update(['returned_at' => now()]);
-
-            $assignment = AssetAssignment::create([
-                'asset_id' => $validated['asset_id'],
-                'user_id' => $validated['user_id'],
-                'location_id' => $validated['location_id'] ?? null,
-                'department_id' => $validated['department_id'] ?? null,
-                'assigned_at' => $validated['assigned_at'],
-                'condition_on_assign' => $validated['condition_on_assign'] ?? null,
-                'notes' => $validated['notes'] ?? null,
-                'assigned_by' => auth()->id(),
-                'received_by' => $validated['user_id'],
-            ]);
-
-            $updateData = [
-                'status' => 'in_use',
-                'current_user_id' => $validated['user_id'],
-                'current_location_id' => $validated['location_id'] ?? null,
-            ];
-            if (!empty($validated['hostname'])) {
-                $updateData['hostname'] = $validated['hostname'];
+            if ($conflict) {
+                return back()->withInput()
+                    ->with('error', "Hostname \"{$validated['hostname']}\" sudah dipakai aset lain (SN: {$conflict->serial_number} - {$conflict->brand} {$conflict->model}). Gunakan hostname lain.");
             }
-            $asset->update($updateData);
+        }
 
-            // 🆕 Generate BAST
-            $ba = null;
-            if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
-                $pihakPertama = User::find($validated['pihak_pertama_id']);
-                $ba = $this->baService->createSerahTerima(
-                    $assignment->fresh(['asset.category', 'user']),
-                    $pihakPertama,
-                    [
-                        'pihak_pertama_jabatan' => $validated['pihak_pertama_jabatan'] ?? null,
-                        'pihak_pertama_nip' => $validated['pihak_pertama_nip'] ?? null,
-                        'tempat_ba' => $validated['tempat_ba'] ?? null,
-                        'notes' => $validated['notes'] ?? null,
-                    ]
-                );
+        try {
+            $result = DB::transaction(function () use ($request, $validated) {
+                $asset = Asset::findOrFail($validated['asset_id']);
+
+                // Tutup assignment lama kalau ada
+                AssetAssignment::where('asset_id', $asset->id)
+                    ->whereNull('returned_at')
+                    ->update(['returned_at' => now()]);
+
+                $assignment = AssetAssignment::create([
+                    'asset_id' => $validated['asset_id'],
+                    'user_id' => $validated['user_id'],
+                    'location_id' => $validated['location_id'] ?? null,
+                    'department_id' => $validated['department_id'] ?? null,
+                    'assigned_at' => $validated['assigned_at'],
+                    'condition_on_assign' => $validated['condition_on_assign'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                    'assigned_by' => auth()->id(),
+                    'received_by' => $validated['user_id'],
+                ]);
+
+                $updateData = [
+                    'status' => 'in_use',
+                    'current_user_id' => $validated['user_id'],
+                    'current_location_id' => $validated['location_id'] ?? null,
+                ];
+                if (!empty($validated['hostname'])) {
+                    $updateData['hostname'] = $validated['hostname'];
+                }
+                $asset->update($updateData);
+
+                // 🆕 Generate BAST
+                $ba = null;
+                if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
+                    $pihakPertama = User::find($validated['pihak_pertama_id']);
+                    $ba = $this->baService->createSerahTerima(
+                        $assignment->fresh(['asset.category', 'user']),
+                        $pihakPertama,
+                        [
+                            'pihak_pertama_jabatan' => $validated['pihak_pertama_jabatan'] ?? null,
+                            'pihak_pertama_nip' => $validated['pihak_pertama_nip'] ?? null,
+                            'tempat_ba' => $validated['tempat_ba'] ?? null,
+                            'notes' => $validated['notes'] ?? null,
+                        ]
+                    );
+                }
+
+                return ['assignment' => $assignment, 'ba' => $ba];
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            // 🆕 Catch duplicate hostname (dan constraint unik lain)
+            return $this->handleDuplicateError($e, $validated['hostname'] ?? null);
+        } catch (QueryException $e) {
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                return $this->handleDuplicateError($e, $validated['hostname'] ?? null);
             }
-
-            return ['assignment' => $assignment, 'ba' => $ba];
-        });
+            report($e);
+            return back()->withInput()
+                ->with('error', 'Gagal menyimpan assignment: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
 
         $message = 'Aset berhasil di-assign / dipindahkan ke user baru.';
         if ($result['ba']) {
@@ -291,7 +331,13 @@ class AssetAssignmentController extends Controller
         $validated = $request->validate([
             'returned_at' => 'required|date',
             'condition_on_return' => 'nullable|integer|min:0|max:100',
-            'hostname' => 'nullable|string|max:100',
+            'hostname' => [
+                'nullable',
+                'string',
+                'max:100',
+                // 🆕 Rule::unique ignore asset yang sedang dikembalikan
+                Rule::unique('assets', 'hostname')->ignore($assignment->asset_id),
+            ],
             'notes' => 'nullable|string',
 
             // 🆕 Data Berita Acara Pengembalian
@@ -300,6 +346,8 @@ class AssetAssignmentController extends Controller
             'pihak_pertama_jabatan' => 'nullable|string|max:100',
             'pihak_pertama_nip' => 'nullable|string|max:30',
             'tempat_ba' => 'nullable|string|max:100',
+        ], [
+            'hostname.unique' => 'Hostname ":input" sudah dipakai aset lain. Gunakan hostname lain.',
         ]);
 
         // Cegah double return
@@ -316,43 +364,70 @@ class AssetAssignmentController extends Controller
             }
         }
 
-        $ba = DB::transaction(function () use ($request, $validated, $assignment) {
-            // 1. Update assignment
-            $assignment->update([
-                'returned_at' => $validated['returned_at'],
-                'condition_on_return' => $validated['condition_on_return'] ?? null,
-                'notes' => $validated['notes'] ?? $assignment->notes,
-            ]);
+        // 🆕 PRE-VALIDATE HOSTNAME
+        if (!empty($validated['hostname'])) {
+            $conflict = Asset::where('hostname', $validated['hostname'])
+                ->where('id', '!=', $assignment->asset_id)
+                ->first();
 
-            // 2. Update asset jadi available
-            $assetUpdateData = [
-                'status' => 'available',
-                'current_user_id' => null,
-                'current_location_id' => null,
-            ];
-            if ($request->filled('hostname')) {
-                $assetUpdateData['hostname'] = $request->hostname;
+            if ($conflict) {
+                return back()->withInput()
+                    ->with('error', "Hostname \"{$validated['hostname']}\" sudah dipakai aset lain (SN: {$conflict->serial_number} - {$conflict->brand} {$conflict->model}). Gunakan hostname lain.");
             }
-            $assignment->asset->update($assetUpdateData);
+        }
 
-            // 3. 🆕 Generate BAP
-            $ba = null;
-            if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
-                $pihakPertama = User::find($validated['pihak_pertama_id']);
-                $ba = $this->baService->createPengembalian(
-                    $assignment->fresh(['asset.category', 'user']),
-                    $pihakPertama,
-                    [
-                        'pihak_pertama_jabatan' => $validated['pihak_pertama_jabatan'] ?? null,
-                        'pihak_pertama_nip' => $validated['pihak_pertama_nip'] ?? null,
-                        'tempat_ba' => $validated['tempat_ba'] ?? null,
-                        'notes' => $validated['notes'] ?? null,
-                    ]
-                );
+        try {
+            $ba = DB::transaction(function () use ($request, $validated, $assignment) {
+                // 1. Update assignment
+                $assignment->update([
+                    'returned_at' => $validated['returned_at'],
+                    'condition_on_return' => $validated['condition_on_return'] ?? null,
+                    'notes' => $validated['notes'] ?? $assignment->notes,
+                ]);
+
+                // 2. Update asset jadi available
+                $assetUpdateData = [
+                    'status' => 'available',
+                    'current_user_id' => null,
+                    'current_location_id' => null,
+                ];
+                if ($request->filled('hostname')) {
+                    $assetUpdateData['hostname'] = $request->hostname;
+                }
+                $assignment->asset->update($assetUpdateData);
+
+                // 3. 🆕 Generate BAP
+                $ba = null;
+                if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
+                    $pihakPertama = User::find($validated['pihak_pertama_id']);
+                    $ba = $this->baService->createPengembalian(
+                        $assignment->fresh(['asset.category', 'user']),
+                        $pihakPertama,
+                        [
+                            'pihak_pertama_jabatan' => $validated['pihak_pertama_jabatan'] ?? null,
+                            'pihak_pertama_nip' => $validated['pihak_pertama_nip'] ?? null,
+                            'tempat_ba' => $validated['tempat_ba'] ?? null,
+                            'notes' => $validated['notes'] ?? null,
+                        ]
+                    );
+                }
+
+                return $ba;
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            return $this->handleDuplicateError($e, $validated['hostname'] ?? null);
+        } catch (QueryException $e) {
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                return $this->handleDuplicateError($e, $validated['hostname'] ?? null);
             }
-
-            return $ba;
-        });
+            report($e);
+            return back()->withInput()
+                ->with('error', 'Gagal mengembalikan aset: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
 
         $message = 'Aset berhasil dikembalikan.';
         if ($ba) {
@@ -374,5 +449,33 @@ class AssetAssignmentController extends Controller
         return redirect()
             ->route('siam.assignments.index')
             ->with('success', 'Record assignment dihapus.');
+    }
+
+    /**
+     * 🆕 Handle duplicate constraint error → kembalikan pesan yang ramah.
+     */
+    private function handleDuplicateError(\Throwable $e, ?string $hostname = null)
+    {
+        $message = $e->getMessage();
+        $value = $hostname ?? 'tidak diketahui';
+
+        // Coba extract value & key dari pesan MySQL
+        if (preg_match("/Duplicate entry '(.+?)' for key '(.+?)'/", $message, $m)) {
+            $value = $m[1] ?? $value;
+            $key = $m[2] ?? '';
+
+            $label = match (true) {
+                str_contains($key, 'hostname') => 'Hostname',
+                str_contains($key, 'serial_number') => 'Serial number',
+                str_contains($key, 'asset_code') => 'Asset code',
+                default => 'Data',
+            };
+
+            return back()->withInput()
+                ->with('error', "{$label} \"{$value}\" sudah dipakai oleh aset lain. Gunakan nilai lain.");
+        }
+
+        return back()->withInput()
+            ->with('error', "Hostname \"{$value}\" sudah dipakai oleh aset lain. Gunakan hostname lain.");
     }
 }

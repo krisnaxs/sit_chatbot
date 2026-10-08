@@ -3,7 +3,7 @@
 @section('title', 'Assign Aset — SIAM')
 
 @section('content')
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-7xl mx-auto" x-data="assignManager()">
         <div class="max-w-3xl mx-auto space-y-6">
 
             {{-- HEADER --}}
@@ -333,11 +333,94 @@
             </form>
 
         </div>
+
+        {{-- ============================================================ --}}
+        {{-- 🆕 TOAST --}}
+        {{-- ============================================================ --}}
+        <div x-show="toast.show" x-cloak x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-8"
+            :class="{
+                'bg-emerald-600 border-emerald-400/40 shadow-emerald-500/50': toast.type === 'success',
+                'bg-red-600 border-red-400/40 shadow-red-500/50': toast.type === 'error',
+                'bg-blue-600 border-blue-400/40 shadow-blue-500/50': toast.type === 'info',
+            }"
+            class="fixed top-24 right-6 z-[130] flex items-center gap-3
+                   min-w-[280px] max-w-sm
+                   px-4 py-3 rounded-xl text-white shadow-2xl border backdrop-blur-md"
+            style="display: none;">
+
+            <div class="shrink-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <svg x-show="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'error'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg x-show="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+
+            <div class="flex-1 text-sm font-medium" x-text="toast.message"></div>
+
+            <button type="button" @click="toast.show = false" class="shrink-0 p-1 rounded hover:bg-white/20 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
     </div>
 @endsection
 
 @push('scripts')
     <script>
+        function assignManager() {
+            return {
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success'
+                },
+
+                showToast(message, type = 'success') {
+                    this.toast.message = message;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    clearTimeout(this._toastTimer);
+                    this._toastTimer = setTimeout(() => {
+                        this.toast.show = false;
+                    }, 4000);
+                },
+
+                init() {
+                    @if (session('success'))
+                        this.showToast(@json(session('success')), 'success');
+                    @endif
+                    @if (session('error'))
+                        this.showToast(@json(session('error')), 'error');
+                    @endif
+                    @if (session('info'))
+                        this.showToast(@json(session('info')), 'info');
+                    @endif
+
+                    // Auto-hide toast kalau ada error validasi (opsional)
+                    @if ($errors->any())
+                        // Biarkan error box tampil, toast hanya untuk session flash
+                    @endif
+                }
+            }
+        }
+
         function searchableSelect(options) {
             return {
                 open: false,
