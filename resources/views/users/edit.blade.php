@@ -277,7 +277,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         @foreach ([
-            'admin' => ['Administrator', 'violet', 'Akses penuh ke semua fitur'],
+            'admin' => ['Administrator', 'violet', 'Akses penuh ke semua'],
             'support' => ['Support', 'blue', 'Kelola knowledge & SIAM'],
             'user' => ['User', 'gray', 'Akses portal aplikasi'],
         ] as $value => $info)

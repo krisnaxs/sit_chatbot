@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* =========================================================
+   SOURCES
+========================================================= */
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 @source '../../storage/framework/views/*.php';
@@ -7,6 +11,24 @@
 @source '../**/*.blade.php';
 
 @source '../**/*.js';
+
+/* =========================================================
+   SAFELIST — DYNAMIC CLASSES
+   Class yang di-generate dari Blade variable tidak terdeteksi
+   otomatis oleh scanner Tailwind, jadi harus di-inline manual.
+========================================================= */
+
+@source inline("peer-checked:border-{violet,blue,gray}-500");
+
+@source inline("peer-checked:bg-{violet,blue,gray}-50");
+
+@source inline("bg-{violet,blue,gray}-100");
+
+@source inline("text-{violet,blue,gray}-600");
+
+/* =========================================================
+   THEME
+========================================================= */
 
 @theme {
     --font-sans:
