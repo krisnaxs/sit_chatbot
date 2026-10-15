@@ -11,7 +11,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <link rel="stylesheet" href="{{ asset('css/swiper-bundle.min.css') }}">
 
     <style>
         /* =========================================================
@@ -553,13 +553,13 @@
          SWIPER JS
     ========================================================== -->
 
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="{{ asset('js/swiper-bundle.min.js') }}"></script>
 
 
     <script>
         /* =========================================================
-               SLIDE DATA
-            ========================================================== */
+                       SLIDE DATA
+                    ========================================================== */
 
         const slidesKeys = @json($slidesKeys);
         const slideTitleEl = document.getElementById('slideHeading');
