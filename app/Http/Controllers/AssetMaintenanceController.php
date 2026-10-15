@@ -45,21 +45,11 @@ class AssetMaintenanceController extends Controller
     public function create(Request $request)
     {
         $asset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
-        $assetsQuery = Asset::with('currentUser')->orderBy('serial_number');
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $assetsQuery->where(function ($q) use ($search) {
-                $q->where('serial_number', 'like', "%{$search}%")
-                    ->orWhere('brand', 'like', "%{$search}%")
-                    ->orWhere('model', 'like', "%{$search}%")
-                    ->orWhereHas('currentUser', function ($qu) use ($search) {
-                        $qu->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
+        $assets = Asset::with('currentUser')
+            ->orderBy('serial_number')
+            ->get();   // ambil semua
 
-        $assets = $assetsQuery->limit(50)->get();
         $vendors = Vendor::active()->orderBy('name')->get();
 
         return view('maintenances.create', compact('asset', 'assets', 'vendors'));
