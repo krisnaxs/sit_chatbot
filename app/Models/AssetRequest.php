@@ -154,10 +154,7 @@ class AssetRequest extends Model
         return $q->where('type', $type);
     }
 
-    /**
-     * Urutkan: pending dulu, lalu approved, rejected, cancelled.
-     * Dalam masing-masing grup, urut dari yang terbaru.
-     */
+
     public function scopeOrderByPriority($q)
     {
         return $q->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected', 'cancelled')")
@@ -189,9 +186,7 @@ class AssetRequest extends Model
         return $this->status === self::STATUS_CANCELLED;
     }
 
-    /**
-     * Cek apakah bisa dibatalkan (hanya pending).
-     */
+
     public function isCancellable(): bool
     {
         return $this->isPending();
@@ -278,10 +273,7 @@ class AssetRequest extends Model
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Nama item yang diajukan (aset / konsumable).
-     * Contoh: "Lenovo ThinkPad T14" atau "Tinta HP 802 (2 pcs)"
-     */
+
     public function getItemNameAttribute(): string
     {
         if ($this->asset) {
@@ -293,9 +285,7 @@ class AssetRequest extends Model
         return '—';
     }
 
-    /**
-     * Detail item lengkap (dengan SN kalau ada).
-     */
+
     public function getItemDetailAttribute(): string
     {
         if ($this->asset) {
@@ -313,9 +303,7 @@ class AssetRequest extends Model
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Cek apakah pengajuan ini sudah dieksekusi (auto-assign/loan/trx).
-     */
+
     public function getIsExecutedAttribute(): bool
     {
         return match ($this->type) {
@@ -326,9 +314,7 @@ class AssetRequest extends Model
         };
     }
 
-    /**
-     * Waktu diproses (approved_at kalau ada).
-     */
+
     public function getProcessedAtAttribute()
     {
         return $this->approved_at;

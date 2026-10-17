@@ -8,9 +8,7 @@ use Illuminate\Http\Request;
 
 class PendingKnowledgeController extends Controller
 {
-    /**
-     * Tampilkan daftar pending knowledge.
-     */
+
     public function index(Request $request)
     {
         $query = PendingKnowledge::where('status', 'pending')
@@ -40,9 +38,7 @@ class PendingKnowledgeController extends Controller
         ));
     }
 
-    /**
-     * Approve — pindahkan ke knowledge.
-     */
+
     public function approve(Request $request, PendingKnowledge $pending)
     {
         $data = $request->validate([
@@ -61,9 +57,7 @@ class PendingKnowledgeController extends Controller
             ->with('success', 'Knowledge berhasil ditambahkan dari pending.');
     }
 
-    /**
-     * Reject — hapus dari pending.
-     */
+
     public function reject(PendingKnowledge $pending)
     {
         $pending->status = 'rejected';
@@ -74,9 +68,7 @@ class PendingKnowledgeController extends Controller
             ->with('success', 'Pending knowledge ditolak.');
     }
 
-    /**
-     * Bersihkan semua pending (yang sudah di-reject & approved).
-     */
+
     public function clear()
     {
         $count = PendingKnowledge::whereIn('status', ['approved', 'rejected'])->count();

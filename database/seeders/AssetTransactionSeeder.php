@@ -22,10 +22,6 @@ class AssetTransactionSeeder extends Seeder
         $this->seedMaintenances();
         $this->seedMovements();
     }
-
-    // ============================================================
-    // 1. ASSIGNMENTS
-    // ============================================================
     private function seedAssignments(): void
     {
         if (AssetAssignment::exists()) {
@@ -109,10 +105,6 @@ class AssetTransactionSeeder extends Seeder
 
         $this->command->info(" Assignments: {$created} records");
     }
-
-    // ============================================================
-    // 2. LOANS
-    // ============================================================
     private function seedLoans(): void
     {
         if (AssetLoan::exists()) {
@@ -183,10 +175,6 @@ class AssetTransactionSeeder extends Seeder
 
         $this->command->info(' Loans: ' . count($data) . ' records');
     }
-
-    // ============================================================
-    // 3. MAINTENANCES
-    // ============================================================
     private function seedMaintenances(): void
     {
         if (AssetMaintenance::exists()) {
@@ -243,10 +231,6 @@ class AssetTransactionSeeder extends Seeder
 
         $this->command->info(' Maintenances: ' . count($data) . ' records');
     }
-
-    // ============================================================
-    // 4. MOVEMENTS
-    // ============================================================
     private function seedMovements(): void
     {
         if (AssetMovement::exists()) {

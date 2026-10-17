@@ -27,7 +27,6 @@ class AssetCategorySeeder extends Seeder
         ];
 
         foreach ($data as $c) {
-            // Kategori yang butuh agent monitoring: Laptop, PC, Scanner
             $isAgentMonitored = in_array($c['code'], ['LPT', 'PC', 'SCN'], true);
 
             AssetCategory::updateOrCreate(

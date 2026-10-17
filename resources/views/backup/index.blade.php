@@ -10,8 +10,17 @@
             {{-- HEADER --}}
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <a href="{{ route('siam.dashboard') }}" class="text-sm text-indigo-600 hover:underline">
-                        ← Kembali ke dashboard
+                    <a href="{{ route('siam.dashboard') }}"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+           bg-white border border-gray-200
+           text-sm font-semibold text-gray-700
+           hover:bg-gray-50 hover:border-gray-300
+           shadow-sm transition-all duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Kembali ke Dashboard
                     </a>
                     <h1 class="text-2xl font-bold text-gray-800 mt-1">Backup Data</h1>
                     <p class="text-sm text-gray-500">
@@ -240,7 +249,8 @@
                     <li>File backup di server <strong>tidak aman</strong> jika server rusak — selalu simpan salinan di luar
                         server.</li>
                     <li>Untuk restore ZIP full: extract dulu, import <code>database.sql</code> ke MySQL, copy folder
-                        <code>storage/app/public</code>.</li>
+                        <code>storage/app/public</code>.
+                    </li>
                     <li>Backup otomatis harian bisa dijadwalkan via cron + Laravel Scheduler (opsional).</li>
                 </ul>
             </div>
@@ -252,9 +262,7 @@
 @push('scripts')
     <script>
         function backupManager() {
-            return {
-                // bisa ditambah progress indicator kalau perlu
-            }
+            return {}
         }
     </script>
 @endpush

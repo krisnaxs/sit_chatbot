@@ -12,9 +12,7 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, SoftDeletes;
 
-    /**
-     * Atribut yang bisa diisi massal.
-     */
+
     protected $fillable = [
         'nip',
         'username',
@@ -31,17 +29,13 @@ class User extends Authenticatable
         'waktu_pensiun',
     ];
 
-    /**
-     * Atribut yang disembunyikan saat serialisasi.
-     */
+
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Casting atribut.
-     */
+
     protected function casts(): array
     {
         return [
@@ -68,9 +62,7 @@ class User extends Authenticatable
         });
     }
 
-    /**
-     * Generate username unik dari email (bagian sebelum @).
-     */
+
     public static function generateUsername(string $email, ?int $ignoreUserId = null): string
     {
         $base = Str::before($email, '@');
@@ -93,9 +85,7 @@ class User extends Authenticatable
         return $username;
     }
 
-    /**
-     * Cek apakah username sudah dipakai (termasuk yang soft deleted).
-     */
+
     protected static function usernameExists(string $username, ?int $ignoreUserId = null): bool
     {
         $query = static::withTrashed()->where('username', $username);
@@ -167,27 +157,20 @@ class User extends Authenticatable
         return "{$this->name} ({$this->username})";
     }
 
-    /**
-     * Cek apakah user sudah masuk masa pensiun.
-     * True kalau waktu_pensiun sudah lewat (atau hari ini).
-     */
+
     public function getIsPensiunAttribute(): bool
     {
         return $this->waktu_pensiun !== null
             && $this->waktu_pensiun->isPast();
     }
 
-    /**
-     * Cek apakah user masih aktif bekerja (belum pensiun).
-     */
+
     public function getIsAktifKerjaAttribute(): bool
     {
         return !$this->is_pensiun;
     }
 
-    /**
-     * Label status pensiun (untuk badge di view).
-     */
+
     public function getStatusPensiunLabelAttribute(): string
     {
         if ($this->waktu_pensiun === null) {
@@ -200,9 +183,7 @@ class User extends Authenticatable
         return 'Akan Pensiun';
     }
 
-    /**
-     * Warna badge status pensiun.
-     */
+
     public function getStatusPensiunColorAttribute(): string
     {
         if ($this->waktu_pensiun === null) {
@@ -216,18 +197,14 @@ class User extends Authenticatable
         return 'yellow';
     }
 
-    /**
-     * Scope: user yang sudah pensiun.
-     */
+
     public function scopePensiun($query)
     {
         return $query->whereNotNull('waktu_pensiun')
             ->where('waktu_pensiun', '<=', now());
     }
 
-    /**
-     * Scope: user yang belum pensiun (termasuk yang tidak punya tanggal).
-     */
+
     public function scopeBelumPensiun($query)
     {
         return $query->where(function ($q) {
@@ -236,9 +213,7 @@ class User extends Authenticatable
         });
     }
 
-    /**
-     * Scope: user yang akan pensiun dalam N hari ke depan.
-     */
+
     public function scopeAkanPensiun($query, int $hari = 30)
     {
         return $query->whereNotNull('waktu_pensiun')

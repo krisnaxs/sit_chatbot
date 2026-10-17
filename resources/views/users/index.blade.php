@@ -728,8 +728,6 @@
                     @if (session('error'))
                         this.showToast(@json(session('error')), 'error');
                     @endif
-
-                    // Auto-submit search dengan debounce (opsional: hapus kalau mau manual enter)
                     const searchInput = document.getElementById('searchInput');
                     const searchForm = document.getElementById('searchForm');
                     if (searchInput && searchForm) {

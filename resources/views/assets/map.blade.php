@@ -84,8 +84,17 @@
         {{-- HEADER --}}
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <a href="{{ route('siam.assets.monitoring') }}" class="text-sm text-indigo-600 hover:underline">
-                    ← Kembali ke Monitoring
+                <a href="{{ route('siam.assets.monitoring') }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+           bg-white border border-gray-200
+           text-sm font-semibold text-gray-700
+           hover:bg-gray-50 hover:border-gray-300
+           shadow-sm transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Kembali ke Monitoring
                 </a>
                 <h1 class="text-2xl font-bold text-gray-800 mt-1">Peta Keberadaan Aset</h1>
                 <p class="text-sm text-gray-500">Lokasi real-time berdasarkan Windows Location API / WiFi BSSID</p>
@@ -241,8 +250,6 @@
             const assetsData = @json($assetsData);
 
             if (assetsData.length === 0) return;
-
-            // ==== 1. Inisialisasi peta ====
             const avgLat = assetsData.reduce((sum, a) => sum + a.lat, 0) / assetsData.length;
             const avgLng = assetsData.reduce((sum, a) => sum + a.lng, 0) / assetsData.length;
 
@@ -253,7 +260,6 @@
                 attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             }).addTo(map);
 
-            // ==== 2. Custom marker ====
             function createIcon(status) {
                 const colors = {
                     'green': '#10b981',
@@ -278,16 +284,10 @@
                     popupAnchor: [0, -14],
                 });
             }
-
-            // ==== 3. Tambah marker + tooltip ====
             assetsData.forEach(function(asset) {
                 const marker = L.marker([asset.lat, asset.lng], {
                     icon: createIcon(asset.status)
                 }).addTo(map);
-
-                // ============================================================
-                // 🆕 TOOLTIP — Muncul saat hover
-                // ============================================================
                 const statusClass = asset.status === 'green' ? 'online' :
                     asset.status === 'yellow' ? 'idle' :
                     'offline';
@@ -311,10 +311,6 @@
                     opacity: 1,
                     sticky: false,
                 });
-
-                // ============================================================
-                // POPUP — Muncul saat klik
-                // ============================================================
                 const popupHtml = `
                     <div style="font-family: system-ui;">
                         <div style="font-weight: 700; font-size: 14px; color: #1f2937; margin-bottom: 4px;">
@@ -370,8 +366,6 @@
                     maxWidth: 300
                 });
             });
-
-            // ==== 4. Fit bounds ====
             if (assetsData.length > 1) {
                 const bounds = L.latLngBounds(assetsData.map(a => [a.lat, a.lng]));
                 map.fitBounds(bounds, {

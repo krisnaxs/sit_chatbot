@@ -10,9 +10,7 @@ use Illuminate\Http\Request;
 
 class MyAssetController extends Controller
 {
-    /**
-     * Daftar aset & konsumable yang dipegang user ini.
-     */
+
     public function index(Request $request)
     {
         $userId = auth()->id();

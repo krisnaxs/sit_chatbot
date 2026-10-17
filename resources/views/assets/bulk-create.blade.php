@@ -10,8 +10,17 @@
             {{-- HEADER --}}
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <a href="{{ route('siam.assets.index') }}" class="text-sm text-indigo-600 hover:underline">
-                        ← Kembali ke daftar aset
+                    <a href="{{ route('siam.assets.index') }}"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+           bg-white border border-gray-200
+           text-sm font-semibold text-gray-700
+           hover:bg-gray-50 hover:border-gray-300
+           shadow-sm transition-all duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Kembali ke Daftar Aset
                     </a>
                     <h1 class="text-2xl font-bold text-gray-800 mt-1">Input Banyak Aset</h1>
                     <p class="text-sm text-gray-500">
@@ -672,29 +681,20 @@
 
         function bulkCreateManager() {
             return {
-                // form state
                 status: @json(old('status', 'available')),
                 quantity: {{ (int) old('quantity', 40) }},
-
-                // === AUTO/MANUAL TOGGLES ===
                 autoSerial: true,
                 autoCode: true,
-
-                // auto fields
                 serialPrefix: @json(old('serial_prefix', 'SN-LAP-')),
                 serialStart: {{ (int) old('serial_start', 1) }},
                 serialPad: {{ (int) old('serial_pad', 4) }},
                 codePrefix: @json(old('code_prefix', '')),
                 codeStart: {{ (int) old('code_start', 1) }},
                 codePad: {{ (int) old('code_pad', 4) }},
-
-                // manual fields
                 serialList: '',
                 codeList: '',
                 manualSerialCount: 0,
                 manualCodeCount: 0,
-
-                // preview state
                 showPreviewModal: false,
                 previewRows: [],
                 hasDuplicates: false,
@@ -724,7 +724,6 @@
                 },
 
                 buildRowsForPreview() {
-                    // === MODE MANUAL SERIAL ===
                     if (!this.autoSerial) {
                         const serials = this.parseLines(this.serialList);
                         const codes = this.autoCode ? [] :
@@ -736,8 +735,6 @@
                             isDup: false,
                         }));
                     }
-
-                    // === MODE AUTO SERIAL ===
                     const rows = [];
                     for (let i = 0; i < this.quantity; i++) {
                         const serial = this.serialPrefix + this.pad(this.serialStart + i, this.serialPad);
@@ -759,7 +756,6 @@
                 },
 
                 async openPreview() {
-                    // Validasi client
                     if (this.autoSerial) {
                         if (!this.serialPrefix) {
                             alert('Isi prefix serial number dulu.');
@@ -785,8 +781,6 @@
                     this.previewRows = this.buildRowsForPreview();
                     this.hasDuplicates = false;
                     this.showPreviewModal = true;
-
-                    // Cek duplikat ke server
                     try {
                         const res = await fetch('{{ route('siam.assets.bulk-preview') }}', {
                             method: 'POST',
@@ -818,9 +812,7 @@
                             isDup: dupSerials.has(r.serial) || (r.code && dupCodes.has(r.code))
                         }));
                         this.hasDuplicates = this.previewRows.some(r => r.isDup);
-                    } catch (e) {
-                        // silent — tetap tampilkan preview lokal
-                    }
+                    } catch (e) {}
                 },
             }
         }

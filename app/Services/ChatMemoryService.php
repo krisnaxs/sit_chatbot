@@ -13,9 +13,7 @@ class ChatMemoryService
         $this->sessionId = $sessionId;
     }
 
-    /**
-     * Simpan konteks.
-     */
+
     public function remember(string $type, array $data, int $ttlMinutes = 30, ?string $label = null): ChatContext
     {
         $data['type'] = $data['type'] ?? $type;
@@ -34,12 +32,7 @@ class ChatMemoryService
         ]);
     }
 
-    /**
-     * Ambil konteks.
-     *
-     * - Kalau $type diisi → return context dengan type tersebut, atau null
-     * - Kalau $type kosong → return context TERBARU
-     */
+
     public function recall(?string $type = null): ?array
     {
         $query = ChatContext::where('session_id', $this->sessionId)
@@ -61,11 +54,7 @@ class ChatMemoryService
         return array_merge(['_type' => $ctx->type], $ctx->data ?? []);
     }
 
-    /**
-     *  Cari context pertama yang cocok dari daftar type.
-     *
-     * Contoh: recallFirstOf(['asset_by_status', 'list_asset_by_status'])
-     */
+
     public function recallFirstOf(array $types): ?array
     {
         foreach ($types as $type) {
@@ -77,9 +66,7 @@ class ChatMemoryService
         return null;
     }
 
-    /**
-     * Ambil semua konteks aktif.
-     */
+
     public function recallAll(): array
     {
         return ChatContext::where('session_id', $this->sessionId)
@@ -89,9 +76,7 @@ class ChatMemoryService
             ->toArray();
     }
 
-    /**
-     * Hapus konteks.
-     */
+
     public function forget(?string $type = null): void
     {
         $query = ChatContext::where('session_id', $this->sessionId);
@@ -103,9 +88,7 @@ class ChatMemoryService
         $query->delete();
     }
 
-    /**
-     * Cleanup expired contexts.
-     */
+
     public static function cleanup(): int
     {
         return ChatContext::where('expires_at', '<', now())->delete();

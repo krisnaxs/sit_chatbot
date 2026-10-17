@@ -45,9 +45,7 @@ Route::get('/app/click/{id}', [PortalController::class, 'click'])->name('app.cli
 Route::post('/admin/login', [LoginController::class, 'login'])->name('admin.login');
 Route::post('/admin/logout', [LoginController::class, 'logout'])->name('admin.logout');
 
-/**
- * /login — redirect cerdas biar tidak loop.
- */
+
 Route::get('/login', function () {
     return auth()->check()
         ? redirect()->route('apps.index')
@@ -107,15 +105,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/users/import', [UserController::class, 'importForm'])->name('users.import.form');
         Route::get('/users/import/template', [UserController::class, 'downloadTemplate'])->name('users.import.template');
         Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
-
-        // 🆕 TRASH & RESTORE — HARUS DI ATAS /users/{user}
         Route::get('/users/trash', [UserController::class, 'trash'])->name('users.trash');
         Route::post('/users/trash/restore-all', [UserController::class, 'restoreAll'])->name('users.restore-all');
         Route::delete('/users/trash/empty', [UserController::class, 'emptyTrash'])->name('users.empty-trash');
         Route::post('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
         Route::delete('/users/{id}/force-delete', [UserController::class, 'forceDelete'])->name('users.force-delete');
-
-        // Existing routes
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
@@ -193,18 +187,13 @@ Route::middleware(['auth'])->group(function () {
 
             Route::get('assets/map', [AssetController::class, 'map'])->name('assets.map');
             Route::middleware(['role:admin'])->group(function () {
-                // Halaman list trash
                 Route::get('assets/trash', [AssetController::class, 'trash'])
                     ->name('assets.trash');
-
-                // Bulk actions — HARUS di atas route dengan {id}
                 Route::post('assets/trash/restore-all', [AssetController::class, 'restoreAll'])
                     ->name('assets.restore-all');
 
                 Route::delete('assets/trash/empty', [AssetController::class, 'emptyTrash'])
                     ->name('assets.empty-trash');
-
-                // Per-item action
                 Route::post('assets/{id}/restore', [AssetController::class, 'restore'])
                     ->name('assets.restore');
 
@@ -230,60 +219,39 @@ Route::middleware(['auth'])->group(function () {
             Route::get('user-assets', [UserAssetController::class, 'index'])->name('user-assets.index');
             Route::get('user-assets/export/excel', [UserAssetController::class, 'exportExcel'])->name('user-assets.export.excel');
             Route::get('user-assets/export/pdf', [UserAssetController::class, 'exportPdf'])->name('user-assets.export.pdf');
-
-            // === 🆕 BERITA ACARA ===
-            // Admin & Support bisa lihat, admin bisa regenerate/delete
             Route::prefix('berita-acara')
                 ->name('berita-acara.')
                 ->group(function () {
+                    Route::get('/', [BeritaAcaraController::class, 'index'])->name('index');
+                    Route::get('/asset/{asset}/create', [BeritaAcaraController::class, 'createFromAsset'])
+                        ->name('create-from-asset');
 
-                // View list & detail (admin & support)
-                Route::get('/', [BeritaAcaraController::class, 'index'])->name('index');
-
-                // 🆕 Buat BA manual dari asset show — HARUS DI ATAS /{beritaAcara}
-                Route::get('/asset/{asset}/create', [BeritaAcaraController::class, 'createFromAsset'])
-                    ->name('create-from-asset');
-
-                Route::post('/asset/{asset}', [BeritaAcaraController::class, 'storeFromAsset'])
-                    ->name('store-from-asset');
-
-                // Detail, preview, download
-                Route::get('/{beritaAcara}', [BeritaAcaraController::class, 'show'])->name('show');
-                Route::get('/{beritaAcara}/preview', [BeritaAcaraController::class, 'preview'])->name('preview');
-                Route::get('/{beritaAcara}/download', [BeritaAcaraController::class, 'download'])->name('download');
-
-                // Regenerate & delete (admin only)
-                Route::middleware(['role:admin'])->group(function () {
-                    Route::post('/{beritaAcara}/regenerate', [BeritaAcaraController::class, 'regenerate'])
-                        ->name('regenerate');
-                    Route::delete('/{beritaAcara}', [BeritaAcaraController::class, 'destroy'])
-                        ->name('destroy');
+                    Route::post('/asset/{asset}', [BeritaAcaraController::class, 'storeFromAsset'])
+                        ->name('store-from-asset');
+                    Route::get('/{beritaAcara}', [BeritaAcaraController::class, 'show'])->name('show');
+                    Route::get('/{beritaAcara}/preview', [BeritaAcaraController::class, 'preview'])->name('preview');
+                    Route::get('/{beritaAcara}/download', [BeritaAcaraController::class, 'download'])->name('download');
+                    Route::middleware(['role:admin'])->group(function () {
+                        Route::post('/{beritaAcara}/regenerate', [BeritaAcaraController::class, 'regenerate'])
+                            ->name('regenerate');
+                        Route::delete('/{beritaAcara}', [BeritaAcaraController::class, 'destroy'])
+                            ->name('destroy');
+                    });
                 });
-            });
-
-            // === AGENT REGISTRY ===
             Route::prefix('agent-registry')
                 ->name('agent-registry.')
                 ->middleware(['role:admin,support'])
                 ->group(function () {
-                Route::get('/', [AgentRegistryController::class, 'index'])->name('index');
-
-                // Approve & Reject
-                Route::post('/{pending}/approve', [AgentRegistryController::class, 'approve'])->name('approve');
-                Route::post('/{pending}/reject', [AgentRegistryController::class, 'reject'])->name('reject');
-
-                // Hapus permanen (yang sudah di-reject)
-                Route::delete('/{pending}/force-delete', [AgentRegistryController::class, 'forceDelete'])->name('force-delete');
-
-                // Bersihkan
-                Route::delete('/clear', [AgentRegistryController::class, 'clear'])->name('clear');
-                Route::delete('/clear-rejected', [AgentRegistryController::class, 'clearRejected'])->name('clear-rejected');
-
-                // Token actions
-                Route::post('/tokens/{token}/revoke', [AgentRegistryController::class, 'revokeToken'])->name('tokens.revoke');
-                Route::post('/tokens/{token}/activate', [AgentRegistryController::class, 'activateToken'])->name('tokens.activate');
-                Route::post('/tokens/{token}/regenerate', [AgentRegistryController::class, 'regenerateToken'])->name('tokens.regenerate');
-            });
+                    Route::get('/', [AgentRegistryController::class, 'index'])->name('index');
+                    Route::post('/{pending}/approve', [AgentRegistryController::class, 'approve'])->name('approve');
+                    Route::post('/{pending}/reject', [AgentRegistryController::class, 'reject'])->name('reject');
+                    Route::delete('/{pending}/force-delete', [AgentRegistryController::class, 'forceDelete'])->name('force-delete');
+                    Route::delete('/clear', [AgentRegistryController::class, 'clear'])->name('clear');
+                    Route::delete('/clear-rejected', [AgentRegistryController::class, 'clearRejected'])->name('clear-rejected');
+                    Route::post('/tokens/{token}/revoke', [AgentRegistryController::class, 'revokeToken'])->name('tokens.revoke');
+                    Route::post('/tokens/{token}/activate', [AgentRegistryController::class, 'activateToken'])->name('tokens.activate');
+                    Route::post('/tokens/{token}/regenerate', [AgentRegistryController::class, 'regenerateToken'])->name('tokens.regenerate');
+                });
 
 
         });

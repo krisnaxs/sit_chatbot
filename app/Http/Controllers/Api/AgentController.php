@@ -15,10 +15,7 @@ use Illuminate\Support\Str;
 
 class AgentController extends Controller
 {
-    /**
-     * Auto-register: agent minta token berdasarkan serial number BIOS.
-     * POST /api/agent/register
-     */
+
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -30,12 +27,9 @@ class AgentController extends Controller
             'wifi_bssid' => 'nullable|string|max:17',
             'logged_user' => 'nullable|string|max:100',
         ]);
-
-        // === Cari asset by serial number ===
         $asset = Asset::where('serial_number', $validated['serial_number'])->first();
 
         if (!$asset) {
-            // === Belum terdaftar → Pending Agent ===
             $pending = PendingAgent::updateOrCreate(
                 ['serial_number' => $validated['serial_number']],
                 [
@@ -64,8 +58,6 @@ class AgentController extends Controller
                 'hostname' => $validated['hostname'],
             ], 404);
         }
-
-        // === Cek kategori monitored ===
         if ($asset->category && !$asset->category->is_agent_monitored) {
             return response()->json([
                 'ok' => false,
@@ -73,8 +65,6 @@ class AgentController extends Controller
                 'message' => 'Kategori aset ini tidak termasuk monitoring agent.',
             ], 403);
         }
-
-        // === Ambil / buat token ===
         $token = $asset->agentToken;
 
         if ($token) {
@@ -85,14 +75,10 @@ class AgentController extends Controller
                     'message' => 'Agent untuk aset ini dinonaktifkan oleh admin.',
                 ], 403);
             }
-
-            // Update last used
             $token->update([
                 'last_used_at' => now(),
                 'last_ip' => $validated['ip'] ?? null,
             ]);
-
-            // Auto-sync hostname (kalau berubah & tidak konflik)
             $this->syncHostname($asset, $validated['hostname']);
 
             return response()->json([
@@ -103,8 +89,6 @@ class AgentController extends Controller
                 'message' => 'Token sudah ada. Selamat menggunakan.',
             ]);
         }
-
-        // === Generate token baru ===
         $token = AgentToken::create([
             'token' => Str::random(64),
             'name' => "{$asset->asset_code} Agent",
@@ -115,8 +99,6 @@ class AgentController extends Controller
             'last_used_at' => now(),
             'last_ip' => $validated['ip'] ?? null,
         ]);
-
-        // Auto-sync hostname
         $this->syncHostname($asset, $validated['hostname']);
 
         Log::info('Agent register: token generated', [
@@ -134,13 +116,9 @@ class AgentController extends Controller
         ]);
     }
 
-    /**
-     * Heartbeat: agent kirim data berkala.
-     * POST /api/agent/heartbeat
-     */
+
     public function heartbeat(Request $request)
     {
-        // === Autentikasi token ===
         $tokenStr = $request->bearerToken();
         if (!$tokenStr) {
             return response()->json(['error' => 'Token required'], 401);
@@ -153,8 +131,6 @@ class AgentController extends Controller
         if (!$agentToken) {
             return response()->json(['error' => 'Invalid or revoked token'], 401);
         }
-
-        // === Validasi payload ===
         $validated = $request->validate([
             'serial_number' => 'required|string|max:100',
             'hostname' => 'required|string|max:100',
@@ -167,38 +143,26 @@ class AgentController extends Controller
             'cpu_temp' => 'nullable|numeric|min:0|max:150',
             'agent_version' => 'nullable|string|max:20',
             'last_os' => 'nullable|string|max:200',
-
-            // === 🆕 Koordinat dari Windows Location API ===
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'location_accuracy' => 'nullable|numeric|min:0',
             'location_source' => 'nullable|string|max:20',
         ]);
-
-        // === Ambil asset ===
         $asset = $agentToken->asset;
         if (!$asset) {
             return response()->json([
                 'error' => 'Asset tidak ditemukan untuk token ini',
             ], 404);
         }
-
-        // ============================================================
-        // === OLAH LOKASI ===
-        // ============================================================
         $locationId = null;
         $lastLat = null;
         $lastLng = null;
         $locationSource = null;
-
-        // Prioritas 1: dari agent (Windows Location API)
         if (!empty($validated['latitude']) && !empty($validated['longitude'])) {
             $lastLat = $validated['latitude'];
             $lastLng = $validated['longitude'];
             $locationSource = $validated['location_source'] ?? 'agent';
         }
-
-        // Prioritas 2: dari BSSID mapping (ap_locations) — kalau agent tidak kirim
         if (!$lastLat && !empty($validated['wifi_bssid'])) {
             $ap = ApLocation::findByBssid($validated['wifi_bssid']);
             if ($ap) {
@@ -211,8 +175,6 @@ class AgentController extends Controller
                 }
             }
         }
-
-        // === Update asset + simpan log ===
         DB::transaction(function () use ($asset, $validated, $agentToken, $locationId, $lastLat, $lastLng, $locationSource) {
             $updateData = [
                 'last_seen_at' => now(),
@@ -227,13 +189,9 @@ class AgentController extends Controller
                 'last_os' => $validated['last_os'] ?? $asset->last_os,
                 'agent_status' => 'online',
             ];
-
-            // Update lokasi ID kalau BSSID terdaftar
             if ($locationId) {
                 $updateData['current_location_id'] = $locationId;
             }
-
-            // Update koordinat (dari agent atau BSSID)
             if ($lastLat && $lastLng) {
                 $updateData['last_lat'] = $lastLat;
                 $updateData['last_lng'] = $lastLng;
@@ -241,11 +199,7 @@ class AgentController extends Controller
             }
 
             $asset->update($updateData);
-
-            // Auto-sync hostname
             $this->syncHostname($asset, $validated['hostname']);
-
-            // Simpan log
             AssetAgentLog::create([
                 'asset_id' => $asset->id,
                 'ip' => $validated['ip'] ?? null,
@@ -258,8 +212,6 @@ class AgentController extends Controller
                 'cpu_temp' => $validated['cpu_temp'] ?? null,
                 'reported_at' => now(),
             ]);
-
-            // Update token last used
             $agentToken->update([
                 'last_used_at' => now(),
                 'last_ip' => $validated['ip'] ?? null,
@@ -279,10 +231,7 @@ class AgentController extends Controller
         ]);
     }
 
-    /**
-     * Info agent (debug).
-     * GET /api/agent/me
-     */
+
     public function me(Request $request)
     {
         $tokenStr = $request->bearerToken();
@@ -310,9 +259,7 @@ class AgentController extends Controller
         ]);
     }
 
-    /**
-     * Helper: auto-sync hostname ke asset (kalau beda & tidak konflik).
-     */
+
     private function syncHostname(Asset $asset, string $newHostname): void
     {
         if ($asset->hostname === $newHostname) {

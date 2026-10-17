@@ -11,9 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConsumableController extends Controller
 {
-    /**
-     * Daftar konsumable.
-     */
+
     public function index(Request $request)
     {
         $query = Consumable::with('category')
@@ -52,9 +50,7 @@ class ConsumableController extends Controller
         return view('consumables.index', compact('consumables', 'categories', 'stats'));
     }
 
-    /**
-     * Form tambah konsumable.
-     */
+
     public function create()
     {
         $categories = AssetCategory::consumable()->orderBy('name')->get();
@@ -62,9 +58,7 @@ class ConsumableController extends Controller
         return view('consumables.create', compact('categories'));
     }
 
-    /**
-     * Simpan konsumable baru.
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -89,9 +83,7 @@ class ConsumableController extends Controller
             ->with('success', 'Konsumable berhasil ditambahkan.');
     }
 
-    /**
-     * Detail konsumable + history transaksi.
-     */
+
     public function show(Consumable $consumable)
     {
         $consumable->load([
@@ -106,9 +98,7 @@ class ConsumableController extends Controller
         return view('consumables.show', compact('consumable'));
     }
 
-    /**
-     * Form edit konsumable.
-     */
+
     public function edit(Consumable $consumable)
     {
         $categories = AssetCategory::consumable()->orderBy('name')->get();
@@ -116,9 +106,7 @@ class ConsumableController extends Controller
         return view('consumables.edit', compact('consumable', 'categories'));
     }
 
-    /**
-     * Update konsumable.
-     */
+
     public function update(Request $request, Consumable $consumable)
     {
         $validated = $request->validate([
@@ -143,9 +131,7 @@ class ConsumableController extends Controller
             ->with('success', 'Konsumable berhasil diupdate.');
     }
 
-    /**
-     * Export Excel
-     */
+
     public function exportExcel(Request $request)
     {
         $filters = $request->only(['search', 'category_id', 'low_stock']);
@@ -155,9 +141,7 @@ class ConsumableController extends Controller
         return Excel::download(new ConsumablesExport($filters), $filename);
     }
 
-    /**
-     * Export PDF
-     */
+
     public function exportPdf(Request $request)
     {
         $query = Consumable::with('category')
@@ -201,9 +185,7 @@ class ConsumableController extends Controller
         return $pdf->download('konsumable-' . now()->format('Ymd-His') . '.pdf');
     }
 
-    /**
-     * Hapus konsumable.
-     */
+
     public function destroy(Consumable $consumable)
     {
         if ($consumable->transactions()->count() > 0) {

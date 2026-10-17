@@ -10,12 +10,9 @@ use Illuminate\Support\Str;
 
 class AgentRegistryController extends Controller
 {
-    /**
-     * Halaman utama: pending agents + rejected + token aktif + stats.
-     */
+
     public function index(Request $request)
     {
-        // === Pending agents (belum di-approve & belum di-reject) ===
         $pendingQuery = PendingAgent::pending()->latest('attempted_at');
 
         if ($request->filled('search')) {
@@ -28,8 +25,6 @@ class AgentRegistryController extends Controller
         }
 
         $pending = $pendingQuery->paginate(20, ['*'], 'pending_page');
-
-        // === Rejected agents (device di-blacklist) ===
         $rejectedQuery = PendingAgent::rejected()->latest('rejected_at');
 
         if ($request->filled('search')) {
@@ -41,8 +36,6 @@ class AgentRegistryController extends Controller
         }
 
         $rejected = $rejectedQuery->paginate(10, ['*'], 'rejected_page');
-
-        // === Token aktif ===
         $tokenQuery = AgentToken::with('asset')
             ->where('is_active', true)
             ->latest('last_used_at');
@@ -60,8 +53,6 @@ class AgentRegistryController extends Controller
         }
 
         $tokens = $tokenQuery->paginate(20, ['*'], 'token_page');
-
-        // === Stats ===
         $stats = [
             'pending_count' => PendingAgent::pending()->count(),
             'rejected_count' => PendingAgent::rejected()->count(),
@@ -78,8 +69,6 @@ class AgentRegistryController extends Controller
                 ->whereHas('category', fn($q) => $q->where('is_agent_monitored', true))
                 ->count(),
         ];
-
-        // === Daftar aset untuk dropdown approve (format array untuk JSON) ===
         $assets = Asset::with('category')
             ->whereDoesntHave('agentToken')
             ->whereHas('category', fn($q) => $q->where('is_agent_monitored', true))
@@ -102,8 +91,6 @@ class AgentRegistryController extends Controller
                 ];
             })
             ->values();
-
-        // === Pre-match pending agent dengan asset yang ada ===
         $pending->getCollection()->transform(function ($p) use ($assets) {
             $matched = $p->serial_number
                 ? $assets->firstWhere('serial_number', $p->serial_number)
@@ -122,17 +109,12 @@ class AgentRegistryController extends Controller
         ));
     }
 
-    /**
-     * Approve pending agent → generate token & link ke asset.
-     */
+
     public function approve(Request $request, PendingAgent $pending)
     {
-        // === GUARD: sudah di-reject ===
         if ($pending->rejected_at) {
             return back()->with('error', "Agent {$pending->hostname} sudah di-reject, tidak bisa di-approve.");
         }
-
-        // === GUARD: sudah di-approve ===
         if ($pending->approved_at) {
             return back()->with('error', "Agent {$pending->hostname} sudah di-approve sebelumnya.");
         }
@@ -142,8 +124,6 @@ class AgentRegistryController extends Controller
         ]);
 
         $asset = Asset::findOrFail($validated['asset_id']);
-
-        // Cek kalau asset sudah punya token
         if ($asset->agentToken) {
             $token = $asset->agentToken;
             $token->update([
@@ -152,7 +132,6 @@ class AgentRegistryController extends Controller
                 'device_hostname' => $pending->hostname,
             ]);
         } else {
-            // Generate token baru
             $token = AgentToken::create([
                 'token' => Str::random(64),
                 'name' => "{$asset->asset_code} Agent",
@@ -162,13 +141,9 @@ class AgentRegistryController extends Controller
                 'device_hostname' => $pending->hostname,
             ]);
         }
-
-        // Update hostname asset kalau belum ada
         if (!$asset->hostname) {
             $asset->update(['hostname' => $pending->hostname]);
         }
-
-        // Tandai pending sudah di-approve
         $pending->update([
             'approved_at' => now(),
             'approved_by' => auth()->id(),
@@ -181,17 +156,12 @@ class AgentRegistryController extends Controller
         );
     }
 
-    /**
-     * Reject pending agent → soft reject (tidak dihapus, tapi di-blacklist).
-     */
+
     public function reject(Request $request, PendingAgent $pending)
     {
-        // === GUARD: sudah di-reject ===
         if ($pending->rejected_at) {
             return back()->with('error', "Agent {$pending->hostname} sudah di-reject sebelumnya.");
         }
-
-        // === GUARD: sudah di-approve ===
         if ($pending->approved_at) {
             return back()->with('error', "Agent {$pending->hostname} sudah di-approve, tidak bisa di-reject.");
         }
@@ -211,9 +181,7 @@ class AgentRegistryController extends Controller
         );
     }
 
-    /**
-     * Hapus permanen pending agent yang sudah di-reject.
-     */
+
     public function forceDelete(PendingAgent $pending)
     {
         $hostname = $pending->hostname;
@@ -222,45 +190,35 @@ class AgentRegistryController extends Controller
         return back()->with('success', "Pending agent {$hostname} dihapus permanen.");
     }
 
-    /**
-     * Bersihkan semua pending (yang belum di-approve/reject).
-     */
+
     public function clear()
     {
         $count = PendingAgent::pending()->delete();
         return back()->with('success', "{$count} pending agent dibersihkan.");
     }
 
-    /**
-     * Bersihkan semua rejected (hapus permanen).
-     */
+
     public function clearRejected()
     {
         $count = PendingAgent::rejected()->delete();
         return back()->with('success', "{$count} rejected agent dihapus permanen.");
     }
 
-    /**
-     * Revoke token (nonaktifkan).
-     */
+
     public function revokeToken(AgentToken $token)
     {
         $token->update(['is_active' => false]);
         return back()->with('success', "Token {$token->name} dinonaktifkan.");
     }
 
-    /**
-     * Aktifkan kembali token.
-     */
+
     public function activateToken(AgentToken $token)
     {
         $token->update(['is_active' => true]);
         return back()->with('success', "Token {$token->name} diaktifkan kembali.");
     }
 
-    /**
-     * Regenerate token (buat baru, revoke lama).
-     */
+
     public function regenerateToken(AgentToken $token)
     {
         $token->update([

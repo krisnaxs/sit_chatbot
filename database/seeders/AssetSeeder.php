@@ -14,8 +14,6 @@ class AssetSeeder extends Seeder
     public function run(): void
     {
         $categories = AssetCategory::pluck('id', 'code')->toArray();
-
-        // ==== Guard: pastikan semua kategori yang dibutuhkan ada ====
         $required = ['LPT', 'PC', 'PRT'];
         $missing = array_diff($required, array_keys($categories));
 
@@ -37,8 +35,6 @@ class AssetSeeder extends Seeder
         $counter = 0;
 
         DB::transaction(function () use ($categories, $lenovoVendor, $sewaVendor, $mitraVendor, &$counter) {
-
-            // ==== Laptop Lenovo T14 (40 unit) ====
             for ($i = 1; $i <= 40; $i++) {
                 $counter++;
                 $isLeased = $i > 30;
@@ -84,8 +80,6 @@ class AssetSeeder extends Seeder
                     ]
                 );
             }
-
-            // ==== PC Desktop HP (10 unit) ====
             for ($i = 1; $i <= 10; $i++) {
                 $counter++;
 
@@ -124,8 +118,6 @@ class AssetSeeder extends Seeder
                     ]
                 );
             }
-
-            // ==== Printer Epson (5 unit) ====
             for ($i = 1; $i <= 5; $i++) {
                 $counter++;
                 $isLeased = $i > 3;

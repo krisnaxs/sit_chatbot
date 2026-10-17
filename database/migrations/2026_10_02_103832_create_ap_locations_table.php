@@ -14,8 +14,6 @@ return new class extends Migration {
             $table->foreignId('location_id')
                 ->constrained('locations')
                 ->cascadeOnDelete();
-
-            // ==== Koordinat GPS Access Point ====
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
 

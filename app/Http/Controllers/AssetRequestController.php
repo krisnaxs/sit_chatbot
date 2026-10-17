@@ -17,9 +17,7 @@ use Illuminate\Support\Facades\Log;
 class AssetRequestController extends Controller
 {
 
-    /**
-     * Daftar pengajuan milik user sendiri.
-     */
+
     public function myRequests(Request $request)
     {
         $query = AssetRequest::with(['asset', 'consumable', 'approvedBy', 'location'])
@@ -45,9 +43,7 @@ class AssetRequestController extends Controller
         return view('requests.my', compact('requests', 'summary'));
     }
 
-    /**
-     * Form pengajuan baru.
-     */
+
     public function create(Request $request)
     {
         $type = $request->get('type', AssetRequest::TYPE_LOAN);   //  default: loan
@@ -72,9 +68,7 @@ class AssetRequestController extends Controller
         ));
     }
 
-    /**
-     * Simpan pengajuan baru (status: pending).
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -118,11 +112,7 @@ class AssetRequestController extends Controller
             ->with('success', "Pengajuan {$assetRequest->request_number} berhasil dikirim. Menunggu persetujuan admin.");
     }
 
-    /**
-     * Detail pengajuan.
-     * - Admin/support: bisa lihat semua
-     * - User: hanya miliknya sendiri
-     */
+
     public function show(AssetRequest $assetRequest)
     {
         $isStaff = auth()->user()->hasAnyRole(['admin', 'support']);
@@ -146,9 +136,7 @@ class AssetRequestController extends Controller
         return view('requests.show', compact('assetRequest'));
     }
 
-    /**
-     * User batalkan pengajuan yang masih pending.
-     */
+
     public function cancel(AssetRequest $assetRequest)
     {
         if ($assetRequest->user_id !== auth()->id()) {
@@ -165,9 +153,7 @@ class AssetRequestController extends Controller
             ->with('success', 'Pengajuan dibatalkan.');
     }
 
-    /**
-     * Daftar semua pengajuan untuk admin/support.
-     */
+
     public function index(Request $request)
     {
         $query = AssetRequest::with([
@@ -213,9 +199,7 @@ class AssetRequestController extends Controller
         return view('requests.index', compact('requests', 'stats', 'users'));
     }
 
-    /**
-     * Admin approve pengajuan → auto-execute sesuai type.
-     */
+
     public function approve(Request $request, AssetRequest $assetRequest)
     {
         if (!auth()->user()->hasAnyRole(['admin', 'support'])) {
@@ -263,9 +247,7 @@ class AssetRequestController extends Controller
         }
     }
 
-    /**
-     * Admin reject pengajuan.
-     */
+
     public function reject(Request $request, AssetRequest $assetRequest)
     {
         if (!auth()->user()->hasAnyRole(['admin', 'support'])) {
@@ -293,9 +275,7 @@ class AssetRequestController extends Controller
             ->with('success', 'Pengajuan ditolak.');
     }
 
-    /**
-     * Eksekusi peminjaman aset.
-     */
+
     private function executeLoan(AssetRequest $req, array $data): void
     {
         $asset = Asset::findOrFail($req->asset_id);
@@ -319,9 +299,7 @@ class AssetRequestController extends Controller
         $req->update(['loan_id' => $loan->id]);
     }
 
-    /**
-     * Eksekusi permintaan konsumable.
-     */
+
     private function executeConsumable(AssetRequest $req): void
     {
         $consumable = Consumable::findOrFail($req->consumable_id);

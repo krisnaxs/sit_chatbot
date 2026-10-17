@@ -93,9 +93,7 @@ class UserAssetsExport implements
         return $query->orderBy('name')->get();
     }
 
-    /**
-     * Helper: status + tanggal dengan fallback.
-     */
+
     protected function getAssetStatusWithDate($asset): string
     {
         if ($asset->status === 'in_use') {
@@ -255,9 +253,7 @@ class UserAssetsExport implements
         ];
     }
 
-    /**
-     * styles() kosong — semua di registerEvents()
-     */
+
     public function styles(Worksheet $sheet): ?array
     {
         return [];

@@ -27,9 +27,7 @@ class LearnedFaq extends Model
         'approved_at' => 'datetime',
     ];
 
-    /**
-     * Normalisasi teks pertanyaan.
-     */
+
     public static function normalize(string $text): string
     {
         $text = strtolower(trim($text));
@@ -65,17 +63,13 @@ class LearnedFaq extends Model
         return implode(' ', $words);
     }
 
-    /**
-     * Scope: hanya FAQ yang approved.
-     */
+
     public function scopeApproved($query)
     {
         return $query->where('is_approved', true);
     }
 
-    /**
-     * Scope: urut by frequency tertinggi.
-     */
+
     public function scopePopular($query)
     {
         return $query->orderByDesc('frequency');

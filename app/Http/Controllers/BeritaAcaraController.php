@@ -17,9 +17,7 @@ class BeritaAcaraController extends Controller
     ) {
     }
 
-    /**
-     * Daftar berita acara dengan filter.
-     */
+
     public function index(Request $request)
     {
         $query = BeritaAcara::with(['asset.category', 'pihakPertama', 'pihakKedua', 'createdBy']);
@@ -53,8 +51,6 @@ class BeritaAcaraController extends Controller
             ->orderByDesc('id')
             ->paginate($request->get('per_page', 25))
             ->withQueryString();
-
-        // Statistik ringkas
         $stats = [
             'total' => BeritaAcara::count(),
             'serah_terima' => BeritaAcara::where('jenis', 'serah_terima')->count(),
@@ -63,8 +59,6 @@ class BeritaAcaraController extends Controller
                 ->whereYear('tanggal_ba', now()->year)
                 ->count(),
         ];
-
-        // Asset options untuk modal picker
         $assetOptions = Asset::with('category')
             ->withCount('assignments')
             ->whereIn('status', ['available', 'in_use', 'loaned'])
@@ -93,9 +87,7 @@ class BeritaAcaraController extends Controller
         return view('berita-acara.index', compact('items', 'stats', 'assetOptions'));
     }
 
-    /**
-     * Detail berita acara.
-     */
+
     public function show(BeritaAcara $beritaAcara)
     {
         $beritaAcara->load([
@@ -111,33 +103,23 @@ class BeritaAcaraController extends Controller
         return view('berita-acara.show', compact('beritaAcara'));
     }
 
-    /**
-     * Form buat BA manual dari halaman asset show.
-     * Query params: jenis (serah_terima|pengembalian), assignment_id (opsional)
-     */
+
     public function createFromAsset(Request $request, Asset $asset)
     {
         $jenis = $request->get('jenis', 'serah_terima');
         if (!in_array($jenis, ['serah_terima', 'pengembalian'])) {
             $jenis = 'serah_terima';
         }
-
-        // Ambil semua assignment dari asset ini
         $assignments = AssetAssignment::with(['user', 'location', 'department', 'assignedBy'])
             ->where('asset_id', $asset->id)
             ->orderByDesc('assigned_at')
             ->get();
-
-        // Filter assignment yang eligible untuk jenis BA ini
         $eligibleAssignments = $assignments->filter(function ($a) use ($jenis) {
             if ($jenis === 'serah_terima') {
                 return true; // semua assignment bisa dibuat BAST
             }
-            // BAP hanya untuk yang sudah returned
             return $a->returned_at !== null;
         });
-
-        // Cek BA existing per assignment
         $existingBa = [];
         foreach ($assignments as $a) {
             $existingBa[$a->id] = [
@@ -145,18 +127,13 @@ class BeritaAcaraController extends Controller
                 'pengembalian' => $this->service->getBeritaAcara($a, 'pengembalian'),
             ];
         }
-
-        // Pilih assignment default
         $selectedAssignmentId = $request->get('assignment_id');
         if (!$selectedAssignmentId && $eligibleAssignments->isNotEmpty()) {
-            // Prioritas: assignment yang belum punya BA jenis ini
             $withoutBa = $eligibleAssignments->first(function ($a) use ($jenis, $existingBa) {
                 return empty($existingBa[$a->id][$jenis]);
             });
             $selectedAssignmentId = $withoutBa?->id ?? $eligibleAssignments->first()->id;
         }
-
-        // Pejabat penandatangan (admin & support)
         $penandatangan = User::active()
             ->whereIn('role', ['admin', 'support'])
             ->orderBy('name')
@@ -173,9 +150,7 @@ class BeritaAcaraController extends Controller
         ));
     }
 
-    /**
-     * Simpan BA manual yang dibuat dari halaman asset.
-     */
+
     public function storeFromAsset(Request $request, Asset $asset)
     {
         $validated = $request->validate([
@@ -197,8 +172,6 @@ class BeritaAcaraController extends Controller
 
         $assignment = AssetAssignment::with(['asset.category', 'user'])
             ->findOrFail($validated['assignment_id']);
-
-        // Pastikan assignment milik asset ini
         if ($assignment->asset_id !== $asset->id) {
             return back()->withInput()
                 ->with('error', 'Assignment tidak sesuai dengan aset.');
@@ -210,8 +183,6 @@ class BeritaAcaraController extends Controller
             return back()->withInput()
                 ->with('error', 'Pihak Pertama harus Admin atau Support.');
         }
-
-        // Cek duplikat: sudah ada BA jenis ini untuk assignment ini?
         $existing = $this->service->getBeritaAcara($assignment, $validated['jenis']);
         if ($existing) {
             return redirect()
@@ -242,9 +213,7 @@ class BeritaAcaraController extends Controller
         }
     }
 
-    /**
-     * Download PDF.
-     */
+
     public function download(BeritaAcara $beritaAcara)
     {
         $this->ensurePdfExists($beritaAcara);
@@ -255,9 +224,7 @@ class BeritaAcaraController extends Controller
         );
     }
 
-    /**
-     * Preview PDF di browser (inline).
-     */
+
     public function preview(BeritaAcara $beritaAcara)
     {
         $this->ensurePdfExists($beritaAcara);
@@ -271,9 +238,7 @@ class BeritaAcaraController extends Controller
         );
     }
 
-    /**
-     * Regenerate PDF (kalau ada perubahan data).
-     */
+
     public function regenerate(BeritaAcara $beritaAcara)
     {
         try {
@@ -286,21 +251,15 @@ class BeritaAcaraController extends Controller
         }
     }
 
-    /**
-     * Hapus berita acara PERMANEN (hard delete).
-     */
+
     public function destroy(BeritaAcara $beritaAcara)
     {
         if (!auth()->user()->isAdmin()) {
             abort(403, 'Hanya admin yang bisa menghapus berita acara.');
         }
-
-        // Hapus file PDF dulu
         if ($beritaAcara->pdf_path && Storage::disk('public')->exists($beritaAcara->pdf_path)) {
             Storage::disk('public')->delete($beritaAcara->pdf_path);
         }
-
-        //HARD DELETE
         $beritaAcara->forceDelete();
 
         return redirect()
@@ -308,9 +267,7 @@ class BeritaAcaraController extends Controller
             ->with('success', 'Berita acara berhasil dihapus permanen.');
     }
 
-    /**
-     * Helper: pastikan PDF ada, generate kalau belum.
-     */
+
     protected function ensurePdfExists(BeritaAcara $beritaAcara): void
     {
         if (!$beritaAcara->pdf_path || !Storage::disk('public')->exists($beritaAcara->pdf_path)) {

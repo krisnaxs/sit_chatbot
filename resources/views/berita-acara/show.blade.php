@@ -7,8 +7,17 @@
 
         {{-- HEADER --}}
         <div>
-            <a href="{{ route('siam.berita-acara.index') }}" class="text-sm text-indigo-600 hover:underline">
-                ← Kembali ke daftar berita acara
+            <a href="{{ route('siam.berita-acara.index') }}"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+           bg-white border border-gray-200
+           text-sm font-semibold text-gray-700
+           hover:bg-gray-50 hover:border-gray-300
+           shadow-sm transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Kembali ke Daftar Berita Acara
             </a>
         </div>
 
@@ -537,9 +546,6 @@
     <script>
         function beritaAcaraShowManager() {
             return {
-                // ============================================================
-                // STATE
-                // ============================================================
                 toast: {
                     show: false,
                     message: '',
@@ -553,18 +559,12 @@
                 confirmType: 'info',
                 pendingForm: null,
                 pendingFlashMessage: '',
-
-                // ============================================================
-                // CONFIRM ACTION
-                // ============================================================
                 confirmAction(title, message, buttonText, type, event) {
                     this.confirmTitle = title;
                     this.confirmMessage = message;
                     this.confirmButton = buttonText;
                     this.confirmType = type;
                     this.pendingForm = event.target.closest('form');
-
-                    // Simpan pesan untuk flash
                     if (type === 'warning') {
                         this.pendingFlashMessage = 'PDF berhasil di-regenerate.';
                     } else if (type === 'danger') {
@@ -578,8 +578,6 @@
 
                 executeConfirm() {
                     if (!this.pendingForm) return;
-
-                    // Set flash message SEBELUM submit
                     localStorage.setItem('flash_message', this.pendingFlashMessage);
                     localStorage.setItem('flash_type', 'success');
 
@@ -593,10 +591,6 @@
                     this.pendingForm = null;
                     this.pendingFlashMessage = '';
                 },
-
-                // ============================================================
-                // TOAST
-                // ============================================================
                 showToast(message, type = 'success') {
                     this.toast.message = message;
                     this.toast.type = type;
@@ -607,13 +601,8 @@
                         this.toast.show = false;
                     }, 3500);
                 },
-
-                // ============================================================
-                // INIT
-                // ============================================================
                 init() {
                     this.$nextTick(() => {
-                        // Cek localStorage flash (dari halaman redirect)
                         const flashMsg = localStorage.getItem('flash_message');
                         const flashType = localStorage.getItem('flash_type') || 'success';
 
@@ -622,8 +611,6 @@
                             localStorage.removeItem('flash_message');
                             localStorage.removeItem('flash_type');
                         }
-
-                        // Cek session Laravel
                         @if (session('success'))
                             this.showToast(@json(session('success')), 'success');
                         @endif
@@ -637,8 +624,6 @@
                             this.showToast(@json(session('info')), 'info');
                         @endif
                     });
-
-                    // ESC untuk close modal
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape' && this.showConfirmModal) {
                             this.closeConfirm();

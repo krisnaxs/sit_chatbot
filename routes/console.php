@@ -9,10 +9,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-/**
- * Cleanup expired chat contexts setiap jam.
- * Menghapus konteks percakapan yang sudah lewat masa berlaku (default 30 menit).
- */
+
 Schedule::call(function () {
     $deleted = \App\Services\ChatMemoryService::cleanup();
 
@@ -23,10 +20,7 @@ Schedule::call(function () {
     ->name('cleanup-chat-contexts')
     ->withoutOverlapping();
 
-/**
- * Cleanup pending knowledge lama (> 30 hari, masih pending).
- * Opsional — biar tabel pending_knowledge tidak menumpuk.
- */
+
 Schedule::call(function () {
     $deleted = \App\Models\PendingKnowledge::where('status', 'pending')
         ->where('created_at', '<', now()->subDays(30))
@@ -39,11 +33,7 @@ Schedule::call(function () {
     ->name('cleanup-pending-knowledge')
     ->withoutOverlapping();
 
-/**
- * Auto-approve learned FAQ yang sudah sering ditanya.
- * Kalau ada FAQ dengan frequency >= 3 tapi belum approved, approve otomatis.
- * Opsional — sebagai backup kalau AutoLearningService tidak jalan.
- */
+
 Schedule::call(function () {
     $updated = \App\Models\LearnedFaq::where('is_approved', false)
         ->where('frequency', '>=', 3)

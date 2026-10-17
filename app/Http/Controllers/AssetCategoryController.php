@@ -31,8 +31,6 @@ class AssetCategoryController extends Controller
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
-
-        // Convert checkbox ke boolean
         $validated['is_consumable'] = $request->boolean('is_consumable');
         $validated['is_agent_monitored'] = $request->boolean('is_agent_monitored');
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -58,8 +56,6 @@ class AssetCategoryController extends Controller
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
-
-        // Convert checkbox ke boolean
         $validated['is_consumable'] = $request->boolean('is_consumable');
         $validated['is_agent_monitored'] = $request->boolean('is_agent_monitored');
         $validated['is_active'] = $request->boolean('is_active', true);

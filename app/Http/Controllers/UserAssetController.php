@@ -15,9 +15,7 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class UserAssetController extends Controller
 {
-    /**
-     * Daftar user + aset/konsumabel yang dipegang.
-     */
+
     public function index(Request $request)
     {
         $query = User::with([
@@ -105,9 +103,7 @@ class UserAssetController extends Controller
         ));
     }
 
-    /**
-     * Export Excel — daftar user + aset + konsumabel.
-     */
+
     public function exportExcel(Request $request)
     {
         $filters = $request->only(['search', 'department_id', 'location_id', 'has_asset']);
@@ -117,9 +113,7 @@ class UserAssetController extends Controller
         return Excel::download(new UserAssetsExport($filters), $filename);
     }
 
-    /**
-     * Export PDF — daftar user + aset + konsumabel.
-     */
+
     public function exportPdf(Request $request)
     {
         $query = User::with([

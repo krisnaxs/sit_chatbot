@@ -18,8 +18,6 @@ return new class extends Migration {
             $table->string('logged_user', 100)->nullable();
             $table->integer('attempt_count')->default(1);
             $table->timestamp('attempted_at');
-
-            // ==== Approval Flow ====
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('rejected_at')->nullable();
             $table->string('rejected_reason')->nullable();

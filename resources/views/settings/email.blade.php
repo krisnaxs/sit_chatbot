@@ -295,7 +295,7 @@
                             </svg>
                             Simpan Setting
                         </button>
-                        <a href="{{ route('siam.assets.index') }}"
+                        <a href="{{ url()->previous() }}"
                             class="px-5 py-2.5 rounded-xl border border-gray-300
                               text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">
                             Kembali

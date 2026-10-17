@@ -9,10 +9,19 @@
 
             {{-- HEADER --}}
             <div>
-                <a href="{{ route('siam.assets.show', $asset) }}" class="text-sm text-indigo-600 hover:underline">
-                    ← Kembali ke detail aset
+                <a href="{{ route('siam.assets.show', $asset) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+               bg-white border border-gray-200
+               text-sm font-semibold text-gray-700
+               hover:bg-gray-50 hover:border-gray-300
+               shadow-sm transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Kembali ke Detail Aset
                 </a>
-                <h1 class="text-2xl font-bold text-gray-800 mt-1">Edit Aset</h1>
+                <h1 class="text-2xl font-bold text-gray-800 mt-3">Edit Aset</h1>
                 <p class="text-sm text-gray-500 font-mono">SN: {{ $asset->serial_number }}</p>
             </div>
 
@@ -259,24 +268,17 @@
                                         showMaintBlockWarning = false;
                                         const newVal = $event.target.value;
                                         const oldVal = oldStatus;
-
-                                        // 🆕 BLOCK: maintenance → available (harus lewat menu Perbaikan)
                                         if (newVal === 'available' && oldVal === 'maintenance') {
                                             showMaintBlockWarning = true;
                                             showMaintenanceModal = false;
-                                            // Balikkan status ke maintenance
                                             $event.target.value = 'maintenance';
                                             return;
                                         }
-
-                                        // RETURN: dari in_use/loaned ke available
                                         if (newVal === 'available' && (oldVal === 'in_use' || oldVal === 'loaned')) {
                                             showReturnModal = true;
                                             showReturnWarning = true;
                                             return;
                                         }
-
-                                        // Assign baru
                                         if (newVal === 'maintenance' && oldVal !== 'maintenance') {
                                             showMaintenanceModal = true;
                                             showMaintWarning = true;
@@ -1188,8 +1190,6 @@
                 showLoanWarning: false,
                 showAssignModal: false,
                 showAssignWarning: false,
-
-                // State modal return
                 showReturnModal: false,
                 showReturnWarning: false,
 
@@ -1218,8 +1218,6 @@
                     pihak_pertama_nip: '',
                     tempat_ba: 'Suralaya',
                 },
-
-                // Return form
                 returnForm: {
                     buat_berita_acara: true,
                     pihak_pertama_id: '',
@@ -1236,8 +1234,6 @@
                     message: '',
                     type: 'success'
                 },
-
-                // Cancel return → balikkan status
                 cancelReturn() {
                     this.showReturnModal = false;
                     this.showReturnWarning = false;
@@ -1251,8 +1247,6 @@
                     this.returnForm.tempat_ba = 'Suralaya';
                     this.returnForm.notes = '';
                 },
-
-                // Confirm return → submit
                 confirmReturn() {
                     if (this.returnForm.buat_berita_acara && !this.returnForm.pihak_pertama_id) {
                         this.showToast('Pihak Pertama wajib dipilih', 'error');
@@ -1266,15 +1260,11 @@
                 confirmUpdate() {
                     const statusSelect = document.querySelector('select[name="status"]');
                     const newStatus = statusSelect.value;
-
-                    // 🆕 BLOCK: maintenance → available
                     if (newStatus === 'available' && this.oldStatus === 'maintenance') {
                         this.showMaintBlockWarning = true;
                         statusSelect.value = 'maintenance';
                         return;
                     }
-
-                    // Kalau ubah dari in_use/loaned ke available → paksa return
                     if (
                         newStatus === 'available' &&
                         (this.oldStatus === 'in_use' || this.oldStatus === 'loaned')

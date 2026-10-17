@@ -11,10 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 class BeritaAcaraService
 {
-    /**
-     * Map kategori → field tambahan yang perlu ditampilkan di BA.
-     * Bisa di-extend sesuai kebutuhan.
-     */
+
     protected array $kategoriFields = [
         'laptop' => ['lisensi_office', 'os', 'hostname', 'cpu', 'ram', 'storage'],
         'notebook' => ['lisensi_office', 'os', 'hostname', 'cpu', 'ram', 'storage'],
@@ -34,16 +31,12 @@ class BeritaAcaraService
         'ups' => ['kapasitas'],
     ];
 
-    /**
-     * Ambil detail tambahan sesuai kategori aset.
-     */
+
     protected function buildDetailTambahan(Asset $asset): array
     {
         $detail = [];
         $spec = $asset->specification ?? [];
         $kategoriKey = strtolower($asset->category?->name ?? '');
-
-        // Cari field yang cocok untuk kategori ini
         $fields = [];
         foreach ($this->kategoriFields as $key => $fieldList) {
             if (str_contains($kategoriKey, $key)) {
@@ -51,22 +44,14 @@ class BeritaAcaraService
                 break;
             }
         }
-
-        // Kalau kategori tidak dikenali, tampilkan semua spec yang ada
         if (empty($fields)) {
             return $spec;
         }
-
-        // Ambil dari spec/manual sesuai field yang relevan
         foreach ($fields as $field) {
             $value = null;
-
-            // Cek di specification JSON
             if (isset($spec[$field]) && $spec[$field] !== '') {
                 $value = $spec[$field];
-            }
-            // Cek di kolom khusus asset
-            elseif ($field === 'lisensi_office') {
+            } elseif ($field === 'lisensi_office') {
                 $value = $asset->os_license ?? 'Office 365';
             } elseif ($field === 'os' || $field === 'tipe' || $field === 'ukuran' || $field === 'resolusi') {
                 $value = $asset->os ?? null;
@@ -80,9 +65,7 @@ class BeritaAcaraService
         return $detail;
     }
 
-    /**
-     * Buat BAST (Berita Acara Serah Terima).
-     */
+
     public function createSerahTerima(
         AssetAssignment $assignment,
         User $pihakPertama,
@@ -91,9 +74,7 @@ class BeritaAcaraService
         return $this->create('serah_terima', $assignment, $pihakPertama, $options);
     }
 
-    /**
-     * Buat BAP (Berita Acara Pengembalian).
-     */
+
     public function createPengembalian(
         AssetAssignment $assignment,
         User $pihakPertama,
@@ -102,9 +83,7 @@ class BeritaAcaraService
         return $this->create('pengembalian', $assignment, $pihakPertama, $options);
     }
 
-    /**
-     * 🆕 Cek apakah assignment sudah punya BA dengan jenis tertentu.
-     */
+
     public function hasBeritaAcara(AssetAssignment $assignment, string $jenis): bool
     {
         return BeritaAcara::where('asset_assignment_id', $assignment->id)
@@ -112,9 +91,7 @@ class BeritaAcaraService
             ->exists();
     }
 
-    /**
-     * 🆕 Ambil BA existing untuk assignment + jenis.
-     */
+
     public function getBeritaAcara(AssetAssignment $assignment, string $jenis): ?BeritaAcara
     {
         return BeritaAcara::where('asset_assignment_id', $assignment->id)
@@ -123,27 +100,19 @@ class BeritaAcaraService
             ->first();
     }
 
-    /**
-     * 🆕 Generate BA manual dari assignment yang sudah ada.
-     * Dipakai di halaman asset show untuk bikin ulang BA yang terhapus.
-     */
+
     public function generateFromAssignment(
         AssetAssignment $assignment,
         User $pihakPertama,
         string $jenis,
         array $options = []
     ): BeritaAcara {
-        // Validasi jenis
         if (!in_array($jenis, ['serah_terima', 'pengembalian'])) {
             throw new \InvalidArgumentException("Jenis BA tidak valid: {$jenis}");
         }
-
-        // Validasi: untuk pengembalian, assignment harus sudah returned
         if ($jenis === 'pengembalian' && !$assignment->returned_at) {
             throw new \RuntimeException('Aset belum dikembalikan, tidak bisa buat BAP.');
         }
-
-        // Validasi role pihak pertama
         if (!in_array($pihakPertama->role, ['admin', 'support'])) {
             throw new \RuntimeException('Pihak Pertama harus Admin atau Support.');
         }
@@ -151,9 +120,7 @@ class BeritaAcaraService
         return $this->create($jenis, $assignment, $pihakPertama, $options);
     }
 
-    /**
-     * Core: bikin record BA + generate PDF.
-     */
+
     protected function create(
         string $jenis,
         AssetAssignment $assignment,
@@ -162,8 +129,6 @@ class BeritaAcaraService
     ): BeritaAcara {
         $asset = $assignment->asset;
         $pihakKedua = $assignment->user;
-
-        // Nama kategori otomatis (uppercase) — fallback kalau kosong
         $kategoriNama = strtoupper($asset->category?->name ?? 'PERALATAN IT');
 
         $ba = BeritaAcara::create([
@@ -171,18 +136,12 @@ class BeritaAcaraService
             'jenis' => $jenis,
             'asset_id' => $asset->id,
             'asset_assignment_id' => $assignment->id,
-
-            // PIHAK PERTAMA
             'pihak_pertama_id' => $pihakPertama->id,
             'pihak_pertama_jabatan' => $options['pihak_pertama_jabatan'] ?? $pihakPertama->position,
             'pihak_pertama_nip' => $options['pihak_pertama_nip'] ?? $pihakPertama->nip,
-
-            // PIHAK KEDUA
             'pihak_kedua_id' => $pihakKedua->id,
             'pihak_kedua_jabatan' => $pihakKedua->position,
             'pihak_kedua_nip' => $pihakKedua->nip,
-
-            // Snapshot aset generic
             'kategori_aset' => $kategoriNama,
             'merk' => strtoupper($asset->brand ?? ''),
             'model' => strtoupper($asset->model ?? ''),
@@ -190,8 +149,6 @@ class BeritaAcaraService
             'hostname' => $assignment->hostname ?? $asset->hostname,
             'detail_tambahan' => $this->buildDetailTambahan($asset),
             'jumlah' => 1,
-
-            // Kondisi & tanggal
             'condition_percent' => $jenis === 'serah_terima'
                 ? $assignment->condition_on_assign
                 : $assignment->condition_on_return,

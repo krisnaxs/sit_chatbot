@@ -8,14 +8,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class LogUserActivity
 {
-    /**
-     * Method HTTP yang otomatis dicatat.
-     */
+
     protected array $logMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
-    /**
-     * Route yang TIDAK dicatat (biar tidak spam / tidak relevan / sudah di-handle observer).
-     */
+
     protected array $skipRoutes = [
         'admin.login',
         'admin.logout',
@@ -138,9 +134,7 @@ class LogUserActivity
             ->log($description);
     }
 
-    /**
-     * Kelompokkan log_name berdasarkan prefix route.
-     */
+
     protected function resolveLogName(string $routeName): string
     {
         return match (true) {
@@ -155,9 +149,7 @@ class LogUserActivity
         };
     }
 
-    /**
-     * Tentukan event berdasarkan method + nama route.
-     */
+
     protected function resolveEvent(string $routeName, string $method): string
     {
         if (str_ends_with($routeName, '.return') || str_ends_with($routeName, '.returnAsset')) {
@@ -184,9 +176,7 @@ class LogUserActivity
         };
     }
 
-    /**
-     * Bikin deskripsi human-readable: "Budi menambah Aset".
-     */
+
     protected function buildDescription($user, string $event, string $routeName): string
     {
         $verb = match ($event) {
@@ -206,9 +196,7 @@ class LogUserActivity
         return "{$user->name} {$verb} {$resource}";
     }
 
-    /**
-     * Mapping resource dari nama route ke label Indonesia.
-     */
+
     protected function humanizeRoute(string $routeName): string
     {
         $parts = explode('.', $routeName);
@@ -241,9 +229,7 @@ class LogUserActivity
         return $map[$resource] ?? ucwords(str_replace('-', ' ', $resource));
     }
 
-    /**
-     * Buang field sensitif dari input.
-     */
+
     protected function sanitizeInput(array $input): array
     {
         $sensitive = [

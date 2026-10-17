@@ -14,10 +14,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
-/**
- * Parent export — WAJIB implements FromArray (atau source lain)
- * walau sebenarnya datanya ada di sheet-sheet di dalamnya.
- */
+
 class UsersTemplateExport implements WithMultipleSheets, FromArray
 {
     public function sheets(): array
@@ -28,19 +25,14 @@ class UsersTemplateExport implements WithMultipleSheets, FromArray
         ];
     }
 
-    /**
-     * Method ini WAJIB ada (dari FromArray), tapi tidak akan dipakai
-     * karena semua data ada di sheet-sheet.
-     */
+
     public function array(): array
     {
         return [];
     }
 }
 
-/**
- * Sheet 1: PETUNJUK
- */
+
 class UsersTemplateGuideSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
 {
     public function title(): string
@@ -135,9 +127,7 @@ class UsersTemplateGuideSheet implements FromArray, WithTitle, WithStyles, WithC
     }
 }
 
-/**
- * Sheet 2: DATA USER
- */
+
 class UsersTemplateDataSheet implements FromArray, WithHeadings, WithTitle, WithStyles, WithColumnWidths
 {
     public function title(): string

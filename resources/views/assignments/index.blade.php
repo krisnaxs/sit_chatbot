@@ -746,14 +746,10 @@
                     this.showModal = false;
                     this.selected = null;
                 },
-
-                // 🆕 Buka form return (form lengkap)
                 openReturnForm() {
                     this.showModal = false;
                     this.showReturnForm = true;
                 },
-
-                // 🆕 Submit form return
                 submitReturn() {
                     this.showReturnForm = false;
 

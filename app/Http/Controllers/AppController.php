@@ -8,18 +8,14 @@ use Illuminate\Support\Facades\Storage;
 
 class AppController extends Controller
 {
-    /**
-     * Tampilkan daftar aplikasi — SEMUA ROLE.
-     */
+
     public function index()
     {
         $apps = App::orderBy('slide')->orderBy('urutan')->get();
         return view('apps.index', compact('apps'));
     }
 
-    /**
-     * Form tambah aplikasi — admin & support.
-     */
+
     public function create()
     {
         $this->authorizeSupport();  // 🔒 admin & support
@@ -31,9 +27,7 @@ class AppController extends Controller
         ]);
     }
 
-    /**
-     * Simpan aplikasi baru — admin & support.
-     */
+
     public function store(Request $request)
     {
         $this->authorizeSupport();  // 🔒 admin & support
@@ -73,9 +67,7 @@ class AppController extends Controller
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil ditambahkan!');
     }
 
-    /**
-     * Form edit aplikasi — HANYA ADMIN.
-     */
+
     public function edit(App $app)
     {
         $this->authorizeAdmin();  // 🔒 admin saja
@@ -87,9 +79,7 @@ class AppController extends Controller
         ]);
     }
 
-    /**
-     * Update aplikasi — HANYA ADMIN.
-     */
+
     public function update(Request $request, App $app)
     {
         $this->authorizeAdmin();  // 🔒 admin saja
@@ -128,9 +118,7 @@ class AppController extends Controller
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil diperbarui!');
     }
 
-    /**
-     * Hapus aplikasi — HANYA ADMIN.
-     */
+
     public function destroy(App $app)
     {
         $this->authorizeAdmin();  // 🔒 admin saja
@@ -144,9 +132,7 @@ class AppController extends Controller
         return redirect()->route('apps.index')->with('success', 'Aplikasi berhasil dihapus!');
     }
 
-    /**
-     * 🔒 Hanya admin.
-     */
+
     private function authorizeAdmin(): void
     {
         if (!auth()->check() || !auth()->user()->isAdmin()) {
@@ -154,9 +140,7 @@ class AppController extends Controller
         }
     }
 
-    /**
-     * 🔒 Admin & Support.
-     */
+
     private function authorizeSupport(): void
     {
         if (!auth()->check() || !auth()->user()->hasAnyRole(['admin', 'support'])) {

@@ -29,9 +29,7 @@ class AssetController extends Controller
     ) {
     }
 
-    /**
-     * Daftar aset dengan filter lengkap + summary statistik.
-     */
+
     public function index(Request $request)
     {
         $query = Asset::with(['category', 'currentUser', 'currentLocation']);
@@ -142,9 +140,7 @@ class AssetController extends Controller
         ));
     }
 
-    /**
-     * Detail aset + history lengkap.
-     */
+
     public function show(Asset $asset)
     {
         $asset->load([
@@ -163,9 +159,7 @@ class AssetController extends Controller
         return view('assets.show', compact('asset'));
     }
 
-    /**
-     * Form tambah aset.
-     */
+
     public function create()
     {
         $categories = AssetCategory::active()->where('is_consumable', false)->orderBy('name')->get();
@@ -188,14 +182,11 @@ class AssetController extends Controller
         ));
     }
 
-    /**
-     * Simpan aset baru + ownership + assignment/loan/maintenance + BAST.
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate(
             [
-                // ===== RULES (tidak berubah) =====
                 'serial_number' => 'required|unique:assets,serial_number',
                 'asset_code' => 'nullable|unique:assets,asset_code',
                 'hostname' => 'nullable|string|max:100',
@@ -251,8 +242,6 @@ class AssetController extends Controller
                 'maintenance.notes' => 'nullable|string',
             ],
             [
-                // ===== CUSTOM MESSAGES =====
-                // Identitas Aset
                 'serial_number.required' => 'Serial Number wajib diisi.',
                 'serial_number.unique' => 'Serial Number ":input" sudah terdaftar. Gunakan SN lain.',
                 'asset_code.unique' => 'Kode Aset ":input" sudah terdaftar. Kosongkan untuk auto-generate.',
@@ -261,12 +250,8 @@ class AssetController extends Controller
                 'model.required' => 'Model wajib dipilih.',
                 'category_id.required' => 'Kategori wajib dipilih.',
                 'category_id.exists' => 'Kategori yang dipilih tidak valid.',
-
-                // Spesifikasi
                 'os.max' => 'Sistem Operasi maksimal 100 karakter.',
                 'os_license.max' => 'Lisensi OS maksimal 100 karakter.',
-
-                // Kepemilikan
                 'ownership_type.required' => 'Tipe kepemilikan wajib dipilih.',
                 'ownership_type.in' => 'Tipe kepemilikan harus "Hak Milik" atau "Sewa".',
                 'purchase_date.date' => 'Tanggal beli tidak valid.',
@@ -277,19 +262,13 @@ class AssetController extends Controller
                 'monthly_cost.numeric' => 'Biaya sewa harus berupa angka.',
                 'monthly_cost.min' => 'Biaya sewa tidak boleh negatif.',
                 'contract_end.date' => 'Tanggal kontrak berakhir tidak valid.',
-
-                // Status & Kondisi
                 'status.required' => 'Status wajib dipilih.',
                 'status.in' => 'Status tidak valid.',
                 'condition_percent.integer' => 'Kondisi harus berupa angka.',
                 'condition_percent.min' => 'Kondisi minimal 0%.',
                 'condition_percent.max' => 'Kondisi maksimal 100%.',
-
-                // Foto
                 'photo.image' => 'File harus berupa gambar (JPG, PNG, dll).',
                 'photo.max' => 'Ukuran foto maksimal 2MB.',
-
-                // Assign
                 'assign.user_id.exists' => 'Pegawai penerima tidak valid.',
                 'assign.location_id.exists' => 'Lokasi tidak valid.',
                 'assign.department_id.exists' => 'Departemen tidak valid.',
@@ -299,15 +278,11 @@ class AssetController extends Controller
                 'assign.condition_on_assign.max' => 'Kondisi saat diserahkan maksimal 100%.',
                 'assign.pihak_pertama_id.exists' => 'Pihak pertama (penandatangan) tidak valid.',
                 'assign.pihak_pertama_nip.max' => 'NIP maksimal 30 karakter.',
-
-                // Loan
                 'loan.user_id.exists' => 'Peminjam tidak valid.',
                 'loan.loan_date.date' => 'Tanggal pinjam tidak valid.',
                 'loan.due_date.date' => 'Jatuh tempo tidak valid.',
                 'loan.due_date.after_or_equal' => 'Jatuh tempo harus setelah atau sama dengan tanggal pinjam.',
                 'loan.purpose.max' => 'Tujuan peminjaman maksimal 255 karakter.',
-
-                // Maintenance
                 'maintenance.issue.max' => 'Masalah/kerusakan maksimal 255 karakter.',
                 'maintenance.vendor_id.exists' => 'Vendor service tidak valid.',
                 'maintenance.cost.numeric' => 'Biaya perbaikan harus berupa angka.',
@@ -462,9 +437,7 @@ class AssetController extends Controller
             ->with('success', 'Aset berhasil ditambahkan.');
     }
 
-    /**
-     * Form edit aset.
-     */
+
     public function edit(Asset $asset)
     {
         $asset->load('ownership');
@@ -477,8 +450,6 @@ class AssetController extends Controller
 
         $brands = AssetType::active()->select('brand')->distinct()->orderBy('brand')->pluck('brand');
         $assetTypes = AssetType::active()->orderBy('model')->get(['id', 'brand', 'model']);
-
-        // Pastikan model aset ada di list (antisipasi case/spacing beda)
         $currentModel = $asset->model;
         $currentBrand = $asset->brand;
         $hasCurrentModel = $assetTypes->contains(function ($t) use ($currentModel, $currentBrand) {
@@ -506,14 +477,11 @@ class AssetController extends Controller
         ));
     }
 
-    /**
-     * Update aset + ownership + assignment/loan/maintenance + BAST/BAP.
-     */
+
     public function update(Request $request, Asset $asset)
     {
         $validated = $request->validate(
             [
-                // ===== RULES (tidak berubah) =====
                 'serial_number' => 'required|unique:assets,serial_number,' . $asset->id,
                 'asset_code' => 'nullable|unique:assets,asset_code,' . $asset->id,
                 'hostname' => 'nullable|string|max:100',
@@ -550,8 +518,6 @@ class AssetController extends Controller
                 'assign.pihak_pertama_jabatan' => 'nullable|string|max:100',
                 'assign.pihak_pertama_nip' => 'nullable|string|max:30',
                 'assign.tempat_ba' => 'nullable|string|max:100',
-
-                // VALIDASI RETURN via Edit
                 'return' => 'nullable|array',
                 'return.buat_berita_acara' => 'nullable|in:0,1',   // ← ganti dari 'boolean'
                 'return.pihak_pertama_id' => 'nullable|exists:users,id',
@@ -580,8 +546,6 @@ class AssetController extends Controller
                 'maintenance.notes' => 'nullable|string',
             ],
             [
-                // ===== CUSTOM MESSAGES =====
-                // Identitas Aset
                 'serial_number.required' => 'Serial Number wajib diisi.',
                 'serial_number.unique' => 'Serial Number ":input" sudah dipakai aset lain.',
                 'asset_code.unique' => 'Kode Aset ":input" sudah dipakai aset lain.',
@@ -590,12 +554,8 @@ class AssetController extends Controller
                 'model.required' => 'Model wajib dipilih.',
                 'category_id.required' => 'Kategori wajib dipilih.',
                 'category_id.exists' => 'Kategori yang dipilih tidak valid.',
-
-                // Spesifikasi
                 'os.max' => 'Sistem Operasi maksimal 100 karakter.',
                 'os_license.max' => 'Lisensi OS maksimal 100 karakter.',
-
-                // Kepemilikan
                 'ownership_type.required' => 'Tipe kepemilikan wajib dipilih.',
                 'ownership_type.in' => 'Tipe kepemilikan harus "Hak Milik" atau "Sewa".',
                 'purchase_date.date' => 'Tanggal beli tidak valid.',
@@ -606,19 +566,13 @@ class AssetController extends Controller
                 'monthly_cost.numeric' => 'Biaya sewa harus berupa angka.',
                 'monthly_cost.min' => 'Biaya sewa tidak boleh negatif.',
                 'contract_end.date' => 'Tanggal kontrak berakhir tidak valid.',
-
-                // Status & Kondisi
                 'status.required' => 'Status wajib dipilih.',
                 'status.in' => 'Status tidak valid.',
                 'condition_percent.integer' => 'Kondisi harus berupa angka.',
                 'condition_percent.min' => 'Kondisi minimal 0%.',
                 'condition_percent.max' => 'Kondisi maksimal 100%.',
-
-                // Foto
                 'photo.image' => 'File harus berupa gambar (JPG, PNG, dll).',
                 'photo.max' => 'Ukuran foto maksimal 2MB.',
-
-                // Assign
                 'assign.user_id.exists' => 'Pegawai penerima tidak valid.',
                 'assign.location_id.exists' => 'Lokasi tidak valid.',
                 'assign.department_id.exists' => 'Departemen tidak valid.',
@@ -628,21 +582,15 @@ class AssetController extends Controller
                 'assign.condition_on_assign.max' => 'Kondisi saat diserahkan maksimal 100%.',
                 'assign.pihak_pertama_id.exists' => 'Pihak pertama (penandatangan) tidak valid.',
                 'assign.pihak_pertama_nip.max' => 'NIP maksimal 30 karakter.',
-
-                // Return (Pengembalian)
                 'return.pihak_pertama_id.exists' => 'Pihak pertama (penandatangan pengembalian) tidak valid.',
                 'return.pihak_pertama_jabatan.max' => 'Jabatan pihak pertama maksimal 100 karakter.',
                 'return.pihak_pertama_nip.max' => 'NIP maksimal 30 karakter.',
                 'return.tempat_ba.max' => 'Tempat BA maksimal 100 karakter.',
-
-                // Loan
                 'loan.user_id.exists' => 'Peminjam tidak valid.',
                 'loan.loan_date.date' => 'Tanggal pinjam tidak valid.',
                 'loan.due_date.date' => 'Jatuh tempo tidak valid.',
                 'loan.due_date.after_or_equal' => 'Jatuh tempo harus setelah atau sama dengan tanggal pinjam.',
                 'loan.purpose.max' => 'Tujuan peminjaman maksimal 255 karakter.',
-
-                // Maintenance
                 'maintenance.issue.max' => 'Masalah/kerusakan maksimal 255 karakter.',
                 'maintenance.vendor_id.exists' => 'Vendor service tidak valid.',
                 'maintenance.cost.numeric' => 'Biaya perbaikan harus berupa angka.',
@@ -652,10 +600,6 @@ class AssetController extends Controller
                 'maintenance.end_date.after_or_equal' => 'Tanggal selesai harus setelah atau sama dengan tanggal mulai.',
             ]
         );
-
-        // ============================================================
-        // 🆕 BLOCK: maintenance → available (harus lewat menu Perbaikan)
-        // ============================================================
         if (
             $asset->status === 'maintenance'
             && $validated['status'] === 'available'
@@ -753,11 +697,6 @@ class AssetController extends Controller
             } else {
                 AssetOwnership::create(array_merge($ownershipData, ['asset_id' => $asset->id]));
             }
-
-            // ============================================================
-            // 🆕 AUTO-CLOSE ASSIGNMENT: kalau status bukan in_use/loaned lagi
-            // (maintenance, retired, lost, available)
-            // ============================================================
             if (
                 in_array($oldStatus, ['in_use', 'loaned'])
                 && !in_array($newStatus, ['in_use', 'loaned'])
@@ -769,10 +708,6 @@ class AssetController extends Controller
                         'condition_on_return' => $validated['condition_percent'] ?? $asset->condition_percent,
                     ]);
             }
-
-            // ============================================================
-            // 🆕 RETURN via Edit: in_use/loaned → available (Generate BAP)
-            // ============================================================
             if (
                 in_array($oldStatus, ['in_use', 'loaned'])
                 && $newStatus === 'available'
@@ -781,8 +716,6 @@ class AssetController extends Controller
                     ->whereNull('returned_at')
                     ->latest('assigned_at')
                     ->first();
-
-                // Kalau sudah di-close oleh auto-close di atas, ambil yang terbaru
                 if (!$currentAssignment) {
                     $currentAssignment = $asset->assignments()
                         ->latest('assigned_at')
@@ -816,10 +749,6 @@ class AssetController extends Controller
                     }
                 }
             }
-
-            // ============================================================
-            // ASSIGNMENT + BAST
-            // ============================================================
             if ($newStatus === 'in_use' && !empty($validated['assign']['user_id'])) {
                 $a = $validated['assign'];
 
@@ -902,13 +831,9 @@ class AssetController extends Controller
                 ]);
             }
         });
-
-        // Message
         $hasAssign = $validated['status'] === 'in_use' && !empty($validated['assign']['user_id']);
         $hasLoan = $validated['status'] === 'loaned' && !empty($validated['loan']['user_id']);
         $hasMaint = $validated['status'] === 'maintenance' && !empty($validated['maintenance']['issue']);
-
-        // Deteksi return
         $hasReturn = in_array($asset->getOriginal('status'), ['in_use', 'loaned'])
             && $validated['status'] === 'available';
 
@@ -931,9 +856,7 @@ class AssetController extends Controller
             ->with('success', $msg);
     }
 
-    /**
-     * Form bulk create.
-     */
+
     public function bulkCreate()
     {
         $categories = AssetCategory::active()->where('is_consumable', false)->orderBy('name')->get();
@@ -1033,7 +956,6 @@ class AssetController extends Controller
     {
         $validated = $request->validate(
             [
-                // ===== RULES (tidak berubah) =====
                 'brand' => 'required|string|max:100',
                 'model' => 'required|string|max:100',
                 'category_id' => 'required|exists:asset_categories,id',
@@ -1073,18 +995,12 @@ class AssetController extends Controller
                 'assign.notes' => 'nullable|string',
             ],
             [
-                // ===== CUSTOM MESSAGES =====
-                // Identitas
                 'brand.required' => 'Brand wajib dipilih.',
                 'model.required' => 'Model wajib dipilih.',
                 'category_id.required' => 'Kategori wajib dipilih.',
                 'category_id.exists' => 'Kategori yang dipilih tidak valid.',
-
-                // Spesifikasi
                 'os.max' => 'Sistem Operasi maksimal 100 karakter.',
                 'os_license.max' => 'Lisensi OS maksimal 100 karakter.',
-
-                // Kepemilikan
                 'ownership_type.required' => 'Tipe kepemilikan wajib dipilih.',
                 'ownership_type.in' => 'Tipe kepemilikan harus "Hak Milik" atau "Sewa".',
                 'purchase_date.date' => 'Tanggal beli tidak valid.',
@@ -1095,45 +1011,33 @@ class AssetController extends Controller
                 'monthly_cost.numeric' => 'Biaya sewa harus berupa angka.',
                 'monthly_cost.min' => 'Biaya sewa tidak boleh negatif.',
                 'contract_end.date' => 'Tanggal kontrak berakhir tidak valid.',
-
-                // Status & Kondisi
                 'status.required' => 'Status wajib dipilih.',
                 'status.in' => 'Status tidak valid.',
                 'condition_percent.integer' => 'Kondisi harus berupa angka.',
                 'condition_percent.min' => 'Kondisi minimal 0%.',
                 'condition_percent.max' => 'Kondisi maksimal 100%.',
-
-                // Quantity
                 'quantity.required' => 'Jumlah unit wajib diisi.',
                 'quantity.integer' => 'Jumlah unit harus berupa angka.',
                 'quantity.min' => 'Jumlah unit minimal 1.',
                 'quantity.max' => 'Jumlah unit maksimal 500.',
-
-                // Serial Generator
                 'serial_prefix.max' => 'Prefix Serial maksimal 50 karakter.',
                 'serial_start.integer' => 'Serial start harus berupa angka.',
                 'serial_start.min' => 'Serial start minimal 1.',
                 'serial_pad.integer' => 'Padding serial harus berupa angka.',
                 'serial_pad.min' => 'Padding serial minimal 0.',
                 'serial_pad.max' => 'Padding serial maksimal 6.',
-
-                // Code Generator
                 'code_prefix.max' => 'Prefix Kode Aset maksimal 50 karakter.',
                 'code_start.integer' => 'Kode start harus berupa angka.',
                 'code_start.min' => 'Kode start minimal 1.',
                 'code_pad.integer' => 'Padding kode harus berupa angka.',
                 'code_pad.min' => 'Padding kode minimal 0.',
                 'code_pad.max' => 'Padding kode maksimal 6.',
-
-                // Hostname Generator
                 'hostname_prefix.max' => 'Prefix Hostname maksimal 50 karakter.',
                 'hostname_start.integer' => 'Hostname start harus berupa angka.',
                 'hostname_start.min' => 'Hostname start minimal 1.',
                 'hostname_pad.integer' => 'Padding hostname harus berupa angka.',
                 'hostname_pad.min' => 'Padding hostname minimal 0.',
                 'hostname_pad.max' => 'Padding hostname maksimal 6.',
-
-                // Assign
                 'assign.user_id.exists' => 'Pegawai penerima tidak valid.',
                 'assign.location_id.exists' => 'Lokasi tidak valid.',
                 'assign.department_id.exists' => 'Departemen tidak valid.',
@@ -1660,9 +1564,7 @@ class AssetController extends Controller
             ->route('siam.assets.index')
             ->with('success', 'Aset berhasil dihapus.');
     }
-    /**
-     * 🆕 Daftar asset yang soft-deleted (Trash).
-     */
+
     public function trash(Request $request)
     {
         $query = Asset::onlyTrashed()->with(['category', 'currentUser', 'currentLocation']);
@@ -1703,21 +1605,11 @@ class AssetController extends Controller
         return view('assets.trash', compact('assets', 'stats'));
     }
 
-    /**
-     * 🆕 Restore asset dari trash.
-     */
+
     public function restore($id)
     {
         $asset = Asset::onlyTrashed()->findOrFail($id);
-
-        // Cek relasi: kalau ada assignment yang masih aktif, mungkin ada konflik
-        // Restore asset dulu
         $asset->restore();
-
-        // 🆕 Optional: restore juga relasi turunan yang ikut ter-soft-delete
-        // $asset->assignments()->onlyTrashed()->restore();
-        // $asset->loans()->onlyTrashed()->restore();
-        // $asset->maintenances()->onlyTrashed()->restore();
 
         return redirect()
             ->route('siam.assets.trash')
@@ -1738,9 +1630,6 @@ class AssetController extends Controller
                 ->route('users.trash')
                 ->with('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
         }
-
-        // 🆕 Cek HANYA relasi KRITIS: asset yang masih dipegang user
-        // History (assignment, loan, consumable) boleh jadi orphan
         if (Asset::where('current_user_id', $user->id)->exists()) {
             $assetCount = Asset::where('current_user_id', $user->id)->count();
             return redirect()
@@ -1748,8 +1637,6 @@ class AssetController extends Controller
                 ->with('error', "User {$user->name} masih memegang {$assetCount} aset. " .
                     "Kembalikan atau assign ulang aset tersebut ke user lain sebelum menghapus permanen.");
         }
-
-        // Hapus foto profil
         if ($user->photo_path && Storage::disk('public')->exists($user->photo_path)) {
             Storage::disk('public')->delete($user->photo_path);
         }
@@ -1770,8 +1657,6 @@ class AssetController extends Controller
             ->route('siam.assets.trash')
             ->with('success', "{$count} aset berhasil direstore.");
     }
-
-    //Kosongkan trash (hapus permanen semua).
     public function emptyTrash()
     {
         $assets = Asset::onlyTrashed()->get();
@@ -1783,18 +1668,13 @@ class AssetController extends Controller
         }
 
         foreach ($assets as $asset) {
-            // 1. Hapus foto
             if ($asset->photo_path && Storage::disk('public')->exists($asset->photo_path)) {
                 Storage::disk('public')->delete($asset->photo_path);
             }
-
-            // 2. Hapus relasi turunan (mereka TIDAK soft delete, pakai delete biasa)
             \App\Models\AssetAssignment::where('asset_id', $asset->id)->forceDelete();
             \App\Models\AssetLoan::where('asset_id', $asset->id)->forceDelete();
             \App\Models\AssetMaintenance::where('asset_id', $asset->id)->forceDelete();
             \App\Models\AssetOwnership::where('asset_id', $asset->id)->forceDelete();
-
-            // 3. Hapus asset
             $asset->forceDelete();
         }
         return redirect()

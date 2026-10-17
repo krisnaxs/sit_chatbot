@@ -367,9 +367,6 @@
     <script>
         function userTrashManager() {
             return {
-                // ============================================================
-                // STATE
-                // ============================================================
                 showConfirmModal: false,
                 confirmTitle: '',
                 confirmMessage: '',
@@ -382,10 +379,6 @@
                     message: '',
                     type: 'success'
                 },
-
-                // ============================================================
-                // CONFIRM ACTION
-                // ============================================================
                 confirmAction(title, message, buttonText, type, event) {
                     this.confirmTitle = title;
                     this.confirmMessage = message;
@@ -406,10 +399,6 @@
                     this.showConfirmModal = false;
                     this.pendingForm = null;
                 },
-
-                // ============================================================
-                // TOAST
-                // ============================================================
                 showToast(message, type = 'success') {
                     this.toast.message = message;
                     this.toast.type = type;
@@ -419,10 +408,6 @@
                         this.toast.show = false;
                     }, 3500);
                 },
-
-                // ============================================================
-                // INIT
-                // ============================================================
                 init() {
                     @if (session('success'))
                         this.showToast(@json(session('success')), 'success');

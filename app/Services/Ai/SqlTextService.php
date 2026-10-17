@@ -20,16 +20,7 @@ class SqlTextService
         $this->timeout = (int) config('services.ollama.sql_timeout', 30);
     }
 
-    // ============================================================
-    // PUBLIC API
-    // ============================================================
 
-    /**
-     * Entry point. Return [answer, 'database', context] atau null kalau gagal.
-     *
-     * @param string $pesan Pesan user
-     * @param string|null $previousSql SQL sebelumnya (untuk konteks follow-up)
-     */
     public function tryAnswer(string $pesan, ?string $previousSql = null, array $kbContext = []): ?array
     {
         $normalizedMessage = $this->normalizeMessage($pesan);
@@ -68,44 +59,25 @@ class SqlTextService
         ];
     }
 
-    // ============================================================
-    // NORMALISASI PESAN
-    // ============================================================
 
-    /**
-     * Buang kata-kata tidak penting yang bikin LLM bingung.
-     * Contoh: "laptop tahun 2024 type apa ya" → "laptop tahun 2024 type apa"
-     */
     private function normalizeMessage(string $pesan): string
     {
         $pesan = trim($pesan);
-
-        // Hapus kata partikel di akhir: ya, dong, sih, deh, kok, kah, lah, tuh, nih, gan
         $pesan = preg_replace(
             '/\s+(ya|dong|sih|deh|kok|kah|lah|tuh|nih|gan|bro|kak|min|pak|bu|mas|mbak)\s*$/i',
             '',
             $pesan
         );
-
-        // Hapus tanda baca berlebih di akhir
         $pesan = preg_replace('/[?!.,;:]+$/', '', $pesan);
-
-        // Collapse multiple spaces
         $pesan = preg_replace('/\s+/', ' ', $pesan);
 
         return trim($pesan);
     }
 
-    // ============================================================
-    // TAHAP 1: GENERATE SQL
-    // ============================================================
-
     private function generateSql(string $pesan, ?string $previousSql = null, array $kbContext = []): ?string
     {
         $schema = $this->getSchema();
         $system = $this->buildSqlPrompt($schema);
-
-        // Bangun blok KB kalau ada
         $kbBlock = '';
         if (!empty($kbContext)) {
             $kbBlock = "═══════════════════════════════════════\n"
@@ -141,8 +113,6 @@ class SqlTextService
         if (!$response) {
             return null;
         }
-
-        // Bersihkan: hapus markdown code block, backtick, komentar
         $sql = trim($response);
         $sql = preg_replace('/^```(?:sql)?\s*/i', '', $sql);
         $sql = preg_replace('/\s*```$/', '', $sql);
@@ -166,9 +136,7 @@ class SqlTextService
 
         return $sql;
     }
-    /**
-     * Prompt SQL generator — diperkuat dengan contoh kombinasi.
-     */
+
     private function buildSqlPrompt(string $schema): string
     {
         $today = now()->format('Y-m-d');
@@ -373,10 +341,6 @@ SELECT NULL AS not_applicable LIMIT 1
 PROMPT;
     }
 
-    // ============================================================
-    // TAHAP 2: EXECUTE
-    // ============================================================
-
     private function executeSql(string $sql): ?array
     {
         $original = DB::getDefaultConnection();
@@ -384,8 +348,6 @@ PROMPT;
 
         try {
             $rows = DB::select($sql);
-
-            // Deteksi "not_applicable" — pakai property_exists karena value-nya NULL
             if (count($rows) === 1 && property_exists($rows[0], 'not_applicable')) {
                 Log::info('SqlTextService: not_applicable detected, skipping', [
                     'sql' => mb_substr($sql, 0, 200),
@@ -405,29 +367,16 @@ PROMPT;
         }
     }
 
-    // ============================================================
-    // TAHAP 3: FORMAT HASIL
-    // ============================================================
-
     private function formatAnswer(string $pesan, string $sql, array $rows): string
     {
-        // Kalau 0 baris, kembalikan pesan langsung (hemat 1x call ke LLM)
         if (empty($rows)) {
             return "Tidak ada data yang cocok untuk pertanyaan itu.";
         }
-
-        // ============================================================
-        // Fast path: 1 baris 1 kolom
-        // ============================================================
         if (count($rows) === 1 && count($rows[0]) === 1) {
             $key = array_key_first($rows[0]);
             $val = reset($rows[0]);
-
-            // Kalau kolomnya "total" dan angkanya → format natural
             if (in_array(strtolower($key), ['total', 'jumlah', 'count'], true) && is_numeric($val)) {
                 $lower = strtolower($pesan);
-
-                // Deteksi jenis pertanyaan
                 if (preg_match('/\b(laptop|pc|komputer|printer|monitor|server)\b/i', $lower)) {
                     $kategori = '';
                     if (preg_match('/\b(laptop)\b/i', $lower))
@@ -446,16 +395,10 @@ PROMPT;
 
                 return "Ada **{$val}** data yang cocok dengan pertanyaan itu.";
             }
-
-            // Kalau kolomnya "tipe" atau "brand" → format list
             if (in_array(strtolower($key), ['tipe', 'type', 'model', 'brand', 'merek'], true)) {
                 return "**{$key}**: {$val}";
             }
         }
-
-        // ============================================================
-        // Untuk hasil banyak → kirim ke LLM untuk format natural
-        // ============================================================
         $dataJson = json_encode($rows, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         if (strlen($dataJson) > 3000) {
             $dataJson = mb_substr($dataJson, 0, 3000) . "\n... (dipotong)";
@@ -490,13 +433,8 @@ PROMPT;
         return $out;
     }
 
-    // ============================================================
-    // HELPERS
-    // ============================================================
-
     private function getSchema(): string
     {
-        // Cache 6 jam — schema jarang berubah
         return Cache::remember('siam_schema_v2', 21600, function () {
             $excludedTables = [
                 'migrations',
@@ -574,13 +512,9 @@ PROMPT;
         if ($sql === '') {
             return false;
         }
-
-        // Hanya SELECT / WITH di awal
         if (!preg_match('/^\s*(SELECT|WITH)\b/i', $sql)) {
             return false;
         }
-
-        // Blacklist keyword berbahaya
         $blacklist = [
             '/\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE)\b/i',
             '/\bINTO\s+OUTFILE\b/i',

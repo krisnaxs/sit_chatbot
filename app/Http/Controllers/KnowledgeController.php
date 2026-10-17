@@ -11,9 +11,7 @@ use Illuminate\Support\Str;
 
 class KnowledgeController extends Controller
 {
-    /**
-     * MIME types yang diizinkan untuk upload
-     */
+
     private const ALLOWED_MIMES = [
         'image/jpeg',
         'image/png',
@@ -36,9 +34,7 @@ class KnowledgeController extends Controller
         'application/x-7z-compressed',
     ];
 
-    /**
-     * Ukuran maksimal per file (dalam KB) — 10 MB
-     */
+
     private const MAX_FILE_SIZE_KB = 512000;
 
 
@@ -66,18 +62,14 @@ class KnowledgeController extends Controller
         return view('knowledge.index', compact('items'));
     }
 
-    /**
-     * Form tambah knowledge — HANYA ADMIN & SUPPORT.
-     */
+
     public function create()
     {
         $this->authorizeEditor();
         return view('knowledge.create');
     }
 
-    /**
-     * Simpan knowledge baru + banyak lampiran.
-     */
+
     public function store(Request $request)
     {
         $this->authorizeEditor();
@@ -159,17 +151,13 @@ class KnowledgeController extends Controller
         }
     }
 
-    /**
-     * Detail (redirect ke edit).
-     */
+
     public function show(Knowledge $knowledge)
     {
         return redirect()->route('knowledge.edit', $knowledge);
     }
 
-    /**
-     * Form edit knowledge — HANYA ADMIN & SUPPORT.
-     */
+
     public function edit(Knowledge $knowledge)
     {
         $this->authorizeEditor();
@@ -177,9 +165,7 @@ class KnowledgeController extends Controller
         return view('knowledge.edit', compact('knowledge'));
     }
 
-    /**
-     * Update knowledge + tambah / hapus lampiran.
-     */
+
     public function update(Request $request, Knowledge $knowledge)
     {
         $this->authorizeEditor();
@@ -277,9 +263,7 @@ class KnowledgeController extends Controller
         }
     }
 
-    /**
-     * Hapus knowledge — HANYA ADMIN.
-     */
+
     public function destroy(Knowledge $knowledge)
     {
         $this->authorizeAdmin();
@@ -308,9 +292,7 @@ class KnowledgeController extends Controller
         }
     }
 
-    /**
-     * Hapus 1 lampiran saja (dipakai di form edit / tombol hapus per-file).
-     */
+
     public function destroyAttachment(KnowledgeAttachment $attachment)
     {
         $this->authorizeEditor();
@@ -337,10 +319,7 @@ class KnowledgeController extends Controller
         }
     }
 
-    /**
-     * Simpan file fisik dengan nama unik.
-     * Return: path relatif (contoh: "knowledge/12/namafile_ab12cd34.pdf")
-     */
+
     private function storeFile($file, int $knowledgeId): string
     {
         $originalName = $file->getClientOriginalName();
@@ -352,9 +331,7 @@ class KnowledgeController extends Controller
         return $file->storeAs('knowledge/' . $knowledgeId, $fileName, 'public');
     }
 
-    /**
-     * Hapus file fisik dari storage (kalau ada).
-     */
+
     private function deleteFile(?string $path): void
     {
         if ($path && Storage::disk('public')->exists($path)) {
@@ -362,11 +339,7 @@ class KnowledgeController extends Controller
         }
     }
 
-    /**
-     * Sinkronkan kolom lama (file_path, file_name, file_type, file_size)
-     * di tabel knowledge berdasarkan lampiran PERTAMA.
-     * Kalau tidak ada lampiran, set null semua.
-     */
+
     private function syncLegacyColumns(Knowledge $knowledge): void
     {
         $first = $knowledge->attachments()->first();
@@ -379,9 +352,7 @@ class KnowledgeController extends Controller
         ]);
     }
 
-    /**
-     * Build pesan sukses dengan info jumlah file berhasil & gagal.
-     */
+
     private function buildSuccessMessage(string $base, int $uploaded, array $failed): string
     {
         $msg = $base;
@@ -399,9 +370,7 @@ class KnowledgeController extends Controller
         return $msg;
     }
 
-    /**
-     * 🔒 Hanya admin & support.
-     */
+
     private function authorizeEditor(): void
     {
         if (!auth()->check() || !auth()->user()->hasAnyRole(['admin', 'support'])) {
@@ -409,9 +378,7 @@ class KnowledgeController extends Controller
         }
     }
 
-    /**
-     * 🔒 Hanya admin.
-     */
+
     private function authorizeAdmin(): void
     {
         if (!auth()->check() || !auth()->user()->isAdmin()) {

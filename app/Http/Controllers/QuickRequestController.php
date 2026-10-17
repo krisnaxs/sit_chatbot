@@ -12,10 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class QuickRequestController extends Controller
 {
-    /**
-     * Tampilkan form pengajuan quick.
-     * Kalau belum login → tetap render view, view yang handle modal login.
-     */
+
     public function index(Request $request)
     {
         $type = $request->get('type', AssetRequest::TYPE_LOAN);
@@ -40,9 +37,7 @@ class QuickRequestController extends Controller
         ));
     }
 
-    /**
-     * Simpan pengajuan (wajib login).
-     */
+
     public function store(Request $request)
     {
         if (!auth()->check()) {
@@ -87,10 +82,7 @@ class QuickRequestController extends Controller
             ->with('success', 'Pengajuan berhasil dikirim!');
     }
 
-    /**
-     * Halaman surat pengajuan (receipt).
-     * User hanya bisa lihat miliknya sendiri.
-     */
+
     public function receipt(AssetRequest $assetRequest)
     {
         if (!auth()->check() || $assetRequest->user_id !== auth()->id()) {

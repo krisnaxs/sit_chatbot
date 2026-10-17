@@ -7,9 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class KnowledgeAttachment extends Model
 {
-    /**
-     * Nama tabel.
-     */
+
     protected $table = 'knowledge_attachments';
 
     protected $fillable = [
@@ -24,27 +22,19 @@ class KnowledgeAttachment extends Model
         'file_size' => 'integer',
     ];
 
-    /**
-     * Induk knowledge.
-     */
+
     public function knowledge(): BelongsTo
     {
         return $this->belongsTo(Knowledge::class, 'knowledge_id', 'id');
     }
 
-    /**
-     * URL publik file.
-     * Contoh: http://localhost:8000/storage/knowledge/12/file_abc123.pdf
-     */
+
     public function getUrlAttribute(): string
     {
         return asset('storage/' . $this->file_path);
     }
 
-    /**
-     * Ukuran file human-readable.
-     * Contoh: "2.45 MB"
-     */
+
     public function getFileSizeHumanAttribute(): string
     {
         $bytes = $this->file_size ?? 0;
@@ -59,17 +49,13 @@ class KnowledgeAttachment extends Model
         return round($bytes, 2) . ' ' . $units[$i];
     }
 
-    /**
-     * Cek apakah file adalah gambar.
-     */
+
     public function getIsImageAttribute(): bool
     {
         return str_starts_with($this->file_type ?? '', 'image/');
     }
 
-    /**
-     * Icon berdasarkan tipe file (untuk tampilan).
-     */
+
     public function getIconAttribute(): string
     {
         $type = $this->file_type ?? '';

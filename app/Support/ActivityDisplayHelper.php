@@ -12,9 +12,7 @@ use App\Models\Vendor;
 
 class ActivityDisplay
 {
-    /**
-     * Mapping nama field → label Indonesia.
-     */
+
     public static array $fieldLabels = [
         'name' => 'Nama',
         'email' => 'Email',
@@ -79,9 +77,7 @@ class ActivityDisplay
         'uploaded_by' => 'Diunggah Oleh',
     ];
 
-    /**
-     * Field yang di-skip dari resolve ID (karena enum / bukan relasi).
-     */
+
     public static array $skipResolve = [
         'status',
         'type',
@@ -106,9 +102,7 @@ class ActivityDisplay
         'last_price',
     ];
 
-    /**
-     * Mapping relasi ID → model class.
-     */
+
     public static array $idResolvers = [
         'department_id' => Department::class,
         'location_id' => Location::class,
@@ -129,9 +123,7 @@ class ActivityDisplay
         'consumable_id' => Consumable::class,
     ];
 
-    /**
-     * Mapping enum → label Indonesia.
-     */
+
     public static array $enumLabels = [
         'status' => [
             'available' => 'Tersedia',
@@ -169,18 +161,14 @@ class ActivityDisplay
         ],
     ];
 
-    /**
-     * Label field.
-     */
+
     public static function label(string $field): string
     {
         return static::$fieldLabels[$field]
             ?? ucwords(str_replace('_', ' ', $field));
     }
 
-    /**
-     * Resolve nilai field: ID → nama, enum → label Indonesia.
-     */
+
     public static function resolve(string $field, $value): string
     {
         if (isset(static::$enumLabels[$field][$value])) {
@@ -225,9 +213,7 @@ class ActivityDisplay
         return trim((string) $name);
     }
 
-    /**
-     * Format nilai generic (array, null, bool, string).
-     */
+
     public static function formatValue($value): string
     {
         if (is_null($value))
@@ -243,9 +229,7 @@ class ActivityDisplay
         return (string) $value;
     }
 
-    /**
-     * Bandingkan 2 nilai (untuk cek perubahan), aman untuk array/object.
-     */
+
     public static function isChanged($old, $new): bool
     {
         $oldStr = is_array($old) || is_object($old)

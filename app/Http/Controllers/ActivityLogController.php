@@ -7,9 +7,7 @@ use Spatie\Activitylog\Models\Activity;
 
 class ActivityLogController extends Controller
 {
-    /**
-     * Tampilkan daftar activity log.
-     */
+
     public function index(Request $request)
     {
         $query = Activity::with('causer')->latest();
@@ -56,9 +54,7 @@ class ActivityLogController extends Controller
         ));
     }
 
-    /**
-     *  Tampilkan detail satu log.
-     */
+
     public function show(Activity $activity)
     {
         $activity->load(['causer', 'subject']);
@@ -73,9 +69,7 @@ class ActivityLogController extends Controller
         return view('activity.show', compact('activity', 'prev', 'next'));
     }
 
-    /**
-     * Hapus satu log — hanya admin.
-     */
+
     public function destroy(Activity $activity)
     {
         $this->authorizeAdmin();
@@ -86,9 +80,7 @@ class ActivityLogController extends Controller
             ->with('success', 'Log berhasil dihapus.');
     }
 
-    /**
-     * Bersihkan semua log — hanya admin.
-     */
+
     public function clear()
     {
         $this->authorizeAdmin();
@@ -100,10 +92,7 @@ class ActivityLogController extends Controller
             ->with('success', "Semua {$count} log berhasil dibersihkan.");
     }
 
-    /**
-     * 🔒 Cek apakah user yang login adalah admin.
-     * Kalau bukan → 403 Forbidden.
-     */
+
     private function authorizeAdmin(): void
     {
         if (!auth()->check() || !auth()->user()->isAdmin()) {

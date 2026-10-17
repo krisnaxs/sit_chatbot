@@ -6,23 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 abstract class BaseActivityObserver
 {
-    /**
-     * Label resource dalam Bahasa Indonesia (untuk deskripsi).
-     * Contoh: return 'Aset';
-     */
+
     abstract protected function label(): string;
 
-    /**
-     * Log name (grup log). Default 'siam'.
-     */
+
     protected function logName(): string
     {
         return 'siam';
     }
 
-    /**
-     * Field yang di-skip saat log (mis. timestamps, password).
-     */
+
     protected function except(): array
     {
         return ['created_at', 'updated_at'];

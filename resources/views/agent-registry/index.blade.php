@@ -8,10 +8,19 @@
         {{-- HEADER --}}
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <a href="{{ route('siam.dashboard') }}" class="text-sm text-indigo-600 hover:underline">
-                    ← Kembali ke dashboard
+                <a href="{{ url()->previous() }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+                   bg-white border border-gray-200
+                   text-sm font-semibold text-gray-700
+                   hover:bg-gray-50 hover:border-gray-300
+                   shadow-sm transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Kembali
                 </a>
-                <h1 class="text-2xl font-bold text-gray-800 mt-1">Agent Registry</h1>
+                <h1 class="text-2xl font-bold text-gray-800 mt-3">Agent Registry</h1>
                 <p class="text-sm text-gray-500">Kelola registrasi & token agent aset IT</p>
             </div>
         </div>
@@ -467,10 +476,7 @@
 
     {{-- SCRIPT --}}
     <script>
-        // === Data assets dari server (di-render sebagai JSON) ===
         const ASSETS = @json($assets);
-
-        // === Element refs ===
         const searchInput = document.getElementById('assetSearchInput');
         const dropdown = document.getElementById('assetDropdown');
         const hiddenInput = document.getElementById('assetIdInput');
@@ -478,7 +484,6 @@
         const previewLabel = document.getElementById('assetSelectedLabel');
         const previewMeta = document.getElementById('assetSelectedMeta');
 
-        // === Render dropdown berdasarkan query ===
         function renderAssetDropdown(query = '') {
             const q = query.trim().toLowerCase();
 
@@ -508,7 +513,6 @@
             dropdown.classList.remove('hidden');
         }
 
-        // === Escape HTML biar aman ===
         function escapeHtml(str) {
             if (str === null || str === undefined) return '';
             return String(str)
@@ -519,59 +523,44 @@
                 .replace(/'/g, '&#039;');
         }
 
-        // === Pilih asset ===
         function selectAsset(assetId) {
             const asset = ASSETS.find(a => a.id === assetId);
             if (!asset) return;
 
             hiddenInput.value = assetId;
             searchInput.value = asset.label;
-
-            // Preview
             previewBox.classList.remove('hidden');
             previewLabel.textContent = `${asset.asset_code} — ${asset.brand ?? ''} ${asset.model ?? ''}`;
             previewMeta.textContent =
                 `SN: ${asset.serial_number ?? '-'} · Hostname: ${asset.hostname ?? '-'} · ${asset.category ?? '-'}`;
-
-            // Highlight
             searchInput.classList.add('ring-2', 'ring-emerald-500');
             searchInput.classList.remove('border-gray-300');
 
             dropdown.classList.add('hidden');
         }
 
-        // === Reset pilihan ===
         function resetAssetSelection() {
             hiddenInput.value = '';
             previewBox.classList.add('hidden');
             searchInput.classList.remove('ring-2', 'ring-emerald-500');
             searchInput.classList.add('border-gray-300');
         }
-
-        // === Event: fokus ===
         searchInput.addEventListener('focus', () => {
             if (!hiddenInput.value) renderAssetDropdown(searchInput.value);
         });
-
-        // === Event: ketik ===
         searchInput.addEventListener('input', () => {
             resetAssetSelection();
             renderAssetDropdown(searchInput.value);
         });
-
-        // === Event: klik di luar ===
         document.addEventListener('click', (e) => {
             if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
                 dropdown.classList.add('hidden');
             }
         });
-
-        // === Event: Escape ===
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') dropdown.classList.add('hidden');
         });
 
-        // === Validate sebelum submit ===
         function validateApproveForm() {
             if (!hiddenInput.value) {
                 alert('Silakan pilih aset terlebih dahulu.');
@@ -581,24 +570,17 @@
             return true;
         }
 
-        // === Open Modal Approve ===
         function openApproveModal(pendingId, hostname, serial, suggestedAssetId) {
             document.getElementById('modalHostname').textContent = hostname;
             document.getElementById('modalSerial').textContent = serial || '-';
             document.getElementById('approveForm').action = `/siam/agent-registry/${pendingId}/approve`;
-
-            // Reset state dropdown
             resetAssetSelection();
             searchInput.value = '';
-
-            // Pre-select kalau ada suggested
             if (suggestedAssetId) {
                 selectAsset(suggestedAssetId);
             }
 
             document.getElementById('approveModal').classList.remove('hidden');
-
-            // Auto-focus ke search input
             setTimeout(() => searchInput.focus(), 100);
         }
 
@@ -607,7 +589,6 @@
             dropdown.classList.add('hidden');
         }
 
-        // === Open Modal Reject ===
         function openRejectModal(pendingId, hostname) {
             document.getElementById('rejectHostname').textContent = hostname;
             document.getElementById('rejectForm').action = `/siam/agent-registry/${pendingId}/reject`;

@@ -7,9 +7,7 @@ use Illuminate\Http\Request;
 
 class PortalController extends Controller
 {
-    /**
-     * Halaman utama portal — auto-deteksi browser.
-     */
+
     public function index(Request $request)
     {
         $slides = $this->getSlides();
@@ -20,9 +18,7 @@ class PortalController extends Controller
         return view($view, compact('slides'));
     }
 
-    /**
-     * Paksa tampil versi legacy (untuk user yang pilih manual).
-     */
+
     public function legacy()
     {
         $slides = $this->getSlides();
@@ -30,9 +26,7 @@ class PortalController extends Controller
         return view('portal-legacy', compact('slides'));
     }
 
-    /**
-     * Handle klik aplikasi.
-     */
+
     public function click($id)
     {
         $app = App::findOrFail($id);
@@ -41,9 +35,7 @@ class PortalController extends Controller
         return redirect()->away($app->url);
     }
 
-    /**
-     * Query slides — dipakai oleh index() & legacy().
-     */
+
     private function getSlides()
     {
         return App::where('is_active', true)
@@ -53,10 +45,7 @@ class PortalController extends Controller
             ->groupBy('slide');
     }
 
-    /**
-     * Deteksi browser lama.
-     * Return true kalau: Firefox < 60, Chrome < 60, Safari < 11, IE.
-     */
+
     private function isLegacyBrowser(Request $request): bool
     {
         $ua = $request->header('User-Agent', '');

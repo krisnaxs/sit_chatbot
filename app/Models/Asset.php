@@ -34,8 +34,6 @@ class Asset extends Model
         'current_location_id',
         'photo_path',
         'notes',
-
-        // === Agent Tracking ===
         'last_seen_at',
         'last_ip',
         'last_lat',
@@ -59,8 +57,6 @@ class Asset extends Model
             'purchase_date' => 'date',
             'warranty_expire' => 'date',
             'purchase_price' => 'decimal:2',
-
-            // === Agent Tracking ===
             'last_seen_at' => 'datetime',
             'last_cpu_temp' => 'decimal:1',
             'last_lat' => 'decimal:7',
@@ -75,25 +71,17 @@ class Asset extends Model
                 $asset->asset_code = static::generateAssetCode();
             }
         });
-
-        // === TAMBAHKAN INI ===
         static::created(function (Asset $asset) {
             static::autoApprovePendingAgent($asset);
         });
     }
 
-    /**
-     * Auto-approve pending agent kalau serial number-nya cocok
-     * dengan asset yang baru dibuat.
-     */
+
     protected static function autoApprovePendingAgent(Asset $asset): void
     {
-        // Skip kalau asset tidak punya serial number
         if (empty($asset->serial_number)) {
             return;
         }
-
-        // Cari pending agent yang serial-nya cocok & belum di-approve/reject
         $pending = PendingAgent::pending()
             ->where('serial_number', $asset->serial_number)
             ->first();
@@ -101,8 +89,6 @@ class Asset extends Model
         if (!$pending) {
             return;
         }
-
-        // Buat token agent
         $token = AgentToken::create([
             'token' => Str::random(64),
             'name' => "{$asset->asset_code} Agent",
@@ -111,13 +97,9 @@ class Asset extends Model
             'device_serial' => $pending->serial_number,
             'device_hostname' => $pending->hostname,
         ]);
-
-        // Update hostname asset kalau belum ada
         if (empty($asset->hostname)) {
             $asset->update(['hostname' => $pending->hostname]);
         }
-
-        // Tandai pending sudah di-approve
         $pending->update([
             'approved_at' => now(),
             'approved_by' => auth()->id() ?? null,
@@ -141,10 +123,6 @@ class Asset extends Model
 
         return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
-
-    // ============================================================
-    // RELASI EXISTING
-    // ============================================================
 
     public function category()
     {
@@ -211,10 +189,6 @@ class Asset extends Model
         return $this->hasMany(ConsumableTransaction::class);
     }
 
-    // ============================================================
-    // RELASI AGENT
-    // ============================================================
-
     public function agentToken()
     {
         return $this->hasOne(AgentToken::class);
@@ -234,10 +208,6 @@ class Asset extends Model
     {
         return $this->hasOne(PendingAgent::class);
     }
-
-    // ============================================================
-    // SCOPES EXISTING
-    // ============================================================
 
     public function scopeStatus($query, string $status)
     {
@@ -308,10 +278,6 @@ class Asset extends Model
             });
     }
 
-    // ============================================================
-    // SCOPES AGENT
-    // ============================================================
-
     public function scopeAgentMonitored($query)
     {
         return $query->whereHas('category', function ($q) {
@@ -345,18 +311,12 @@ class Asset extends Model
         return $query->whereNull('last_seen_at');
     }
 
-    /**
-     * Scope: hanya aset yang punya koordinat.
-     */
+
     public function scopeHasCoordinates($query)
     {
         return $query->whereNotNull('last_lat')
             ->whereNotNull('last_lng');
     }
-
-    // ============================================================
-    // ACCESSORS EXISTING
-    // ============================================================
 
     public function getFullNameAttribute(): string
     {
@@ -499,10 +459,6 @@ class Asset extends Model
         };
     }
 
-    // ============================================================
-    // ACCESSORS AGENT
-    // ============================================================
-
     public function isOnline(): bool
     {
         return $this->last_seen_at
@@ -528,9 +484,7 @@ class Asset extends Model
         return !is_null($this->last_seen_at);
     }
 
-    /**
-     * Cek apakah aset punya koordinat GPS.
-     */
+
     public function hasCoordinates(): bool
     {
         return !is_null($this->last_lat) && !is_null($this->last_lng);

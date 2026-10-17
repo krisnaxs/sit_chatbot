@@ -284,8 +284,6 @@
                                         $asset->isIdle() => 'bg-yellow-50/30',
                                         default => 'bg-red-50/30',
                                     };
-
-                                    // === STATUS ASET (lifecycle) ===
                                     $lifecycle = match ($asset->status) {
                                         'available' => [
                                             'label' => 'Tersedia',
@@ -316,8 +314,6 @@
                                             'color' => 'bg-gray-100 text-gray-700 border-gray-200',
                                         ],
                                     };
-
-                                    // Sumber lokasi badge
                                     $sourceBadge = match ($asset->location_source) {
                                         'windows_api' => [
                                             'label' => 'Windows API',
@@ -349,8 +345,6 @@
                                         'current_user' => $asset->currentUser?->name,
                                         'current_location' => $asset->currentLocation?->full_name,
                                         'purchase_year' => $asset->purchase_date?->format('Y'),
-
-                                        // Agent fields
                                         'last_ip' => $asset->last_ip,
                                         'last_mac' => $asset->last_mac,
                                         'last_wifi_ssid' => $asset->last_wifi_ssid,
@@ -363,8 +357,6 @@
                                         'agent_version' => $asset->agent_version,
                                         'agent_status_label' => $agentStatus,
                                         'agent_status_color' => $asset->agent_status_color,
-
-                                        // Koordinat
                                         'last_lat' => $asset->last_lat ? (float) $asset->last_lat : null,
                                         'last_lng' => $asset->last_lng ? (float) $asset->last_lng : null,
                                         'location_source' => $asset->location_source,
@@ -987,8 +979,6 @@
                 showModal: false,
                 autoRefresh: false,
                 refreshInterval: null,
-
-                // untuk mini-map
                 miniMap: null,
                 miniMarker: null,
                 _mapInitTimer: null,

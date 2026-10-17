@@ -9,10 +9,19 @@
 
             {{-- HEADER --}}
             <div>
-                <a href="{{ route('siam.assets.index') }}" class="text-sm text-indigo-600 hover:underline">
-                    ← Kembali ke daftar aset
+                <a href="{{ route('siam.assets.index') }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+               bg-white border border-gray-200
+               text-sm font-semibold text-gray-700
+               hover:bg-gray-50 hover:border-gray-300
+               shadow-sm transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Kembali ke Daftar Aset
                 </a>
-                <h1 class="text-2xl font-bold text-gray-800 mt-1">Tambah Aset Baru</h1>
+                <h1 class="text-2xl font-bold text-gray-800 mt-3">Tambah Aset Baru</h1>
                 <p class="text-sm text-gray-500">Registrasi aset IT: laptop, PC, printer, dll</p>
             </div>
 
@@ -800,8 +809,6 @@
                     condition_on_loan: 100,
                     notes: '',
                 },
-
-                // 🆕 assignForm dengan field BA
                 assignForm: {
                     user_id: '',
                     location_id: '',
@@ -810,8 +817,6 @@
                     assigned_at: '{{ now()->format('Y-m-d\TH:i') }}',
                     condition_on_assign: 100,
                     notes: '',
-
-                    // 🆕 Field BA
                     buat_berita_acara: true,
                     pihak_pertama_id: '',
                     pihak_pertama_jabatan: '',

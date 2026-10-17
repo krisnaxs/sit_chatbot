@@ -39,8 +39,6 @@ return new class extends Migration {
                 ->constrained('locations')->nullOnDelete();
             $table->string('photo_path')->nullable();
             $table->text('notes')->nullable();
-
-            // ==== Agent / Monitoring Fields ====
             $table->timestamp('last_seen_at')->nullable();
             $table->string('last_ip', 45)->nullable();
             $table->decimal('last_lat', 10, 7)->nullable();          // -90 s/d 90

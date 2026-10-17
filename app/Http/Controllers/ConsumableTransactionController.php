@@ -15,9 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConsumableTransactionController extends Controller
 {
-    /**
-     * Daftar transaksi konsumable.
-     */
+
     public function index(Request $request)
     {
         $query = ConsumableTransaction::with([
@@ -69,9 +67,7 @@ class ConsumableTransactionController extends Controller
         ));
     }
 
-    /**
-     * Form tambah transaksi.
-     */
+
     public function create(Request $request)
     {
         $consumable = $request->filled('consumable_id')
@@ -96,9 +92,7 @@ class ConsumableTransactionController extends Controller
         ));
     }
 
-    /**
-     * Simpan transaksi baru + update stok konsumable.
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -156,9 +150,7 @@ class ConsumableTransactionController extends Controller
             ->with('success', 'Transaksi berhasil dicatat.');
     }
 
-    /**
-     * Detail transaksi.
-     */
+
     public function show(ConsumableTransaction $transaction)
     {
         $transaction->load([
@@ -173,9 +165,7 @@ class ConsumableTransactionController extends Controller
         return view('consumable-transactions.show', compact('transaction'));
     }
 
-    /**
-     * Export Excel
-     */
+
     public function exportExcel(Request $request)
     {
         $filters = $request->only([
@@ -191,9 +181,7 @@ class ConsumableTransactionController extends Controller
         return Excel::download(new ConsumableTransactionsExport($filters), $filename);
     }
 
-    /**
-     * Export PDF
-     */
+
     public function exportPdf(Request $request)
     {
         $query = ConsumableTransaction::with([
@@ -236,9 +224,7 @@ class ConsumableTransactionController extends Controller
         return $pdf->download('transaksi-konsumable-' . now()->format('Ymd-His') . '.pdf');
     }
 
-    /**
-     * Hapus transaksi + rollback stok.
-     */
+
     public function destroy(ConsumableTransaction $transaction)
     {
         DB::transaction(function () use ($transaction) {

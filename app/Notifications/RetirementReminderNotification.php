@@ -12,11 +12,7 @@ class RetirementReminderNotification extends Notification
 {
     use Queueable;
 
-    /**
-     * @param  Asset   $asset        Aset yang dipegang pegawai
-     * @param  string  $type         'akan_pensiun' | 'sudah_pensiun' | 'perlu_ditarik'
-     * @param  bool    $sendToAdmin  true = notifikasi ini untuk admin (tidak CC admin lagi)
-     */
+
     public function __construct(
         public Asset $asset,
         public string $type,
@@ -24,18 +20,13 @@ class RetirementReminderNotification extends Notification
     ) {
     }
 
-    /**
-     * Channel pengiriman.
-     */
+
     public function via($notifiable): array
     {
         return ['mail', 'database'];
     }
 
-    /**
-     * Email yang dikirim.
-     * Kalau untuk pegawai → CC ke admin/support.
-     */
+
     public function toMail($notifiable)
     {
         $mail = (new RetirementReminderMail($this->asset, $this->type))
@@ -56,9 +47,7 @@ class RetirementReminderNotification extends Notification
         return $mail;
     }
 
-    /**
-     * Data yang disimpan di tabel notifications (database channel).
-     */
+
     public function toArray($notifiable): array
     {
         return [
@@ -85,9 +74,7 @@ class RetirementReminderNotification extends Notification
         };
     }
 
-    /**
-     * Pesan WA untuk PEGAWAI (bahasa personal).
-     */
+
     public function buildEmployeeMessage(): string
     {
         $u = $this->asset->currentUser;
@@ -126,9 +113,7 @@ class RetirementReminderNotification extends Notification
         };
     }
 
-    /**
-     * Pesan WA untuk ADMIN (bahasa laporan).
-     */
+
     public function buildAdminMessage(): string
     {
         $u = $this->asset->currentUser;

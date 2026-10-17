@@ -20,8 +20,6 @@ return new class extends Migration {
 
             $table->index('is_agent_monitored');
         });
-
-        // Auto-set true untuk kategori laptop/pc/server
         DB::table('asset_categories')
             ->where(function ($q) {
                 $q->where('name', 'like', '%laptop%')

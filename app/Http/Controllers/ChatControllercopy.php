@@ -227,9 +227,7 @@ class ChatControllercopy extends Controller
         'diassign',
     ];
 
-    /**
-     * Cek apakah user privileged (bisa lihat semua aset).
-     */
+
     private function isPrivileged(): bool
     {
         $user = auth()->user();
@@ -240,11 +238,7 @@ class ChatControllercopy extends Controller
         return in_array($role, ['admin', 'support'], true);
     }
 
-    /**
-     * Scope query aset berdasarkan role.
-     * - admin/support → semua aset
-     * - user biasa → hanya aset yang dipegangnya
-     */
+
     private function scopeAssetQuery($query)
     {
         if ($this->isPrivileged()) {
@@ -253,9 +247,7 @@ class ChatControllercopy extends Controller
         return $query->where('current_user_id', auth()->id());
     }
 
-    /**
-     * Cek apakah user boleh lihat aset tertentu.
-     */
+
     private function canViewAsset($asset): bool
     {
         if ($this->isPrivileged()) {
@@ -530,9 +522,7 @@ class ChatControllercopy extends Controller
 
         return $this->executeFollowUp($ctx, $request, $memory);
     }
-    /**
-     *  Cek apakah pesan sebenarnya adalah QUERY BARU (bukan follow-up).
-     */
+
     private function isNewQuery(string $lower): bool
     {
         $hasCountWord = (bool) preg_match(

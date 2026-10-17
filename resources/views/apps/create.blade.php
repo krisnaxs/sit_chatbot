@@ -58,11 +58,26 @@
             </div>
 
             <div class="flex gap-3 pt-4 border-t border-gray-100">
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                <button type="submit"
+                    class="px-4 py-2 rounded-xl
+               bg-gradient-to-br from-blue-500 to-blue-600
+               hover:from-blue-600 hover:to-blue-700
+               text-white text-sm font-semibold
+               shadow-lg shadow-blue-500/30
+               transition-all duration-200">
                     {{ $app->exists ? 'Update' : 'Simpan' }}
                 </button>
-                <a href="{{ route('apps.index') }}"
-                    class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition">
+
+                <a href="{{ url()->previous() }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+               bg-white border border-gray-300
+               text-sm font-semibold text-gray-700
+               hover:bg-gray-50 hover:border-gray-400
+               shadow-sm transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
                     Kembali
                 </a>
             </div>

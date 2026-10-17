@@ -27,8 +27,17 @@
             {{-- HEADER --}}
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <a href="{{ route('siam.assets.index') }}" class="text-sm text-indigo-600 hover:underline">
-                        ← Kembali ke daftar aset
+                    <a href="{{ route('siam.assets.index') }}"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+           bg-white border border-gray-200
+           text-sm font-semibold text-gray-700
+           hover:bg-gray-50 hover:border-gray-300
+           shadow-sm transition-all duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Kembali ke Daftar Aset
                     </a>
                     <h1 class="text-2xl font-bold text-gray-800 mt-1">
                         {{ $asset->brand }} {{ $asset->model }}
@@ -1104,8 +1113,6 @@
                 confirmButton: '',
                 pendingForm: null,
                 pendingAction: null,
-
-                // 🆕 State modal return
                 showReturnForm: false,
                 returnForm: {
                     action: '',
@@ -1120,8 +1127,6 @@
                     message: '',
                     type: 'success'
                 },
-
-                // 🆕 Buka modal return + populate
                 openReturnForm(assignmentId, actionUrl, userName, assetName, assetSn, condition) {
                     this.returnForm.action = actionUrl;
                     this.returnForm.user_name = userName;
@@ -1130,8 +1135,6 @@
                     this.returnForm.condition_on_return = condition ?? 100;
                     this.showReturnForm = true;
                 },
-
-                // 🆕 Submit form return
                 submitReturn() {
                     this.showReturnForm = false;
 
@@ -1189,7 +1192,6 @@
                 },
 
                 init() {
-                    // 🆕 Cek flash message dari localStorage (untuk toast setelah redirect)
                     this.$nextTick(() => {
                         const flashMsg = localStorage.getItem('flash_message');
                         const flashType = localStorage.getItem('flash_type') || 'success';
@@ -1214,8 +1216,6 @@
                             else if (this.showConfirmModal) this.closeConfirm();
                         }
                     });
-
-                    // 🆕 Init Mini Map
                     @if ($asset->last_lat && $asset->last_lng)
                         this.$nextTick(() => {
                             setTimeout(() => {
@@ -1224,8 +1224,6 @@
                         });
                     @endif
                 },
-
-                // 🆕 Init Asset Mini Map
                 initAssetMiniMap() {
                     const mapEl = document.getElementById('assetMiniMap');
                     if (!mapEl) return;

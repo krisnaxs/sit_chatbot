@@ -6,7 +6,15 @@
     <div class="max-w-3xl mx-auto space-y-6">
 
         <a href="{{ auth()->user()->isSupport() ? route('admin.requests.index') : route('requests.my') }}"
-            class="text-sm text-indigo-600 hover:underline">← Kembali</a>
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+           bg-white border border-gray-200
+           text-sm font-semibold text-gray-700
+           hover:bg-gray-50 hover:border-gray-300
+           shadow-sm transition-all duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>Kembali</a>
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
             <div class="flex items-start justify-between">

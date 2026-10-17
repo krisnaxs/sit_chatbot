@@ -13,22 +13,15 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $defaultPassword = 'password';
-
-        // ==== Ambil Department ====
         $sisDept = Department::where('code', 'SIS')->first();
         $keuDept = Department::where('code', 'keu')->first();
         $humasDept = Department::where('code', 'HUMAS')->first();
         $engDept = Department::where('code', 'ENGINEERING')->first();
-
-        // ==== Ambil Location ====
         $sisRoom = Location::where('room', 'SIS')->first();
         $keuRoom = Location::where('room', 'KEUANGAN')->first();
         $humasRoom = Location::where('room', 'HUMAS')->first();
         $engRoom = Location::where('room', 'ENGEENERING')->first();
-
-        // ==== Daftar semua user (default + pegawai) ====
         $users = [
-            // --- Default Users ---
             [
                 'nip' => '10000001',
                 'name' => 'Admin',
@@ -93,8 +86,6 @@ class UserSeeder extends Seeder
                 'dept' => null,
                 'loc' => null,
             ],
-
-            // --- Pegawai ---
             [
                 'nip' => '20000001',
                 'name' => 'Budi Santoso',

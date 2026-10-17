@@ -17,9 +17,7 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    /**
-     * Tampilkan daftar user.
-     */
+
     public function index(Request $request)
     {
         $query = User::with(['department', 'location']);
@@ -49,8 +47,6 @@ class UserController extends Controller
 
         $users = $query->orderByDesc('id')->paginate(10)->withQueryString();
         $departments = Department::active()->orderBy('name')->get();
-
-        // 🆕 Trash count (admin only)
         $trashCount = auth()->user()->isAdmin()
             ? User::onlyTrashed()->count()
             : 0;
@@ -58,9 +54,7 @@ class UserController extends Controller
         return view('users.index', compact('users', 'departments', 'trashCount'));
     }
 
-    /**
-     * Form tambah user.
-     */
+
     public function create()
     {
         $departments = Department::active()->orderBy('name')->get();
@@ -69,9 +63,7 @@ class UserController extends Controller
         return view('users.create', compact('departments', 'locations'));
     }
 
-    /**
-     * Simpan user baru.
-     */
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -124,9 +116,7 @@ class UserController extends Controller
             ->with('success', "User berhasil ditambahkan. Username: {$username}");
     }
 
-    /**
-     * Detail user + aset yang dipegang.
-     */
+
     public function show(User $user)
     {
         $user->load([
@@ -142,9 +132,7 @@ class UserController extends Controller
         return view('users.show', compact('user'));
     }
 
-    /**
-     * Form edit user.
-     */
+
     public function edit(User $user)
     {
         $departments = Department::active()->orderBy('name')->get();
@@ -153,9 +141,7 @@ class UserController extends Controller
         return view('users.edit', compact('user', 'departments', 'locations'));
     }
 
-    /**
-     * Update user.
-     */
+
     public function update(Request $request, User $user)
     {
         $data = $request->validate([
@@ -212,26 +198,20 @@ class UserController extends Controller
             ->with('success', 'User berhasil diperbarui.');
     }
 
-    /**
-     * Download template import user.
-     */
+
     public function downloadTemplate()
     {
         $filename = 'template-import-user-' . now()->format('Ymd') . '.xlsx';
         return Excel::download(new \App\Exports\UsersTemplateExport(), $filename);
     }
 
-    /**
-     * Form import user.
-     */
+
     public function importForm()
     {
         return view('users.import');
     }
 
-    /**
-     * Proses import user dari Excel.
-     */
+
     public function import(Request $request)
     {
         $request->validate([
@@ -304,9 +284,7 @@ class UserController extends Controller
             ->with('success', 'Password berhasil diperbarui.');
     }
 
-    /**
-     * Reset password user ke default (khusus admin).
-     */
+
     public function resetPassword(User $user)
     {
         if (!auth()->user()->isAdmin()) {
@@ -328,9 +306,7 @@ class UserController extends Controller
             ->with('success', "Password user {$user->name} berhasil direset menjadi: {$defaultPassword}");
     }
 
-    /**
-     * Hapus user (soft delete — bisa direstore).
-     */
+
     public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {
@@ -338,8 +314,6 @@ class UserController extends Controller
                 ->route('users.index')
                 ->with('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
         }
-
-        // Soft delete — data tetap ada di DB, bisa direstore
         $user->delete();
 
         return redirect()
@@ -347,13 +321,7 @@ class UserController extends Controller
             ->with('success', 'User berhasil dihapus. Data dapat direstore oleh admin bila diperlukan.');
     }
 
-    // ============================================================
-    // 🆕 TRASH & RESTORE
-    // ============================================================
 
-    /**
-     * Daftar user yang di-soft-delete (Trash).
-     */
     public function trash(Request $request)
     {
         if (!auth()->user()->isAdmin()) {
@@ -394,9 +362,7 @@ class UserController extends Controller
         return view('users.trash', compact('users', 'stats'));
     }
 
-    /**
-     * Restore user dari trash.
-     */
+
     public function restore($id)
     {
         if (!auth()->user()->isAdmin()) {
@@ -404,8 +370,6 @@ class UserController extends Controller
         }
 
         $user = User::onlyTrashed()->findOrFail($id);
-
-        // Cek konflik: email atau NIP mungkin sudah dipakai user lain
         $emailConflict = User::where('email', $user->email)
             ->where('id', '!=', $user->id)
             ->exists();
@@ -436,14 +400,7 @@ class UserController extends Controller
     }
 
 
-    /**
-     * Force delete user — DINONAKTIFKAN.
-     *
-     * User tidak bisa dihapus permanen karena banyak relasi (BA, assignment, loan, dll)
-     * yang membutuhkan data user sebagai referensi historis.
-     *
-     * Gunakan restore atau biarkan di trash.
-     */
+
     public function forceDelete($id)
     {
         if (!auth()->user()->isAdmin()) {
@@ -458,9 +415,7 @@ class UserController extends Controller
                 "Data user tetap tersimpan di sampah untuk keperluan audit. Gunakan fitur Restore jika ingin mengaktifkan kembali.");
     }
 
-    /**
-     * Restore semua user yang soft-deleted.
-     */
+
     public function restoreAll()
     {
         if (!auth()->user()->isAdmin()) {
@@ -472,7 +427,6 @@ class UserController extends Controller
         $skipped = [];
 
         foreach ($trashed as $user) {
-            // Skip kalau email/NIP konflik
             $emailConflict = User::where('email', $user->email)
                 ->where('id', '!=', $user->id)
                 ->exists();
@@ -496,16 +450,9 @@ class UserController extends Controller
             ->with('success', $msg);
     }
 
-    /**
-     * Kosongkan trash (hapus permanen semua).
-     */
-    /**
-     * Kosongkan trash (hapus permanen semua user).
-     * Skip user yang masih pegang aset.
-     */
-    /**
-     * Kosongkan trash — DINONAKTIFKAN untuk user.
-     */
+
+
+
     public function emptyTrash()
     {
         if (!auth()->user()->isAdmin()) {

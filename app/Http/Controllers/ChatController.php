@@ -227,9 +227,7 @@ class ChatController extends Controller
         'diassign',
     ];
 
-    /**
-     * Cek apakah user privileged (bisa lihat semua aset).
-     */
+
     private function isPrivileged(): bool
     {
         $user = auth()->user();
@@ -240,11 +238,7 @@ class ChatController extends Controller
         return in_array($role, ['admin', 'support'], true);
     }
 
-    /**
-     * Scope query aset berdasarkan role.
-     * - admin/support → semua aset
-     * - user biasa → hanya aset yang dipegangnya
-     */
+
     private function scopeAssetQuery($query)
     {
         if ($this->isPrivileged()) {
@@ -253,9 +247,7 @@ class ChatController extends Controller
         return $query->where('current_user_id', auth()->id());
     }
 
-    /**
-     * Cek apakah user boleh lihat aset tertentu.
-     */
+
     private function canViewAsset($asset): bool
     {
         if ($this->isPrivileged()) {
@@ -415,13 +407,9 @@ class ChatController extends Controller
     private function isWriteIntent(string $pesan): bool
     {
         $lower = Str::lower($pesan);
-
-        // Kalau ada kata tanya → kemungkinan bukan write intent
         if (preg_match('/\b(berapa|jumlah|total|daftar|list|siapa|apa|dimana|kapan|cari|tampilkan|lihat)\b/i', $lower)) {
             return false;
         }
-
-        // Hapus 'set' dan 'reset' dari blacklist (terlalu umum)
         return (bool) preg_match(
             '/\b(hapus|delete|ubah|update|edit|ganti|tambah|create|insert|'
             . 'pindah|move|hilangkan|buang|remove|drop|truncate)\b/i',
@@ -432,20 +420,12 @@ class ChatController extends Controller
     private function handleFollowUp(string $pesan, Request $request, ChatMemoryService $memory): ?array
     {
         $lower = Str::lower(trim($pesan));
-
-        // ═══════════════════════════════════════════════════════════
-        // ⭐ STEP 0 (BARU): Handler "type apa itu" / "model apa itu"
-        // ═══════════════════════════════════════════════════════════
         if (preg_match('/\b(type|tipe|model)\s+apa\s+itu\b/i', $lower)) {
             $sqlCtx = $memory->recall('sql_text');
-
-            // HANYA kalau ada SQL context → biarkan SQL-to-Text jawab
             if ($sqlCtx && isset($sqlCtx['sql'])) {
                 Log::info('followup.type_apa_itu_with_sql_context', ['pesan' => $pesan]);
                 return null;
             }
-
-            // Selain itu → jawab penjelasan umum
             Log::info('followup.type_apa_itu_general', ['pesan' => $pesan]);
             return [
                 "**Type/Tipe** itu adalah *model atau jenis produk*. Contoh untuk laptop:\n\n"
@@ -461,9 +441,6 @@ class ChatController extends Controller
                 null,
             ];
         }
-        // ═══════════════════════════════════════════════════════════
-        // STEP 1: Handler spesifik (user, SN, consumable)
-        // ═══════════════════════════════════════════════════════════
 
         $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
         if ($userAssetsByName) {
@@ -485,31 +462,21 @@ class ChatController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 2: Deteksi query "list distinct" (type, brand, model, tahun)
-        // ═══════════════════════════════════════════════════════════
-
         $isListDistinctQuery = (
-            // "type apa saja", "brand apa saja"
             preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower) &&
             preg_match('/\b(apa|apa saja|apa aja|list|daftar|sebutkan|tampilkan)\b/i', $lower)
         ) || (
-            // "tahun pembelian 2024 type apa"
             preg_match('/\b(tahun|year)\b/i', $lower) &&
             preg_match('/\b(type|tipe|model|brand|merek|merk)\b/i', $lower)
         ) || (
-            // "type apa itu", "tipe apa itu"
             preg_match('/\b(type|tipe|model)\s+apa\s+itu\b/i', $lower)
         ) || (
-            // "apa type-nya", "apa tipenya"
             preg_match('/\bapa\s+(type|tipe|model)(nya)?\b/i', $lower)
         ) || (
-            // "laptop tahun 2024 laptop apa"
             preg_match('/\b(laptop|pc|komputer|printer|monitor)\b/i', $lower) &&
             preg_match('/\b(20\d{2}|tahun)\b/i', $lower) &&
             preg_match('/\b(apa|tipe|type|model)\b/i', $lower)
         ) || (
-            // "laptop ready apa", "laptop tersedia apa"
             preg_match('/\b(laptop|pc|komputer|printer|monitor|server)\b/i', $lower) &&
             preg_match('/\b(ready|tersedia|available|dipakai|rusak|maintenance|dipinjam|loaned)\b/i', $lower) &&
             preg_match('/\b(apa|apa saja|list|daftar)\b/i', $lower)
@@ -521,12 +488,6 @@ class ChatController extends Controller
             ]);
             return null;  // ← biar jatuh ke cariJawaban() → SQL-to-Text
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // STEP 3: Deteksi query dengan filter kompleks (tahun, brand, model spesifik)
-        // ═══════════════════════════════════════════════════════════
-
-        // "laptop tahun pembelian 2024" / "tahun 2024 laptop"
         if (
             preg_match('/\b(tahun|thn|year)\s+(pembelian|beli|perolehan|pengadaan)\b/i', $lower) &&
             preg_match('/\b(20\d{2})\b/', $lower)
@@ -536,8 +497,6 @@ class ChatController extends Controller
             ]);
             return null;  // ← jatuh ke cariJawaban() → SQL-to-Text
         }
-
-        // "tahun 2024" + kategori (laptop/pc/dll) tanpa "nya/itu"
         if (
             preg_match('/\b(tahun|thn|year)\s+(20\d{2})\b/i', $lower) &&
             preg_match('/\b(laptop|pc|komputer|printer|monitor|server|router)\b/i', $lower)
@@ -551,8 +510,6 @@ class ChatController extends Controller
                 return null;
             }
         }
-
-        // "2024" saja (tanpa kata lain yang mengikat)
         if (
             preg_match('/\b(20\d{2})\b/', $lower) &&
             !preg_match('/\b(dari|sejak|sampai|semenjak|mulai)\b/i', $lower)
@@ -566,8 +523,6 @@ class ChatController extends Controller
                 return null;
             }
         }
-
-        // "laptop e14 gen 5" / "untuk laptop e14" (kategori + model spesifik)
         if (
             preg_match('/\b(laptop|pc|komputer|printer|monitor)\b/i', $lower) &&
             preg_match('/\b(e\d+|gen\s*\d+|thinkpad|zenbook|macbook|ideapad|latitude|probook|elitebook)\b/i', $lower)
@@ -577,8 +532,6 @@ class ChatController extends Controller
             ]);
             return null;  // ← SQL-to-Text
         }
-
-        // "brand X tahun Y" / "merk X tahun Y"
         if (
             preg_match('/\b(brand|merek|merk)\s+(dell|hp|lenovo|asus|acer|apple|samsung|toshiba|epson|canon|brother)\b/i', $lower) &&
             preg_match('/\b(20\d{2}|tahun)\b/i', $lower)
@@ -588,10 +541,6 @@ class ChatController extends Controller
             ]);
             return null;  // ← SQL-to-Text
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // STEP 4: Field query (via memory asset context)
-        // ═══════════════════════════════════════════════════════════
 
         $field = $this->detectFieldQuery($lower);
         $isCountQuery = (bool) preg_match(
@@ -619,10 +568,6 @@ class ChatController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 5: Ownership follow-up ("ini sewa atau hak milik")
-        // ═══════════════════════════════════════════════════════════
-
         $isCountQueryOwnership = (bool) preg_match(
             '/\b(berapa|jumlah|total|ada berapa|banyak)\b/i',
             $lower
@@ -633,7 +578,6 @@ class ChatController extends Controller
             preg_match('/\b(sewa|hak milik|milik|owned|leased)\b/i', $lower) &&
             preg_match('/\b(apa|atau|ini|itu|nya|yang)\b/i', $lower)
         ) {
-            // 1. Coba dari memory 'asset' dulu
             $assetCtx = $memory->recall('asset');
             if ($assetCtx && isset($assetCtx['asset_id'])) {
                 Log::info('followup.ownership.via_asset_memory', [
@@ -641,8 +585,6 @@ class ChatController extends Controller
                 ]);
                 return $this->answerAssetField((int) $assetCtx['asset_id'], 'ownership', $memory);
             }
-
-            // 2. Coba dari session last_query_context
             $lastQuery = session()->get('last_query_context');
             if ($lastQuery && isset($lastQuery['status'])) {
                 $assetQuery = \App\Models\Asset::query();
@@ -671,8 +613,6 @@ class ChatController extends Controller
                     return $this->answerAssetField($asset->id, 'ownership', $memory);
                 }
             }
-
-            // 3. Fallback: ambil aset pertama yang statusnya available
             $asset = \App\Models\Asset::where('status', 'available')->first();
             if ($asset) {
                 $memory->remember('asset', [
@@ -689,10 +629,6 @@ class ChatController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 6: Reference resolution ("dia", "yang tadi")
-        // ═══════════════════════════════════════════════════════════
-
         $ref = $this->resolveReference($lower, $memory);
         if ($ref) {
             if (isset($ref['user_id']) && $this->matchAny($lower, ['aset', 'pegang', 'punya', 'pakai'])) {
@@ -703,27 +639,15 @@ class ChatController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 7: Follow-up top asset by model
-        // ═══════════════════════════════════════════════════════════
-
         $ctxTopAsset = $memory->recall('top_asset_by_model');
         if ($ctxTopAsset && $this->matchAny($lower, ['pegang', 'dipegang', 'pemegang', 'yang pakai', 'siapa yang pakai'])) {
             return $this->followUpTopAssetByModel($ctxTopAsset, 0, 10, $memory);
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 8: Implicit user query
-        // ═══════════════════════════════════════════════════════════
-
         $implicitUser = $this->tryAnswerImplicitUser($pesan, $memory);
         if ($implicitUser) {
             return $implicitUser;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // STEP 9: Deteksi query baru vs follow-up
-        // ═══════════════════════════════════════════════════════════
 
         if ($this->isNewQuery($lower)) {
             Log::info('followup.detected_new_query', [
@@ -753,10 +677,6 @@ class ChatController extends Controller
             return null;
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // STEP 10: Execute follow-up dengan context yang tersimpan
-        // ═══════════════════════════════════════════════════════════
-
         $ctx = $memory->recall('asset_by_status')
             ?? $memory->recall('list_asset_by_status')
             ?? $memory->recall('count_asset_by_status')
@@ -781,7 +701,6 @@ class ChatController extends Controller
 
     private function isNewQuery(string $lower): bool
     {
-        // ⭐ BARU: kalau query kompleks → pasti query baru
         if ($this->isComplexQuery($lower)) {
             return true;
         }
@@ -860,12 +779,6 @@ class ChatController extends Controller
     private function cariJawaban(string $pesan, ChatMemoryService $memory, string $requestId): array
     {
         $lower = Str::lower($pesan);
-
-        // ═══════════════════════════════════════════════════════════
-        // STEP 0: KNOWLEDGE BASE — fleksibel
-        // Match KUAT (≥ 0.8)  → langsung jawab KB
-        // Match LEMAH (< 0.8) → simpan untuk fallback, lanjut pipeline
-        // ═══════════════════════════════════════════════════════════
         $kbFallback = null;
 
         try {
@@ -881,8 +794,6 @@ class ChatController extends Controller
                     ]);
                     return [$kb[0], 'database', $kb[2]];
                 }
-
-                // Match lemah → simpan untuk fallback
                 $kbFallback = $kb;
                 Log::info('answer.kb_weak_saved', [
                     'request_id' => $requestId,
@@ -896,20 +807,14 @@ class ChatController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
-
-        // STEP 1: SN Pattern
         $snAnswer = $this->tryAnswerBySnPattern($pesan, $memory);
         if ($snAnswer) {
             return $snAnswer;
         }
-
-        // STEP 2: User + Field
         $userAssetAnswer = $this->tryAnswerUserAssetField($pesan, $memory);
         if ($userAssetAnswer) {
             return $userAssetAnswer;
         }
-
-        // STEP 3: User Assets by Name
         $userAssetsByName = $this->tryAnswerUserAssetsByName($pesan, $memory);
         if ($userAssetsByName) {
             if (isset($userAssetsByName[2]) && is_array($userAssetsByName[2])) {
@@ -917,18 +822,12 @@ class ChatController extends Controller
             }
             return $userAssetsByName;
         }
-
-        // STEP 4: Consumable Query
         if ($this->isConsumableQuery($lower, $memory)) {
             $consumableAnswer = $this->tryAnswerConsumableByKeyword($lower, $memory);
             if ($consumableAnswer) {
                 return array_merge($consumableAnswer, [null]);
             }
         }
-
-        // STEP 5: (kosong — KB sudah di step 0)
-
-        // STEP 6: SQL-to-Text (PRIORITY) + KB context
         $sqlTextTried = false;
 
         if ($this->isComplexQuery($pesan)) {
@@ -941,8 +840,6 @@ class ChatController extends Controller
 
             $kbHits = $this->getRelevantKnowledge($pesan, 5);
             $topScore = $kbHits[0]['score'] ?? 0;
-
-            // KB sangat relevan → langsung jawab KB
             if ($topScore >= 0.8) {
                 Log::info('answer.via_knowledge_strong', [
                     'request_id' => $requestId,
@@ -995,8 +892,6 @@ class ChatController extends Controller
                 ]);
             }
         }
-
-        // STEP 7: QueryRouter
         try {
             $dbAnswer = app(\App\Services\Query\QueryRouter::class)->tryAnswer($pesan);
             if ($dbAnswer) {
@@ -1023,8 +918,6 @@ class ChatController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
-
-        // STEP 8: AutoLearning
         $learning = null;
         try {
             $learning = app(AutoLearningService::class);
@@ -1041,8 +934,6 @@ class ChatController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
-
-        // STEP 9: SQL-to-Text (FALLBACK) + KB context
         if (!$sqlTextTried) {
             try {
                 $prevSql = null;
@@ -1077,8 +968,6 @@ class ChatController extends Controller
                 ]);
             }
         }
-
-        // STEP 10: Ollama Intent Parser
         try {
             $intentResult = $this->tryOllamaIntent($pesan, $memory, $requestId);
             if ($intentResult) {
@@ -1091,8 +980,6 @@ class ChatController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
-
-        // ⭐ FALLBACK KB LEMAH — sebelum Ollama QA
         if ($kbFallback) {
             Log::info('answer.via_knowledge_weak_fallback', [
                 'request_id' => $requestId,
@@ -1101,8 +988,6 @@ class ChatController extends Controller
             ]);
             return [$kbFallback[0], 'database', $kbFallback[2]];
         }
-
-        // STEP 11: Ollama QA (LAST RESORT)
         Log::info('answer.via_ollama_qa', ['request_id' => $requestId]);
 
         try {
@@ -1128,18 +1013,10 @@ class ChatController extends Controller
 
         return [$jawaban, 'ai', null];
     }
-    /**
-     * Cek apakah pesan adalah query kompleks yang butuh SQL-to-Text.
-     * Query kompleks = kombinasi kategori/waktu/agregasi yang
-     * tidak bisa dijawab oleh pattern matching QueryRouter.
-     */
+
     private function isComplexQuery(string $pesan): bool
     {
         $lower = Str::lower(trim($pesan));
-
-        // ═══════════════════════════════════════════════════════════
-        // 1. Ada tahun (2024, 2023, dll) + kata tanya
-        // ═══════════════════════════════════════════════════════════
         $hasYear = (bool) preg_match('/\b(20\d{2})\b/', $lower);
         $hasYearWord = (bool) preg_match('/\b(tahun|thn|year)\b/i', $lower);
         $hasMonth = (bool) preg_match(
@@ -1150,20 +1027,11 @@ class ChatController extends Controller
         if (($hasYear || $hasYearWord || $hasMonth) && $this->hasAskingWord($lower)) {
             return true;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // 2. List distinct: "type apa saja", "brand apa saja",
-        //    "model apa saja", "merek apa aja"
-        // ═══════════════════════════════════════════════════════════
         if (
             preg_match('/\b(type|tipe|model|brand|merek|merk)\s+(apa|apa saja|apa aja)\b/i', $lower)
         ) {
             return true;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // 3. Kategori + status + "apa" (misal: "laptop ready apa saja")
-        // ═══════════════════════════════════════════════════════════
         $hasCategory = (bool) preg_match(
             '/\b(laptop|pc|komputer|printer|monitor|server|router|proyektor|scanner)\b/i',
             $lower
@@ -1177,33 +1045,17 @@ class ChatController extends Controller
         if ($hasCategory && $hasStatus && $hasApa) {
             return true;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // 4. Kategori + tahun (misal: "laptop tahun 2024")
-        // ═══════════════════════════════════════════════════════════
         if ($hasCategory && ($hasYear || $hasYearWord)) {
             return true;
         }
-        // ═══════════════════════════════════════════════════════════
-        // 5. "type apa itu" / "model apa itu" tanpa context aset
-        //    (biar SQL-to-Text atau handler khusus yang jawab)
-        // ═══════════════════════════════════════════════════════════
         if (preg_match('/\b(type|tipe|model)\s+apa\s+itu\b/i', $lower)) {
             return true;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // 6. Agregasi: "brand X tahun Y", "type X yang paling banyak"
-        // ═══════════════════════════════════════════════════════════
         if (
             preg_match('/\b(brand|merek|merk|model|type|tipe)\s+[a-z0-9]+\s+(tahun|20\d{2})/i', $lower)
         ) {
             return true;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // 7. Kategori + "yang paling" / "terbanyak" + tahun/status
-        // ═══════════════════════════════════════════════════════════
         if (
             $hasCategory &&
             preg_match('/\b(paling|terbanyak|top|tertinggi|terbesar|mayoritas)\b/i', $lower)
@@ -1214,9 +1066,7 @@ class ChatController extends Controller
         return false;
     }
 
-    /**
-     * Helper: cek apakah ada kata tanya di pesan.
-     */
+
     private function hasAskingWord(string $lower): bool
     {
         return (bool) preg_match(
@@ -1397,7 +1247,6 @@ class ChatController extends Controller
 
     private function tryKnowledge(string $pesan): ?array
     {
-        // Helper: normalisasi
         $normalize = function (string $s): string {
             $s = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', Str::lower($s));
             return preg_replace('/\s+/', ' ', trim($s));
@@ -1412,10 +1261,6 @@ class ChatController extends Controller
         if ($allKb->isEmpty()) {
             return null;
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // LEVEL 1: EXACT MATCH — skor 1.0
-        // ═══════════════════════════════════════════════════════════
         foreach ($allKb as $kb) {
             if ($normalize($kb->kata_kunci) === $pesanBersih) {
                 Log::info('tryKnowledge.exact_match', [
@@ -1426,11 +1271,6 @@ class ChatController extends Controller
                 return [$kb->jawaban, 'database', $this->extractFiles($kb), 1.0];
             }
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // LEVEL 2: SUBSTRING MATCH — skor 0.9
-        // Skip KB 1 kata pendek (< 12 char)
-        // ═══════════════════════════════════════════════════════════
         $bestSubstring = null;
         $bestSubstringLen = 0;
 
@@ -1458,11 +1298,6 @@ class ChatController extends Controller
             ]);
             return [$bestSubstring->jawaban, 'database', $this->extractFiles($bestSubstring), 0.9];
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // LEVEL 3: TOKEN-BASED MATCHING — skor dinamis
-        // Threshold 0.5, skip KB 1 kata pendek
-        // ═══════════════════════════════════════════════════════════
         $pesanTokens = collect(explode(' ', $pesanBersih))
             ->filter(fn($w) => strlen($w) >= 3 && !in_array($w, self::STOPWORDS))
             ->values()
@@ -1529,10 +1364,7 @@ class ChatController extends Controller
 
         return null;
     }
-    /**
-     * Ambil top-N KB yang relevan dengan pesan, untuk dijadikan konteks SQL.
-     * Return array of ['kata_kunci' => ..., 'jawaban' => ..., 'score' => ...].
-     */
+
     private function getRelevantKnowledge(string $pesan, int $limit = 5): array
     {
         $normalize = function (string $s): string {
@@ -1567,8 +1399,6 @@ class ChatController extends Controller
 
             if (empty($kbTokens))
                 continue;
-
-            // Skor: berapa % token KB yang match pesan
             $matched = 0;
             foreach ($kbTokens as $kt) {
                 foreach ($pesanTokens as $pt) {
@@ -1583,8 +1413,6 @@ class ChatController extends Controller
             }
 
             $score = $matched / count($kbTokens);
-
-            // Hanya ambil yang cukup relevan
             if ($score >= 0.5) {
                 $scored[] = [
                     'kata_kunci' => $kb->kata_kunci,
@@ -3688,10 +3516,7 @@ class ChatController extends Controller
         return $bestScore >= 0.4 ? $best : null;
     }
 
-    /**
-     * Ambil SEMUA lampiran dari knowledge.
-     * Return array of files, atau null kalau kosong.
-     */
+
     private function extractFiles(Knowledge $knowledge): ?array
     {
         if (!$knowledge->relationLoaded('attachments')) {

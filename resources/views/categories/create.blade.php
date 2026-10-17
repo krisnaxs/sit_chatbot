@@ -137,8 +137,15 @@
                         Simpan
                     </button>
                     <a href="{{ route('siam.categories.index') }}"
-                        class="px-5 py-2.5 rounded-xl border border-gray-300
-                               text-gray-700 font-semibold text-sm hover:bg-gray-50 transition">
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+           bg-white border border-gray-300
+           text-gray-700 font-semibold text-sm
+           hover:bg-gray-50 hover:border-gray-400
+           shadow-sm transition-all duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
                         Kembali
                     </a>
                 </div>

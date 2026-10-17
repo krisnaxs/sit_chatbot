@@ -29,7 +29,7 @@ class UsersImport implements
     public int $successCount = 0;
     public int $skipCount = 0;
 
-    /** Cache biar tidak query berulang */
+
     protected array $departmentCache = [];
     protected array $locationCache = [];
     protected array $existingEmails = [];
@@ -98,15 +98,7 @@ class UsersImport implements
         ]);
     }
 
-    /**
-     * Parse nilai waktu_pensiun dari Excel.
-     *
-     * Mendukung:
-     * - Format tanggal Excel (numeric serial) → auto-convert
-     * - String: "2026-12-31", "31/12/2026", "31-12-2026"
-     * - String: "31 Desember 2026", "December 31, 2026"
-     * - Kosong / null / "-" / "tidak ada" → null
-     */
+
     protected function parseWaktuPensiun($value): ?string
     {
         if ($value === null || $value === '' || $value === '-') {

@@ -29,9 +29,7 @@ class Knowledge extends Model
         'file_size' => 'integer',
     ];
 
-    /**
-     * Field yang di-index ke TNTSearch.
-     */
+
     public function toSearchableArray(): array
     {
         return [
@@ -50,18 +48,13 @@ class Knowledge extends Model
             ->useLogName('knowledge');
     }
 
-    /**
-     * Semua lampiran (hasMany ke knowledge_attachments).
-     */
+
     public function attachments(): HasMany
     {
         return $this->hasMany(KnowledgeAttachment::class, 'knowledge_id', 'id');
     }
 
-    /**
-     * Deteksi kategori file dari MIME type
-     * Return: 'image' | 'pdf' | 'word' | 'excel' | 'powerpoint' | 'archive' | 'other'
-     */
+
     public static function detectCategory(?string $mimeType): string
     {
         if (!$mimeType)
@@ -78,9 +71,7 @@ class Knowledge extends Model
         };
     }
 
-    /**
-     * Emoji icon untuk kategori file
-     */
+
     public static function iconForCategory(string $category): string
     {
         return match ($category) {
@@ -94,25 +85,19 @@ class Knowledge extends Model
         };
     }
 
-    /**
-     * Helper: apakah knowledge punya file?
-     */
+
     public function hasFile(): bool
     {
         return !empty($this->file_path);
     }
 
-    /**
-     * Helper: URL file publik
-     */
+
     public function getFileUrlAttribute(): ?string
     {
         return $this->file_path ? asset('storage/' . $this->file_path) : null;
     }
 
-    /**
-     * Helper: ukuran file yang sudah diformat (1.2 MB, 245 KB, dll)
-     */
+
     public function getFileSizeFormattedAttribute(): string
     {
         if (!$this->file_size)
@@ -128,42 +113,31 @@ class Knowledge extends Model
         return round($bytes, 1) . ' ' . $units[$i];
     }
 
-    /**
-     * Helper: kategori file (from instance)
-     */
+
     public function getFileCategoryAttribute(): string
     {
         return self::detectCategory($this->file_type);
     }
 
-    /**
-     * Helper: icon file (from instance)
-     */
+
     public function getFileIconAttribute(): string
     {
         return self::iconForCategory($this->file_category);
     }
 
-    /**
-     * Cek apakah knowledge punya lampiran (di tabel knowledge_attachments).
-     */
+
     public function hasAttachments(): bool
     {
         return $this->attachments()->exists();
     }
 
-    /**
-     * Total lampiran.
-     */
+
     public function getAttachmentCountAttribute(): int
     {
         return $this->attachments()->count();
     }
 
-    /**
-     * File pertama (untuk kompatibilitas view lama).
-     * Kalau tidak ada lampiran, return null.
-     */
+
     public function getFirstAttachmentAttribute(): ?KnowledgeAttachment
     {
         return $this->attachments()->first();

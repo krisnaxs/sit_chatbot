@@ -14,12 +14,8 @@ return new class extends Migration {
             $table->bigIncrements('id');
             $table->string('log_name')->nullable();
             $table->text('description');
-
-            // Subject & Causer (morph)
             $table->nullableMorphs('subject', 'subject');
             $table->nullableMorphs('causer', 'causer');
-
-            // Kolom tambahan (TANPA ->after)
             $table->string('event')->nullable();          // ✅
             $table->json('properties')->nullable();       // ✅
             $table->uuid('batch_uuid')->nullable();       // ✅

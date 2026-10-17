@@ -21,8 +21,6 @@ class ConsumableSeeder extends Seeder
     private function seedConsumables(): void
     {
         $categories = AssetCategory::pluck('id', 'code')->toArray();
-
-        // ==== Guard: pastikan semua kategori yang dibutuhkan ada ====
         $required = ['MS', 'KYB', 'HDD'];
         $missing = array_diff($required, array_keys($categories));
 
@@ -82,8 +80,6 @@ class ConsumableSeeder extends Seeder
         $siti = User::where('email', 'siti.aminah@perusahaan.com')->first();
         $andi = User::where('email', 'andi.wijaya@perusahaan.com')->first();
         $rudi = User::where('email', 'rudi.hartono@perusahaan.com')->first();
-
-        // ==== Guard: admin wajib ada ====
         if (!$admin) {
             $this->command->error('❌ User admin tidak ditemukan. Jalankan UserSeeder dulu.');
             return;

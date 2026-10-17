@@ -10,10 +10,7 @@ use Illuminate\Support\Str;
 
 class AiAssetController extends Controller
 {
-    /**
-     *  Keyword yang menandakan pesan berkaitan dengan data aset.
-     * Dipakai untuk guard guest — kalau guest tanya hal ini, wajib login.
-     */
+
     private const ASSET_KEYWORDS = [
         'aset',
         'asset',
@@ -148,10 +145,7 @@ class AiAssetController extends Controller
         ]);
     }
 
-    /**
-     *  Deteksi apakah pesan berkaitan dengan data aset.
-     * Dipakai untuk memblokir guest sebelum menyentuh database.
-     */
+
     protected function isAssetQuery(string $pesan): bool
     {
         $lower = Str::lower($pesan);
@@ -207,9 +201,7 @@ class AiAssetController extends Controller
         return $hasQuestion && $hasObject;
     }
 
-    /**
-     * 🛡️ Deteksi intent tulis (hapus, ubah, tambah).
-     */
+
     protected function isWriteIntent(string $pesan): bool
     {
         $lower = Str::lower($pesan);

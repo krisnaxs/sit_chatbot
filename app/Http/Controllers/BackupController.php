@@ -11,9 +11,7 @@ use ZipArchive;
 
 class BackupController extends Controller
 {
-    /**
-     * Halaman utama backup — list backup yang ada + tombol create.
-     */
+
     public function index()
     {
         $backups = $this->listBackups();
@@ -30,9 +28,7 @@ class BackupController extends Controller
         return view('backup.index', compact('backups', 'diskInfo'));
     }
 
-    /**
-     * List semua file backup di storage/app/backups.
-     */
+
     private function listBackups(): array
     {
         $dir = storage_path('app/backups');
@@ -54,16 +50,12 @@ class BackupController extends Controller
                 'download_url' => route('siam.backup.download', $file->getFilename()),
             ];
         }
-
-        // sort terbaru dulu
         usort($backups, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
 
         return $backups;
     }
 
-    /**
-     * Buat backup baru (DB saja atau full termasuk file uploads).
-     */
+
     public function create(Request $request)
     {
         set_time_limit(0);
@@ -86,24 +78,16 @@ class BackupController extends Controller
                 if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
                     return back()->with('error', 'Gagal membuat file ZIP.');
                 }
-
-                // 1) Dump database → temp .sql
                 $sqlContent = $this->generateDatabaseDump();
                 $zip->addFromString("database.sql", $sqlContent);
-
-                // 2) Tambahkan folder storage/app/public (uploads)
                 $publicStorage = storage_path('app/public');
                 if (File::exists($publicStorage)) {
                     $this->addFolderToZip($zip, $publicStorage, 'storage/app/public');
                 }
-
-                // 3) Tambahkan .env (opsional — pindahkan ke nonaktif kalau tidak mau)
                 $envPath = base_path('.env');
                 if (File::exists($envPath)) {
                     $zip->addFile($envPath, '.env');
                 }
-
-                // 4) Metadata
                 $meta = [
                     'app_name' => config('app.name'),
                     'app_env' => config('app.env'),
@@ -118,7 +102,6 @@ class BackupController extends Controller
 
                 $zip->close();
             } else {
-                // DB only
                 $filename = "backup_db_{$timestamp}.sql";
                 $path = "{$backupsDir}/{$filename}";
                 File::put($path, $this->generateDatabaseDump());
@@ -132,9 +115,7 @@ class BackupController extends Controller
         }
     }
 
-    /**
-     * Download file backup.
-     */
+
     public function download(string $filename)
     {
         $filename = basename($filename); // security: cegah path traversal
@@ -147,9 +128,7 @@ class BackupController extends Controller
         return response()->download($path);
     }
 
-    /**
-     * Hapus file backup.
-     */
+
     public function destroy(string $filename)
     {
         $filename = basename($filename);
@@ -163,10 +142,7 @@ class BackupController extends Controller
         return back()->with('error', 'File tidak ditemukan.');
     }
 
-    /**
-     * Upload & restore database dari file .sql.
-     * (Restore full ZIP belum didukung — manual via SSH.)
-     */
+
     public function restore(Request $request)
     {
         $request->validate([
@@ -177,11 +153,7 @@ class BackupController extends Controller
 
         try {
             $sql = file_get_contents($request->file('sql_file')->getRealPath());
-
-            // Nonaktifkan foreign key check sementara
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-            // Split by semicolon at end of line
             $statements = array_filter(
                 array_map('trim', preg_split('/;\s*[\r\n]+/', $sql)),
                 fn($s) => $s !== '' && !str_starts_with($s, '--')
@@ -204,10 +176,7 @@ class BackupController extends Controller
         }
     }
 
-    /**
-     * Generate SQL dump dari database aktif.
-     * Portable: pakai PHP murni (tanpa mysqldump binary).
-     */
+
     private function generateDatabaseDump(): string
     {
         $pdo = DB::connection()->getPdo();
@@ -220,29 +189,21 @@ class BackupController extends Controller
         $output .= "-- ============================================\n\n";
         $output .= "SET FOREIGN_KEY_CHECKS=0;\n";
         $output .= "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n\n";
-
-        // Ambil semua tabel
         $tables = DB::select('SHOW TABLES');
         $key = 'Tables_in_' . $dbName;
 
         foreach ($tables as $t) {
             $table = $t->$key;
-
-            // ===== Struktur tabel =====
             $create = DB::select("SHOW CREATE TABLE `{$table}`");
             $output .= "--\n-- Struktur tabel `{$table}`\n--\n";
             $output .= "DROP TABLE IF EXISTS `{$table}`;\n";
             $output .= $create[0]->{'Create Table'} . ";\n\n";
-
-            // ===== Data =====
             $rows = DB::table($table)->get();
             if ($rows->count() > 0) {
                 $output .= "--\n-- Data untuk tabel `{$table}` ({$rows->count()} baris)\n--\n";
 
                 $columns = array_keys((array) $rows->first());
                 $colList = '`' . implode('`,`', $columns) . '`';
-
-                // chunk untuk hindari terlalu besar
                 foreach ($rows->chunk(100) as $chunk) {
                     $values = [];
                     foreach ($chunk as $row) {
@@ -271,9 +232,7 @@ class BackupController extends Controller
         return $output;
     }
 
-    /**
-     * Tambahkan isi folder ke ZIP secara rekursif.
-     */
+
     private function addFolderToZip(ZipArchive $zip, string $folder, string $zipPrefix = ''): void
     {
         $files = new \RecursiveIteratorIterator(
@@ -293,9 +252,7 @@ class BackupController extends Controller
         }
     }
 
-    /**
-     * Human-readable file size.
-     */
+
     private function humanSize(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];

@@ -20,46 +20,20 @@ use Spatie\Activitylog\Models\Activity;
 
 class QueryMapping
 {
-    /**
-     * Mapping: array of [pattern => callback]
-     * Pattern dicek dengan preg_match
-     * Callback return [answer, 'database'] atau null
-     *
-     * ⚠️ URUTAN PENTING: pattern SPESIFIK duluan, pattern UMUM belakangan.
-     * Karena tryMapping() return pada match pertama.
-     */
+
     public static function handlers(): array
     {
         return [
-            // ═══════════════════════════════════════════════════
-            // 🎯 LIST DISTINCT — HARUS DULUAN (paling spesifik)
-            // ═══════════════════════════════════════════════════
-
-            // "type apa saja" / "type apa" / "tipe apa" (TANPA kata "berapa")
             '/\b(type|tipe|model)\s+(apa|apa\s+saja|apa\s+aja)\s*(saja|aja)?\s*$/i' => [self::class, 'listModels'],
             '/\bapa\s+(type|tipe|model)(nya)?\s*$/i' => [self::class, 'listModels'],
-
-            // "brand apa saja" / "merek apa"
             '/\b(brand|merek|merk)\s+(apa|apa\s+saja|apa\s+aja)\s*(saja|aja)?\s*$/i' => [self::class, 'listBrands'],
             '/\bapa\s+(brand|merek|merk)(nya)?\s*$/i' => [self::class, 'listBrands'],
-
-            // ═══════════════════════════════════════════════════
-            // 🎯 TAHUN — HARUS DULUAN (paling spesifik)
-            // ═══════════════════════════════════════════════════
-
-            // "berapa aset tahun 2024" / "berapa laptop 2024"
             '/\bberapa\b.*\b(20\d{2})\b.*\b(laptop|pc|komputer|printer|monitor|server)?\b/i'
-                => [self::class, 'countAssetsByYear'],
+            => [self::class, 'countAssetsByYear'],
             '/\bberapa\s+(aset|laptop|pc|komputer|printer|monitor|server)\s+(tahun\s+)?(20\d{2})\b/i'
-                => [self::class, 'countAssetsByYear'],
-
-            // "aset tahun 2024 ada berapa"
+            => [self::class, 'countAssetsByYear'],
             '/\b(aset|laptop|pc|komputer|printer|monitor|server)\s+(tahun\s+)?(20\d{2})\b.*\bberapa\b/i'
-                => [self::class, 'countAssetsByYear'],
-
-            // ═══════════════════════════════════════════════════
-            // 🎯 COUNT BY CATEGORY — "berapa laptop"
-            // ═══════════════════════════════════════════════════
+            => [self::class, 'countAssetsByYear'],
 
             '/\bberapa\s+(laptop|notebook)\b/i' => fn() => self::countAssetsByCategory('laptop'),
             '/\bberapa\s+(printer)\b/i' => fn() => self::countAssetsByCategory('printer'),
@@ -69,28 +43,18 @@ class QueryMapping
             '/\bberapa\s+(router)\b/i' => fn() => self::countAssetsByCategory('router'),
             '/\bberapa\s+(proyektor|projector)\b/i' => fn() => self::countAssetsByCategory('proyektor'),
             '/\bberapa\s+(scanner)\b/i' => fn() => self::countAssetsByCategory('scanner'),
-
-            // ═══════════════════════════════════════════════════
-            // 🎯 COUNT BY STATUS — SPESIFIK PER KATEGORI
-            // ═══════════════════════════════════════════════════
-
-            // "berapa laptop rusak" / "berapa laptop tersedia"
             '/\bberapa\s+(laptop|pc|komputer|printer|monitor|server)\s+(rusak|maintenance|perbaikan)\b/i'
-                => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'maintenance'),
+            => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'maintenance'),
             '/\bberapa\s+(laptop|pc|komputer|printer|monitor|server)\s+(tersedia|ready|available)\b/i'
-                => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'available'),
+            => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'available'),
             '/\bberapa\s+(laptop|pc|komputer|printer|monitor|server)\s+(dipinjam|loaned)\b/i'
-                => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'loaned'),
+            => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'loaned'),
             '/\bberapa\s+(laptop|pc|komputer|printer|monitor|server)\s+(dipakai|in_use|digunakan)\b/i'
-                => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'in_use'),
+            => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'in_use'),
             '/\bberapa\s+(laptop|pc|komputer|printer|monitor|server)\s+(hilang|lost)\b/i'
-                => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'lost'),
+            => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'lost'),
             '/\bberapa\s+(laptop|pc|komputer|printer|monitor|server)\s+(pensiun|retired)\b/i'
-                => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'retired'),
-
-            // ═══════════════════════════════════════════════════
-            // 🎯 COUNT ASET BY STATUS — UMUM
-            // ═══════════════════════════════════════════════════
+            => fn($m) => self::countAssetsByCategoryAndStatus($m[1], 'retired'),
 
             '/\bberapa\s+aset\s+(tersedia|ready|available)\b/i' => fn() => self::countAssetsByStatus('available'),
             '/\bberapa\s+aset\s+(rusak|maintenance|perbaikan)\b/i' => fn() => self::countAssetsByStatus('maintenance'),
@@ -99,175 +63,85 @@ class QueryMapping
             '/\bberapa\s+aset\s+(hilang|lost)\b/i' => fn() => self::countAssetsByStatus('lost'),
             '/\bberapa\s+aset\s+(pensiun|retired)\b/i' => fn() => self::countAssetsByStatus('retired'),
 
-            // ═══════════════════════════════════════════════════
-            // 🎯 COUNT ASET BY OWNERSHIP
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+aset\s+(hak\s+milik|owned|milik)\b/i' => fn() => self::countAssetsByOwnership('owned'),
             '/\bberapa\s+aset\s+(sewa|leased|rental)\b/i' => fn() => self::countAssetsByOwnership('leased'),
-
-            // ═══════════════════════════════════════════════════
-            // 🎯 COUNT ASET — UMUM (HARUS DI BAWAH YANG SPESIFIK)
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(total\s+)?aset\s*$/i' => [self::class, 'totalAssets'],
             '/\bberapa\s+aset\s+semua\b/i' => [self::class, 'totalAssets'],
             '/\bada\s+berapa\s+aset\b/i' => [self::class, 'totalAssets'],
 
-            // ═══════════════════════════════════════════════════
-            // SUMMARY
-            // ═══════════════════════════════════════════════════
-
             '/\bsummary\s+(status\s+)?aset\s*$/i' => [self::class, 'assetSummary'],
             '/\bstatus\s+aset\s+(apa\s+)?saja\s*$/i' => [self::class, 'assetSummary'],
             '/\bsummary\s+status\b/i' => [self::class, 'assetSummary'],
 
-            // ═══════════════════════════════════════════════════
-            // ASSET CATEGORY
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(kategori|category)\s*$/i' => [self::class, 'countCategories'],
             '/\bdaftar\s+(kategori|category)\s*$/i' => [self::class, 'listCategories'],
 
-            // ═══════════════════════════════════════════════════
-            // ASSET TYPE / BRAND / MODEL — COUNT
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(tipe|type|model|brand|merek)\b/i' => [self::class, 'countAssetTypes'],
-
-            // ═══════════════════════════════════════════════════
-            // ASSET ASSIGNMENT
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(serah\s*terima|assignment)\s+(aktif|sedang)\b/i' => [self::class, 'activeAssignments'],
             '/\btop\s+user.*aset\b/i' => [self::class, 'topUsersWithAssets'],
 
-            // ═══════════════════════════════════════════════════
-            // ASSET LOAN
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(peminjaman|loan)\s+(aktif|sedang)\b/i' => [self::class, 'activeLoans'],
             '/\b(peminjaman|loan)\s+(terlambat|overdue|telat)\b/i' => [self::class, 'overdueLoans'],
-
-            // ═══════════════════════════════════════════════════
-            // ASSET MAINTENANCE
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+aset\s+(sedang\s+)?(diperbaiki|perbaikan|maintenance)\b/i' => [self::class, 'countMaintenance'],
             '/\btop\s+aset\s+(sering\s+)?rusak\b/i' => [self::class, 'topMaintenanced'],
             '/\bbiaya\s+(perbaikan|maintenance|servis)\b/i' => [self::class, 'totalMaintenanceCost'],
 
-            // ═══════════════════════════════════════════════════
-            // ASSET REQUEST
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(request|pengajuan)\s+(pending|menunggu)\b/i' => [self::class, 'countPendingRequests'],
             '/\bberapa\s+(request|pengajuan)\s+(approved|disetujui)\b/i' => [self::class, 'countApprovedRequests'],
             '/\bberapa\s+(request|pengajuan)\s+(rejected|ditolak)\b/i' => [self::class, 'countRejectedRequests'],
-
-            // ═══════════════════════════════════════════════════
-            // CONSUMABLE
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(total\s+)?konsumable\s*$/i' => [self::class, 'countConsumables'],
             '/\bkonsumable\s+(stok\s+)?(rendah|habis|low)\b/i' => [self::class, 'lowStockConsumables'],
             '/\bdaftar\s+konsumable\s*$/i' => [self::class, 'listConsumables'],
             '/\bsiapa\s+(saja\s+)?(yang\s+)?pakai\s+(mouse|keyboard|kabel|flashdisk)/i' => [self::class, 'consumableUsers'],
 
-            // ═══════════════════════════════════════════════════
-            // CONSUMABLE TRANSACTION
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+transaksi\s+konsumable\b/i' => [self::class, 'countConsumableTransactions'],
             '/\bbarang\s+masuk\s+bulan\s+ini\b/i' => [self::class, 'sumConsumableIn'],
             '/\bbarang\s+keluar\s+bulan\s+ini\b/i' => [self::class, 'sumConsumableOut'],
-
-            // ═══════════════════════════════════════════════════
-            // USER
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(total\s+)?(user|pegawai|karyawan)\s*$/i' => [self::class, 'countUsers'],
             '/\bberapa\s+(user|pegawai)\s+(aktif|active)\s*$/i' => [self::class, 'countActiveUsers'],
             '/\bdaftar\s+(user|pegawai)\s+(aktif|active)\s*$/i' => [self::class, 'listActiveUsers'],
             '/\buser\s+(yang\s+)?(belum\s+)?pegang\s+aset\b/i' => [self::class, 'usersWithAssets'],
 
-            // ═══════════════════════════════════════════════════
-            // DEPARTMENT
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(departemen|department|divisi)\s*$/i' => [self::class, 'countDepartments'],
             '/\bdaftar\s+(departemen|department|divisi)\s*$/i' => [self::class, 'listDepartments'],
 
-            // ═══════════════════════════════════════════════════
-            // LOCATION
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(lokasi|location|ruangan|ruang)\s*$/i' => [self::class, 'countLocations'],
             '/\bdaftar\s+(lokasi|location|ruangan|ruang)\s*$/i' => [self::class, 'listLocations'],
-
-            // ═══════════════════════════════════════════════════
-            // VENDOR
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(vendor|supplier|penyedia)\s*$/i' => [self::class, 'countVendors'],
             '/\bdaftar\s+(vendor|supplier)\s*$/i' => [self::class, 'listVendors'],
             '/\b(biaya|cost)\s+sewa\s+(bulanan|per\s+bulan)\b/i' => [self::class, 'monthlyLeaseCost'],
             '/\bkontrak\s+(hampir\s+)?(habis|berakhir|expired)\b/i' => [self::class, 'expiringContracts'],
 
-            // ═══════════════════════════════════════════════════
-            // KNOWLEDGE
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(total\s+)?knowledge\s*$/i' => [self::class, 'countKnowledge'],
             '/\bberapa\s+(pending\s+)?(ai|knowledge)\s+pending\b/i' => [self::class, 'countPendingKnowledge'],
-
-            // ═══════════════════════════════════════════════════
-            // CHAT
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(total\s+)?chat\s*$/i' => [self::class, 'countChats'],
             '/\bberapa\s+chat\s+hari\s+ini\b/i' => [self::class, 'countChatsToday'],
             '/\btop\s+pertanyaan\b/i' => [self::class, 'topQuestions'],
-
-            // ═══════════════════════════════════════════════════
-            // ACTIVITY LOG
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(log|activity|aktivitas)\s*$/i' => [self::class, 'countActivities'],
             '/\b(log|aktivitas)\s+hari\s+ini\b/i' => [self::class, 'activitiesToday'],
             '/\b(log|aktivitas)\s+kemarin\b/i' => [self::class, 'activitiesYesterday'],
             '/\blogin\s+(terakhir|terbaru)\b/i' => [self::class, 'recentLogins'],
 
-            // ═══════════════════════════════════════════════════
-            // APP
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+(total\s+)?(app|aplikasi)\s*$/i' => [self::class, 'countApps'],
             '/\bberapa\s+(app|aplikasi)\s+aktif\s*$/i' => [self::class, 'countActiveApps'],
-
-            // ═══════════════════════════════════════════════════
-            // AGENT REGISTRY
-            // ═══════════════════════════════════════════════════
 
             '/\bberapa\s+(pending\s+)?agent\s*$/i' => [self::class, 'countPendingAgents'],
             '/\bberapa\s+(agent\s+)?token\s+aktif\b/i' => [self::class, 'countActiveTokens'],
             '/\bberapa\s+agent\s+online\b/i' => [self::class, 'countOnlineAgents'],
 
-            // ═══════════════════════════════════════════════════
-            // BACKUP
-            // ═══════════════════════════════════════════════════
-
             '/\bberapa\s+backup\s*$/i' => [self::class, 'countBackups'],
         ];
     }
 
-    // ═══════════════════════════════════════════════════════
-    // 🎯 HANDLERS BARU
-    // ═══════════════════════════════════════════════════════
 
-    /**
-     * Count aset berdasarkan kategori.
-     */
     public static function countAssetsByCategory(string $category): array
     {
         $count = Asset::whereHas('category', function ($q) use ($category) {
@@ -283,9 +157,7 @@ class QueryMapping
         return ["Ada **{$count}** {$label} terdaftar.", 'database'];
     }
 
-    /**
-     * Count aset berdasarkan kategori + status.
-     */
+
     public static function countAssetsByCategoryAndStatus(string $category, string $status): array
     {
         $count = Asset::where('status', $status)
@@ -314,27 +186,15 @@ class QueryMapping
         return ["Ada **{$count}** {$categoryLabel} dengan status **{$statusLabel}**.", 'database'];
     }
 
-    /**
-     * Count aset berdasarkan tahun pembelian.
-     * Ambil tahun + kategori (kalau ada) dari pesan.
-     */
+
     public static function countAssetsByYear(): array
     {
-        // Handler ini dipanggil dengan pesan mentah — perlu extract dari request
-        // Karena QueryMapping static, kita extract dari $_SERVER atau helper
-        // Cara paling aman: pakai request() helper (Laravel)
         $pesan = request()->input('message') ?? request()->input('pesan') ?? '';
-
-        // Fallback: kalau gak ada, ambil dari session
         if (empty($pesan)) {
             $pesan = session('last_message', '');
         }
-
-        // Extract tahun (4 digit 20xx)
         preg_match('/\b(20\d{2})\b/', $pesan, $yearMatch);
         $year = $yearMatch[1] ?? now()->year;
-
-        // Extract kategori (opsional)
         $category = null;
         foreach (['laptop', 'pc', 'komputer', 'printer', 'monitor', 'server'] as $cat) {
             if (preg_match('/\b' . $cat . '\b/i', $pesan)) {
@@ -358,10 +218,6 @@ class QueryMapping
 
         return ["Ada **{$count}**{$categoryLabel} yang dibeli tahun **{$year}**.", 'database'];
     }
-
-    // ═══════════════════════════════════════════════════════
-    // HANDLERS EXISTING (TIDAK DIUBAH)
-    // ═══════════════════════════════════════════════════════
 
     public static function totalAssets(): array
     {

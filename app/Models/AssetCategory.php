@@ -27,10 +27,6 @@ class AssetCategory extends Model
         ];
     }
 
-    // ============================================================
-    // RELASI
-    // ============================================================
-
     public function assets()
     {
         return $this->hasMany(Asset::class, 'category_id');
@@ -40,10 +36,6 @@ class AssetCategory extends Model
     {
         return $this->hasMany(Consumable::class, 'category_id');
     }
-
-    // ============================================================
-    // SCOPES
-    // ============================================================
 
     public function scopeActive($query)
     {
@@ -60,9 +52,7 @@ class AssetCategory extends Model
         return $query->where('is_consumable', false);
     }
 
-    /**
-     * Scope: kategori yang dimonitor agent (laptop, PC, server).
-     */
+
     public function scopeAgentMonitored($query)
     {
         return $query->where('is_agent_monitored', true);

@@ -112,10 +112,7 @@ class SettingController extends Controller
         );
     }
 
-    /**
-     * Bersihkan nomor: buang spasi, titik, tanda hubung.
-     * Format output: 628123456789,628987654321
-     */
+
     protected function cleanNumbers(string $input): string
     {
         $numbers = preg_split('/[\s,;]+/', $input);
@@ -212,9 +209,7 @@ class SettingController extends Controller
         }
     }
 
-    /**
-     * Terapkan config mail dari DB untuk request ini (dipakai sebelum test).
-     */
+
     protected function applyMailConfigFromSettings(): void
     {
         $transport = SettingsService::get('mail', 'transport', 'smtp');

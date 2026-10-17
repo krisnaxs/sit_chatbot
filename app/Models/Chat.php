@@ -26,9 +26,7 @@ class Chat extends Model
         'waktu' => 'datetime',
     ];
 
-    /**
-     * Deteksi kategori file dari MIME type
-     */
+
     public static function detectCategory(?string $mimeType): string
     {
         if (!$mimeType)
@@ -45,9 +43,7 @@ class Chat extends Model
         };
     }
 
-    /**
-     * Icon emoji untuk kategori
-     */
+
     public static function iconForCategory(string $category): string
     {
         return match ($category) {
@@ -61,25 +57,19 @@ class Chat extends Model
         };
     }
 
-    /**
-     * URL file publik (kolom lama).
-     */
+
     public function getFileUrlAttribute(): ?string
     {
         return $this->file_path ? asset('storage/' . $this->file_path) : null;
     }
 
-    /**
-     * Kategori file (dari kolom lama).
-     */
+
     public function getFileCategoryAttribute(): string
     {
         return self::detectCategory($this->file_type);
     }
 
-    /**
-     * Icon file (dari kolom lama).
-     */
+
     public function getFileIconAttribute(): string
     {
         return self::iconForCategory($this->file_category);

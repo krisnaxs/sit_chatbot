@@ -558,8 +558,8 @@
 
     <script>
         /* =========================================================
-                       SLIDE DATA
-                    ========================================================== */
+                               SLIDE DATA
+                            ========================================================== */
 
         const slidesKeys = @json($slidesKeys);
         const slideTitleEl = document.getElementById('slideHeading');
@@ -664,15 +664,7 @@
         const searchResults = document.getElementById('searchResults');
 
 
-        /**
-         * Cek apakah semua kata di `keyword` muncul sebagai
-         * kata utuh (atau awalan kata) di dalam `name`.
-         *
-         *  "email pln" vs "pln"       → true
-         *  "pln web"   vs "pln"       → true
-         *  "erp prod"  vs "pln"       → false
-         *  "erp prod"  vs "erp prod"  → true
-         */
+
         function matchWords(name, keyword) {
 
             const nameWords = name.split(/[\s\-_]+/).filter(Boolean);
@@ -688,12 +680,7 @@
 
             const keyword = (rawKeyword || '').toLowerCase().trim();
             const isSearching = keyword !== '';
-
-            // Toggle class `searching` di <body>
-            // → CSS yang atur visibility, JS cuma toggle
             document.body.classList.toggle('searching', isSearching);
-
-            // Bersihkan hasil lama
             searchResults.innerHTML = '';
 
             /* ---------- MODE NORMAL ---------- */

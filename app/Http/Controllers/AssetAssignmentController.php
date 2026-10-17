@@ -22,9 +22,7 @@ class AssetAssignmentController extends Controller
     ) {
     }
 
-    /**
-     * Daftar assignment dengan filter lengkap + summary statistik aset.
-     */
+
     public function index(Request $request)
     {
         $query = AssetAssignment::with([
@@ -156,9 +154,7 @@ class AssetAssignmentController extends Controller
         ));
     }
 
-    /**
-     * Form assign aset ke user.
-     */
+
     public function create(Request $request)
     {
         $asset = $request->filled('asset_id') ? Asset::find($request->asset_id) : null;
@@ -178,8 +174,6 @@ class AssetAssignmentController extends Controller
         $users = User::active()->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
         $departments = Department::active()->orderBy('name')->get();
-
-        // 🆕 Pejabat penandatangan (admin & support only)
         $penandatangan = User::active()
             ->whereIn('role', ['admin'])
             ->orderBy('name')
@@ -195,9 +189,7 @@ class AssetAssignmentController extends Controller
         ));
     }
 
-    /**
-     * Simpan assignment baru + opsional generate BAST.
-     */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -211,23 +203,17 @@ class AssetAssignmentController extends Controller
                 'nullable',
                 'string',
                 'max:100',
-                // 🆕 Rule::unique ignore asset yang sedang di-assign (biar bisa re-assign hostname yg sama ke aset yg sama)
                 Rule::unique('assets', 'hostname')->ignore($request->input('asset_id')),
             ],
             'notes' => 'nullable|string',
-
-            // 🆕 Data Berita Acara Serah Terima
             'buat_berita_acara' => 'nullable|boolean',
             'pihak_pertama_id' => 'required_if:buat_berita_acara,1|nullable|exists:users,id',
             'pihak_pertama_jabatan' => 'nullable|string|max:100',
             'pihak_pertama_nip' => 'nullable|string|max:30',
             'tempat_ba' => 'nullable|string|max:100',
         ], [
-            // 🆕 Pesan custom untuk hostname duplicate
             'hostname.unique' => 'Hostname ":input" sudah dipakai aset lain. Gunakan hostname lain.',
         ]);
-
-        // Validasi kondisional: hanya role admin/support yang bisa jadi pihak pertama
         if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
             $pihakPertama = User::find($validated['pihak_pertama_id']);
             if (!$pihakPertama || !in_array($pihakPertama->role, ['admin', 'support'])) {
@@ -235,8 +221,6 @@ class AssetAssignmentController extends Controller
                     ->with('error', 'Pihak Pertama harus Admin atau Support.');
             }
         }
-
-        // 🆕 PRE-VALIDATE HOSTNAME (extra safety sebelum transaksi)
         if (!empty($validated['hostname'])) {
             $conflict = Asset::where('hostname', $validated['hostname'])
                 ->where('id', '!=', $validated['asset_id'])
@@ -251,8 +235,6 @@ class AssetAssignmentController extends Controller
         try {
             $result = DB::transaction(function () use ($request, $validated) {
                 $asset = Asset::findOrFail($validated['asset_id']);
-
-                // Tutup assignment lama kalau ada
                 AssetAssignment::where('asset_id', $asset->id)
                     ->whereNull('returned_at')
                     ->update(['returned_at' => now()]);
@@ -278,8 +260,6 @@ class AssetAssignmentController extends Controller
                     $updateData['hostname'] = $validated['hostname'];
                 }
                 $asset->update($updateData);
-
-                // 🆕 Generate BAST
                 $ba = null;
                 if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
                     $pihakPertama = User::find($validated['pihak_pertama_id']);
@@ -298,7 +278,6 @@ class AssetAssignmentController extends Controller
                 return ['assignment' => $assignment, 'ba' => $ba];
             });
         } catch (UniqueConstraintViolationException $e) {
-            // 🆕 Catch duplicate hostname (dan constraint unik lain)
             return $this->handleDuplicateError($e, $validated['hostname'] ?? null);
         } catch (QueryException $e) {
             if (($e->errorInfo[1] ?? null) === 1062) {
@@ -323,9 +302,7 @@ class AssetAssignmentController extends Controller
             ->with('success', $message);
     }
 
-    /**
-     * Kembalikan aset ke kantor + opsional generate BAP.
-     */
+
     public function returnAsset(Request $request, AssetAssignment $assignment)
     {
         $validated = $request->validate([
@@ -335,12 +312,9 @@ class AssetAssignmentController extends Controller
                 'nullable',
                 'string',
                 'max:100',
-                // 🆕 Rule::unique ignore asset yang sedang dikembalikan
                 Rule::unique('assets', 'hostname')->ignore($assignment->asset_id),
             ],
             'notes' => 'nullable|string',
-
-            // 🆕 Data Berita Acara Pengembalian
             'buat_berita_acara' => 'nullable|boolean',
             'pihak_pertama_id' => 'required_if:buat_berita_acara,1|nullable|exists:users,id',
             'pihak_pertama_jabatan' => 'nullable|string|max:100',
@@ -349,13 +323,9 @@ class AssetAssignmentController extends Controller
         ], [
             'hostname.unique' => 'Hostname ":input" sudah dipakai aset lain. Gunakan hostname lain.',
         ]);
-
-        // Cegah double return
         if ($assignment->returned_at) {
             return back()->with('error', 'Aset ini sudah pernah dikembalikan.');
         }
-
-        // Validasi kondisional: pihak pertama harus admin/support
         if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
             $pihakPertama = User::find($validated['pihak_pertama_id']);
             if (!$pihakPertama || !in_array($pihakPertama->role, ['admin', 'support'])) {
@@ -363,8 +333,6 @@ class AssetAssignmentController extends Controller
                     ->with('error', 'Pihak Pertama harus Admin atau Support.');
             }
         }
-
-        // 🆕 PRE-VALIDATE HOSTNAME
         if (!empty($validated['hostname'])) {
             $conflict = Asset::where('hostname', $validated['hostname'])
                 ->where('id', '!=', $assignment->asset_id)
@@ -378,14 +346,11 @@ class AssetAssignmentController extends Controller
 
         try {
             $ba = DB::transaction(function () use ($request, $validated, $assignment) {
-                // 1. Update assignment
                 $assignment->update([
                     'returned_at' => $validated['returned_at'],
                     'condition_on_return' => $validated['condition_on_return'] ?? null,
                     'notes' => $validated['notes'] ?? $assignment->notes,
                 ]);
-
-                // 2. Update asset jadi available
                 $assetUpdateData = [
                     'status' => 'available',
                     'current_user_id' => null,
@@ -395,8 +360,6 @@ class AssetAssignmentController extends Controller
                     $assetUpdateData['hostname'] = $request->hostname;
                 }
                 $assignment->asset->update($assetUpdateData);
-
-                // 3. 🆕 Generate BAP
                 $ba = null;
                 if ($request->boolean('buat_berita_acara') && !empty($validated['pihak_pertama_id'])) {
                     $pihakPertama = User::find($validated['pihak_pertama_id']);
@@ -439,9 +402,7 @@ class AssetAssignmentController extends Controller
             ->with('success', $message);
     }
 
-    /**
-     * Hapus record assignment.
-     */
+
     public function destroy(AssetAssignment $assignment)
     {
         $assignment->delete();
@@ -451,15 +412,11 @@ class AssetAssignmentController extends Controller
             ->with('success', 'Record assignment dihapus.');
     }
 
-    /**
-     * 🆕 Handle duplicate constraint error → kembalikan pesan yang ramah.
-     */
+
     private function handleDuplicateError(\Throwable $e, ?string $hostname = null)
     {
         $message = $e->getMessage();
         $value = $hostname ?? 'tidak diketahui';
-
-        // Coba extract value & key dari pesan MySQL
         if (preg_match("/Duplicate entry '(.+?)' for key '(.+?)'/", $message, $m)) {
             $value = $m[1] ?? $value;
             $key = $m[2] ?? '';
