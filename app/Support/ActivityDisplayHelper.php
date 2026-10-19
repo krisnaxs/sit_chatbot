@@ -10,7 +10,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\Vendor;
 
-class ActivityDisplay
+class ActivityDisplayHelper
 {
 
     public static array $fieldLabels = [
