@@ -101,11 +101,7 @@ class AssetController extends Controller
         if (in_array($sortBy, $allowed)) {
             $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
         }
-<<<<<<< Updated upstream
-        $assets = $query->paginate($request->get('per_page', 50))->withQueryString();
-=======
         $assets = $query->paginate($request->get('per_page', 200))->withQueryString();
->>>>>>> Stashed changes
 
         $categories = AssetCategory::active()->where('is_consumable', false)->orderBy('name')->get();
         $locations = Location::active()->orderBy('full_name')->get();
