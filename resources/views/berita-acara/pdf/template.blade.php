@@ -7,15 +7,18 @@
     <title>{{ $ba->judul }}</title>
 
     <style>
-        /*
-        |--------------------------------------------------------------------------
-        | A4 - 1 PAGE
-        |--------------------------------------------------------------------------
-        */
+        /* =========================================================
+           A4
+           ========================================================= */
 
         @page {
             size: A4 portrait;
-            margin: 0;
+
+            /*
+             * Margin halaman langsung di @page.
+             * Jangan beri width 210mm pada body.
+             */
+            margin: 7mm 15mm 7mm 20mm;
         }
 
         * {
@@ -24,29 +27,26 @@
             box-sizing: border-box;
         }
 
-        html,
-        body {
-            width: 210mm;
-            height: 297mm;
+        html {
+            margin: 0;
+            padding: 0;
         }
 
         body {
+            margin: 0;
+            padding: 0;
+
             font-family: "Times New Roman", Times, serif;
             font-size: 9pt;
             line-height: 1.25;
-            color: #000;
 
-            /*
-             * Area aman halaman A4.
-             */
-            padding: 7mm 15mm 7mm 20mm;
+            color: #000;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | KOP SURAT
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           KOP SURAT
+           ========================================================= */
 
         .kop {
             width: 100%;
@@ -57,16 +57,17 @@
         .kop-table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
 
         .kop-table td {
             border: none;
-            vertical-align: top;
             padding: 0;
+            vertical-align: top;
         }
 
         .logo-cell {
-            padding: 0;
+            width: 100%;
         }
 
         .logo {
@@ -76,120 +77,151 @@
         }
 
         .unit-cell {
-            padding: 0;
-            padding-top: 0.5mm;
+            padding-top: 0.5mm !important;
         }
 
         .unit {
             width: 165px;
+
             text-align: center;
+
             font-family: Arial, Helvetica, sans-serif;
             font-size: 9pt;
             font-weight: bold;
-            line-height: 1.4;
+
+            line-height: 1.3;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | JUDUL
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           JUDUL
+           ========================================================= */
 
         .judul {
+            width: 100%;
+
             text-align: center;
+
             margin-top: 3mm;
             margin-bottom: 1mm;
+
             font-size: 11pt;
             font-weight: bold;
-            line-height: 1.25;
-        }
 
-        .nomor-ba {
-            text-align: center;
-            font-size: 9pt;
-            margin-bottom: 3mm;
-            color: #000;
             line-height: 1.2;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | PARAGRAF
-        |--------------------------------------------------------------------------
-        */
+        .nomor-ba {
+            width: 100%;
+
+            text-align: center;
+
+            font-size: 9pt;
+
+            margin-bottom: 3mm;
+
+            line-height: 1.2;
+        }
+
+
+        /* =========================================================
+           PARAGRAF
+           ========================================================= */
 
         .paragraf {
+            width: 100%;
+
             font-size: 9pt;
             line-height: 1.25;
+
             text-align: justify;
+
             margin-bottom: 1.5mm;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | PIHAK
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           PIHAK
+           ========================================================= */
 
         .pihak {
-            margin-left: 10mm;
+            width: 100%;
+
+            margin-left: 0;
             margin-bottom: 3mm;
         }
 
         .pihak-table {
             width: 100%;
+
             border-collapse: collapse;
+            table-layout: fixed;
         }
 
         .pihak-table td {
             border: none;
+
             padding: 0;
+
             vertical-align: top;
+
             font-size: 9pt;
             line-height: 1.05;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .pihak-table .label {
-            width: 23mm;
+            width: 12%;
         }
 
         .pihak-table .colon {
-            width: 3mm;
+            width: 3%;
         }
 
         .pihak-table .value {
-            width: auto;
+            width: 85%;
         }
 
         .pihak-sebutan {
             margin-top: 1.5mm;
+
             font-size: 9pt;
             line-height: 1.05;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | NARASI
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           NARASI
+           ========================================================= */
 
         .narasi {
-            margin-top: 3mm;
-            margin-bottom: 1mm;
+            width: 100%;
+
+            margin-top: 2mm;
+            margin-bottom: 1.5mm;
+
             font-size: 9pt;
             line-height: 1.25;
+
             text-align: justify;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | TABEL BARANG
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           TABEL BARANG
+           ========================================================= */
 
         .barang {
             width: 100%;
+            max-width: 100%;
+
             border-collapse: collapse;
+
             table-layout: fixed;
 
             margin-top: 1mm;
@@ -198,7 +230,6 @@
             font-size: 8.5pt;
 
             page-break-inside: avoid;
-            break-inside: avoid;
         }
 
         .barang th,
@@ -213,11 +244,14 @@
 
             word-wrap: break-word;
             overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         .barang th {
             text-align: center;
+
             font-weight: bold;
+
             height: 8mm;
         }
 
@@ -225,6 +259,9 @@
             text-align: center;
         }
 
+        /*
+         * Total = 100%
+         */
         .col-jenis {
             width: 16%;
         }
@@ -251,7 +288,8 @@
 
         .type-list {
             margin: 0;
-            padding-left: 3mm;
+
+            padding-left: 4mm;
 
             text-align: left;
 
@@ -261,59 +299,79 @@
         .type-list li {
             margin: 0;
             padding: 0;
+
             line-height: 1.15;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | PENUTUP
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           PENUTUP
+           ========================================================= */
 
         .penutup {
+            width: 100%;
+
             font-size: 9pt;
             line-height: 1.25;
+
             text-align: justify;
+
             margin-bottom: 1mm;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .kesepakatan {
+            width: 100%;
+
             font-size: 9pt;
             line-height: 1.25;
+
             text-align: justify;
+
             margin-top: 0;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | TANGGAL
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           TANGGAL
+           ========================================================= */
 
         .tanggal {
             width: 100%;
+
             text-align: right;
 
             font-size: 9pt;
             line-height: 1.2;
 
             margin-top: 3mm;
+
+            white-space: normal;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | TANDA TANGAN
-        |--------------------------------------------------------------------------
-        */
+
+        /* =========================================================
+           TANDA TANGAN
+           ========================================================= */
 
         .ttd {
             width: 100%;
+
             border-collapse: collapse;
+
+            table-layout: fixed;
 
             margin-top: 1mm;
 
             page-break-inside: avoid;
-            break-inside: avoid;
         }
 
         .ttd td {
@@ -321,23 +379,34 @@
 
             border: none;
 
+            padding: 0 3mm;
+
             text-align: center;
+
             vertical-align: top;
 
             font-size: 9pt;
             line-height: 1.1;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .ttd-jabatan {
-            font-weight: bold;
-            text-transform: uppercase;
             margin-top: 1mm;
+
+            font-weight: bold;
+
+            text-transform: uppercase;
+
+            line-height: 1.1;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         /*
          * Ruang tanda tangan.
-         *
-         * Diperkecil dari 24mm agar lebih aman 1 halaman.
          */
         .ttd-space {
             height: 16mm;
@@ -345,24 +414,17 @@
 
         .ttd-name {
             font-weight: bold;
-            white-space: nowrap;
+
+            white-space: normal;
+
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | FOOTER
-        |--------------------------------------------------------------------------
-        */
 
-        .footer {
-            display: none;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | ANTI PAGE BREAK
-        |--------------------------------------------------------------------------
-        */
+        /* =========================================================
+           ANTI PAGE BREAK
+           ========================================================= */
 
         .kop,
         .judul,
@@ -375,12 +437,23 @@
         .tanggal,
         .ttd {
             page-break-inside: avoid;
-            break-inside: avoid;
+        }
+
+
+        /* =========================================================
+           FOOTER
+           ========================================================= */
+
+        .footer {
+            display: none;
         }
     </style>
+
 </head>
 
+
 <body>
+
 
     {{-- =========================================================
          KOP SURAT
@@ -395,7 +468,9 @@
                 <td class="logo-cell">
 
                     @php
+
                         $logoPath = public_path('images/plnip.png');
+
                         $logoSrc = null;
 
                         if (file_exists($logoPath) && is_readable($logoPath)) {
@@ -403,7 +478,9 @@
 
                             $logoSrc = 'data:image/png;base64,' . $logoData;
                         }
+
                     @endphp
+
 
                     @if ($logoSrc)
                         <img src="{{ $logoSrc }}" class="logo" alt="PLN Indonesia Power">
@@ -412,6 +489,7 @@
                 </td>
 
             </tr>
+
 
             <tr>
 
@@ -435,11 +513,16 @@
          ========================================================= --}}
 
     <div class="judul">
+
         {{ strtoupper($ba->judul) }}
+
     </div>
 
+
     <div class="nomor-ba">
+
         Nomor: {{ $ba->nomor_ba }}
+
     </div>
 
 
@@ -482,6 +565,7 @@
 
             </tr>
 
+
             <tr>
 
                 <td class="label">
@@ -497,6 +581,7 @@
                 </td>
 
             </tr>
+
 
             <tr>
 
@@ -551,6 +636,7 @@
 
             </tr>
 
+
             <tr>
 
                 <td class="label">
@@ -566,6 +652,7 @@
                 </td>
 
             </tr>
+
 
             <tr>
 
@@ -687,9 +774,13 @@
         <colgroup>
 
             <col class="col-jenis">
+
             <col class="col-merk">
+
             <col class="col-type">
+
             <col class="col-lisensi">
+
             <col class="col-jumlah">
 
         </colgroup>
@@ -703,18 +794,22 @@
                     Jenis Peralatan
                 </th>
 
+
                 <th>
                     Merk
                 </th>
+
 
                 <th>
                     Type / Host / SN
                 </th>
 
+
                 <th>
                     Lisensi<br>
                     Office
                 </th>
+
 
                 <th>
                     Jumlah
@@ -854,6 +949,7 @@
             • Seluruh kelengkapan aset telah diperiksa dan sesuai
             dengan kondisi saat diserahkan.
 
+
             @if ($ba->notes)
                 <br>
 
@@ -887,17 +983,14 @@
         <tr>
 
             @if ($ba->jenis === 'serah_terima')
-                {{--
-                    BAST:
-                    Pihak Pertama = Yang Menyerahkan
-                    Pihak Kedua   = Yang Menerima
-                --}}
+                {{-- BAST --}}
 
                 <td>
 
                     <div>
                         Diserahkan Oleh,
                     </div>
+
 
                     <div class="ttd-jabatan">
 
@@ -914,6 +1007,7 @@
                         Diterima oleh,
                     </div>
 
+
                     <div class="ttd-jabatan">
 
                         {{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}
@@ -922,17 +1016,14 @@
 
                 </td>
             @else
-                {{--
-                    BAP:
-                    Pihak Pertama = Yang Menerima Kembali
-                    Pihak Kedua   = Yang Menyerahkan Kembali
-                --}}
+                {{-- BAP --}}
 
                 <td>
 
                     <div>
                         Diterima Oleh,
                     </div>
+
 
                     <div class="ttd-jabatan">
 
@@ -949,6 +1040,7 @@
                         Diserahkan oleh,
                     </div>
 
+
                     <div class="ttd-jabatan">
 
                         {{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}
@@ -961,7 +1053,9 @@
         </tr>
 
 
-        {{-- Ruang tanda tangan --}}
+        {{-- =====================================================
+             RUANG TANDA TANGAN
+             ===================================================== --}}
 
         <tr>
 
@@ -974,7 +1068,9 @@
         </tr>
 
 
-        {{-- Nama --}}
+        {{-- =====================================================
+             NAMA
+             ===================================================== --}}
 
         <tr>
 
