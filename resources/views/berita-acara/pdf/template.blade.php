@@ -7,9 +7,6 @@
     <title>{{ $ba->judul }}</title>
 
     <style>
-        /* =========================================================
-           A4 - 1 PAGE SETUP
-           ========================================================= */
         @page {
             size: A4 portrait;
             margin: 0;
@@ -18,28 +15,21 @@
         * {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            width: 210mm;
-            height: 297mm;
         }
 
         body {
             font-family: "Times New Roman", Times, serif;
-            font-size: 9pt;
-            line-height: 1.25;
+            font-size: 10pt;
+            line-height: 1.5;
             color: #000;
-
-            /* Margin Kanan dikurangi jadi 10mm agar tabel tidak kepotong */
-            padding: 7mm 10mm 7mm 20mm;
+            /* Padding dirapatkan sedikit (kiri 20mm) agar proporsional 1 halaman */
+            padding: 8mm 15mm 8mm 20mm;
         }
 
         /* =========================================================
-           KOP SURAT
-           ========================================================= */
+       KOP SURAT
+       ========================================================= */
+
         .kop {
             width: 100%;
             border-bottom: 1px solid #000;
@@ -57,8 +47,13 @@
             padding: 0;
         }
 
+        .logo-cell {
+            padding: 0;
+        }
+
         .logo {
-            width: 165px;
+            width: 180px;
+            /* Sedikit diperkecil agar hemat tinggi */
             height: auto;
             display: block;
         }
@@ -69,120 +64,129 @@
         }
 
         .unit {
-            width: 165px;
+            width: 180px;
             text-align: center;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 9pt;
+            font-size: 10pt;
             font-weight: bold;
-            line-height: 1.4;
+            line-height: 1.5;
+            /* Dirapatkan dari 2.1 */
         }
 
         /* =========================================================
-           JUDUL
-           ========================================================= */
+       JUDUL
+       ========================================================= */
+
         .judul {
             text-align: center;
             margin-top: 3mm;
+            /* Dari 5mm */
             margin-bottom: 1mm;
-            font-size: 11pt;
+            font-size: 12pt;
             font-weight: bold;
-            line-height: 1.25;
+            line-height: 1.5;
         }
 
         .nomor-ba {
             text-align: center;
-            font-size: 9pt;
+            font-size: 10pt;
             margin-bottom: 3mm;
+            /* Dari 5mm */
             color: #000;
-            line-height: 1.2;
         }
 
         /* =========================================================
-           PARAGRAF
-           ========================================================= */
+       PARAGRAF
+       ========================================================= */
+
         .paragraf {
-            font-size: 9pt;
-            line-height: 1.25;
+            font-size: 10pt;
+            line-height: 1.5;
             text-align: justify;
-            margin-bottom: 1.5mm;
+            margin-bottom: 2mm;
+        }
+
+        .paragraf:last-child {
+            margin-bottom: 0;
         }
 
         /* =========================================================
-           PIHAK
-           ========================================================= */
+       PIHAK
+       ========================================================= */
+
         .pihak {
-            margin-left: 5mm;
-            /* Dikurangi dari 10mm agar ruang teks lebih luas */
+            margin-left: 13mm;
             margin-bottom: 3mm;
+            /* Dari 5mm */
         }
 
         .pihak-table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
-            /* Mengunci lebar tabel */
         }
 
         .pihak-table td {
             border: none;
             padding: 0;
             vertical-align: top;
-            font-size: 9pt;
-            line-height: 1.15;
+            font-size: 10pt;
+            line-height: 1.2;
         }
 
         .pihak-table .label {
-            width: 23mm;
+            width: 25mm;
         }
 
         .pihak-table .colon {
-            width: 3mm;
+            width: 4mm;
         }
 
         .pihak-table .value {
             width: auto;
-            word-wrap: break-word;
-            /* Memaksa teks panjang turun ke bawah */
-            overflow-wrap: break-word;
         }
 
         .pihak-sebutan {
-            margin-top: 1.5mm;
-            font-size: 9pt;
-            line-height: 1.15;
+            margin-top: 2mm;
+            /* Dari 4mm */
+            font-size: 10pt;
+            line-height: 1.2;
         }
 
         /* =========================================================
-           NARASI
-           ========================================================= */
+       NARASI BARANG
+       ========================================================= */
+
         .narasi {
             margin-top: 3mm;
-            margin-bottom: 1mm;
-            font-size: 9pt;
-            line-height: 1.25;
+            /* Dari 5mm */
+            margin-bottom: 1.5mm;
+            font-size: 10pt;
+            line-height: 1.5;
             text-align: justify;
         }
 
         /* =========================================================
-           TABEL BARANG (PERBAIKAN AGAR TIDAK KEPOTONG)
-           ========================================================= */
+       TABEL BARANG
+       ========================================================= */
+
         .barang {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
             margin-top: 1mm;
-            margin-bottom: 3mm;
-            font-size: 8.5pt;
+            margin-bottom: 4mm;
+            /* Dari 6mm */
+            font-size: 10pt;
             page-break-inside: avoid;
-            break-inside: avoid;
         }
 
         .barang th,
         .barang td {
             border: 1px solid #000;
-            padding: 3px;
-            /* Padding diseragamkan agar tidak melebar */
+            padding: 3px 5px;
+            /* Dari 4px 7px */
             vertical-align: middle;
-            line-height: 1.15;
+            line-height: 1.25;
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
@@ -190,30 +194,31 @@
         .barang th {
             text-align: center;
             font-weight: bold;
+            height: 8mm;
+            /* Dari 11mm */
         }
 
         .barang td {
             text-align: center;
         }
 
-        /* Pembagian lebar kolom (Total 100%) */
-        .barang th:nth-child(1) {
+        .col-jenis {
             width: 16%;
         }
 
-        .barang th:nth-child(2) {
+        .col-merk {
             width: 14%;
         }
 
-        .barang th:nth-child(3) {
+        .col-type {
             width: 32%;
         }
 
-        .barang th:nth-child(4) {
+        .col-lisensi {
             width: 18%;
         }
 
-        .barang th:nth-child(5) {
+        .col-jumlah {
             width: 20%;
         }
 
@@ -223,7 +228,7 @@
 
         .type-list {
             margin: 0;
-            padding-left: 3mm;
+            padding-left: 4mm;
             text-align: left;
             list-style-type: disc;
         }
@@ -231,47 +236,49 @@
         .type-list li {
             margin: 0;
             padding: 0;
-            line-height: 1.15;
+            line-height: 1.25;
         }
 
         /* =========================================================
-           PENUTUP
-           ========================================================= */
+       PENUTUP
+       ========================================================= */
+
         .penutup {
-            font-size: 9pt;
-            line-height: 1.25;
+            font-size: 10pt;
+            line-height: 1.5;
             text-align: justify;
-            margin-bottom: 1mm;
+            margin-bottom: 1.5mm;
         }
 
         .kesepakatan {
-            font-size: 9pt;
-            line-height: 1.25;
+            font-size: 10pt;
+            line-height: 1.5;
             text-align: justify;
             margin-top: 0;
         }
 
         /* =========================================================
-           TANGGAL
-           ========================================================= */
+       TANGGAL
+       ========================================================= */
+
         .tanggal {
             width: 100%;
             text-align: right;
-            font-size: 9pt;
-            line-height: 1.2;
-            margin-top: 3mm;
+            font-size: 10pt;
+            line-height: 1.5;
+            margin-top: 5mm;
+            /* Dari 8mm */
         }
 
         /* =========================================================
-           TANDA TANGAN
-           ========================================================= */
+       TANDA TANGAN
+       ========================================================= */
+
         .ttd {
             width: 100%;
             border-collapse: collapse;
             margin-top: 1mm;
             page-break-inside: avoid;
-            break-inside: avoid;
-            table-layout: fixed;
         }
 
         .ttd td {
@@ -279,9 +286,11 @@
             border: none;
             text-align: center;
             vertical-align: top;
-            font-size: 9pt;
-            line-height: 1.1;
+            font-size: 10pt;
+            line-height: 1.25;
+            /* Tambahan anti-overflow teks jabatan panjang */
             word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .ttd-jabatan {
@@ -291,7 +300,8 @@
         }
 
         .ttd-space {
-            height: 16mm;
+            height: 20mm;
+            /* Dari 24mm, tetap cukup untuk TTD */
         }
 
         .ttd-name {
@@ -299,114 +309,164 @@
             white-space: nowrap;
         }
 
-        /* =========================================================
-           ANTI PAGE BREAK
-           ========================================================= */
-        .kop,
-        .judul,
-        .nomor-ba,
-        .pihak,
-        .narasi,
-        .barang,
-        .penutup,
-        .kesepakatan,
-        .tanggal,
-        .ttd {
-            page-break-inside: avoid;
-            break-inside: avoid;
+        .footer {
+            display: none;
         }
     </style>
 </head>
 
 <body>
 
-    {{-- KOP SURAT --}}
+    {{-- =========================================================
+         KOP SURAT
+         ========================================================= --}}
+
     <div class="kop">
+
         <table class="kop-table">
             <tr>
                 <td class="logo-cell">
+
                     @php
                         $logoPath = public_path('images/plnip.png');
                         $logoSrc = null;
+
                         if (file_exists($logoPath) && is_readable($logoPath)) {
                             $logoData = base64_encode(file_get_contents($logoPath));
                             $logoSrc = 'data:image/png;base64,' . $logoData;
                         }
                     @endphp
+
                     @if ($logoSrc)
                         <img src="{{ $logoSrc }}" class="logo" alt="PLN Indonesia Power">
                     @endif
+
                 </td>
             </tr>
+
             <tr>
                 <td class="unit-cell">
-                    <div class="unit">UBP SURALAYA</div>
+                    <div class="unit">
+                        UBP SURALAYA
+                    </div>
                 </td>
             </tr>
         </table>
+
     </div>
 
-    {{-- JUDUL --}}
-    <div class="judul">{{ strtoupper($ba->judul) }}</div>
-    <div class="nomor-ba">Nomor: {{ $ba->nomor_ba }}</div>
 
-    {{-- PEMBUKA --}}
+    {{-- =========================================================
+     JUDUL
+     ========================================================= --}}
+
+    <div class="judul">
+        {{ strtoupper($ba->judul) }}
+    </div>
+
+    <div class="nomor-ba">
+        Nomor: {{ $ba->nomor_ba }}
+    </div>
+
     <p class="paragraf">
-        Pada hari ini {{ $ba->tanggal_ba->translatedFormat('l') }},
-        tanggal {{ $ba->tanggal_ba->translatedFormat('d F Y') }}
-        kami yang bertanda tangan dibawah ini:
+        Pada hari Ini
+        {{ $ba->tanggal_ba->translatedFormat('l') }},
+        tanggal
+        {{ $ba->tanggal_ba->translatedFormat('d F Y') }}
+        kami yang bertanda tangan dibawah ini :
     </p>
 
-    {{-- PIHAK PERTAMA --}}
+
+    {{-- =========================================================
+         PIHAK PERTAMA
+         ========================================================= --}}
+
     <div class="pihak">
+
         <table class="pihak-table">
+
             <tr>
                 <td class="label">Nama</td>
                 <td class="colon">:</td>
-                <td class="value">{{ $ba->pihakPertama->name ?? '-' }}</td>
+                <td class="value">
+                    {{ $ba->pihakPertama->name ?? '-' }}
+                </td>
             </tr>
+
             <tr>
                 <td class="label">Nip</td>
                 <td class="colon">:</td>
-                <td class="value">{{ $ba->pihak_pertama_nip ?? '-' }}</td>
+                <td class="value">
+                    {{ $ba->pihak_pertama_nip ?? '-' }}
+                </td>
             </tr>
+
             <tr>
                 <td class="label">Jabatan</td>
                 <td class="colon">:</td>
-                <td class="value">{{ $ba->pihak_pertama_jabatan ?? '-' }}</td>
+                <td class="value">
+                    {{ $ba->pihak_pertama_jabatan ?? '-' }}
+                </td>
             </tr>
+
         </table>
+
         <div class="pihak-sebutan">
-            Selanjutnya disebut <strong>PIHAK PERTAMA</strong>
+            Selanjutnya disebut
+            <strong>PIHAK PERTAMA</strong>
         </div>
+
     </div>
 
-    {{-- PIHAK KEDUA --}}
+
+    {{-- =========================================================
+         PIHAK KEDUA
+         ========================================================= --}}
+
     <div class="pihak">
+
         <table class="pihak-table">
+
             <tr>
                 <td class="label">Nama</td>
                 <td class="colon">:</td>
-                <td class="value">{{ $ba->pihakKedua->name ?? '-' }}</td>
+                <td class="value">
+                    {{ $ba->pihakKedua->name ?? '-' }}
+                </td>
             </tr>
+
             <tr>
                 <td class="label">Nip</td>
                 <td class="colon">:</td>
-                <td class="value">{{ $ba->pihak_kedua_nip ?? '-' }}</td>
+                <td class="value">
+                    {{ $ba->pihak_kedua_nip ?? '-' }}
+                </td>
             </tr>
+
             <tr>
                 <td class="label">Jabatan</td>
                 <td class="colon">:</td>
-                <td class="value">{{ $ba->pihak_kedua_jabatan ?? '-' }}</td>
+                <td class="value">
+                    {{ $ba->pihak_kedua_jabatan ?? '-' }}
+                </td>
             </tr>
+
         </table>
+
         <div class="pihak-sebutan">
-            Selanjutnya disebut <strong>PIHAK KEDUA</strong>
+            Selanjutnya disebut
+            <strong>PIHAK KEDUA</strong>
         </div>
+
     </div>
 
-    {{-- NARASI --}}
+
+    {{-- =========================================================
+         NARASI
+         ========================================================= --}}
+
     <p class="narasi">
+
         @if ($ba->jenis === 'serah_terima')
             PIHAK PERTAMA menyerahkan barang kepada PIHAK KEDUA,
             dan PIHAK KEDUA menyatakan telah menerima barang
@@ -416,77 +476,161 @@
             PIHAK PERTAMA, dan PIHAK PERTAMA menyatakan telah
             menerima barang dari PIHAK KEDUA berupa:
         @endif
+
     </p>
 
-    {{-- DATA TABEL BARANG --}}
+
+    {{-- =========================================================
+         DATA TABEL BARANG
+         ========================================================= --}}
+
     @php
+
         $typeList = [];
+
         if ($ba->model) {
             $typeList[] = strtoupper($ba->model);
         }
+
         if ($ba->hostname) {
             $typeList[] = strtoupper($ba->hostname);
         }
+
         if ($ba->serial_number) {
             $typeList[] = strtoupper($ba->serial_number);
         }
 
         $lisensiText = '-';
+
         if (!empty($ba->detail_list)) {
             $lisensi = $ba->detail_list['lisensi_office'] ?? null;
+
             if ($lisensi) {
                 $lisensiText = $lisensi;
             } else {
                 $firstDetail = reset($ba->detail_list);
+
                 if ($firstDetail) {
                     $lisensiText = $firstDetail;
                 }
             }
         }
+
     @endphp
 
+
+    {{-- =========================================================
+         TABEL
+         ========================================================= --}}
+
     <table class="barang">
+
+        <colgroup>
+            <col class="col-jenis">
+            <col class="col-merk">
+            <col class="col-type">
+            <col class="col-lisensi">
+            <col class="col-jumlah">
+        </colgroup>
+
         <thead>
             <tr>
-                <th>Jenis Peralatan</th>
-                <th>Merk</th>
-                <th>Type / Host / SN</th>
-                <th>Lisensi<br>Office</th>
-                <th>Jumlah</th>
+
+                <th>
+                    Jenis Peralatan
+                </th>
+
+                <th>
+                    Merk
+                </th>
+
+                <th>
+                    Type / Host / SN
+                </th>
+
+                <th>
+                    Lisensi<br>
+                    Office
+                </th>
+
+                <th>
+                    Jumlah
+                </th>
+
             </tr>
         </thead>
+
         <tbody>
+
             <tr>
-                <td><strong>{{ $ba->kategori_aset }}</strong></td>
-                <td>{{ $ba->merk }}</td>
+
+                <td>
+                    <strong>
+                        {{ $ba->kategori_aset }}
+                    </strong>
+                </td>
+
+                <td>
+                    {{ $ba->merk }}
+                </td>
+
                 <td class="left">
+
                     @if (count($typeList) > 0)
+
                         <ul class="type-list">
+
                             @foreach ($typeList as $item)
-                                <li>{{ $item }}</li>
+                                <li>
+                                    {{ $item }}
+                                </li>
                             @endforeach
+
                         </ul>
                     @else
                         -
+
                     @endif
+
                 </td>
-                <td>{{ $lisensiText }}</td>
-                <td>{{ $ba->jumlah }} Unit</td>
+
+                <td>
+                    {{ $lisensiText }}
+                </td>
+
+                <td>
+                    {{ $ba->jumlah }} Unit
+                </td>
+
             </tr>
+
         </tbody>
+
     </table>
 
-    {{-- PENUTUP --}}
+
+    {{-- =========================================================
+         PENUTUP
+         ========================================================= --}}
+
     @if ($ba->jenis === 'serah_terima')
+
         <p class="penutup">
-            Demikianlah berita acara serah terima barang ini
-            diperbuat oleh kedua belah pihak, adapun barang-barang
+
+            Demikianlah berita acara serah terima barang ini di
+            perbuat oleh kedua belah pihak, adapun barang-barang
             tersebut dalam keadaan baik dan cukup, sejak
             penandatanganan berita acara ini, maka barang tersebut,
             menjadi tanggung jawab PIHAK KEDUA.
-            <strong>Dengan Kesepakatan Penggunaan Peralatan:</strong>
+
+            <strong>
+                Dengan Kesepakatan Penggunaan Peralatan:
+            </strong>
+
         </p>
+
         <p class="kesepakatan">
+
             Selama PIHAK KEDUA menggunakan fasilitas peralatan kerja
             ini, PIHAK KEDUA akan mengikuti ketentuan dan aturan
             yang ada di perusahaan. PIHAK KEDUA akan menjaga,
@@ -499,67 +643,137 @@
             KEDUA melanggar kesepakatan ini, maka PIHAK KEDUA
             bersedia mendapat sanksi sesuai ketentuan yang berlaku
             di perusahaan.
+
         </p>
     @else
         <p class="penutup">
+
             Demikianlah berita acara pengembalian barang ini
             diperbuat oleh kedua belah pihak, adapun barang-barang
             tersebut telah dikembalikan dengan kondisi sebagaimana
             tercatat. Sejak penandatanganan berita acara ini,
             tanggung jawab barang berpindah dari PIHAK KEDUA
             kepada PIHAK PERTAMA.
+
         </p>
+
         <div class="kesepakatan">
-            <strong>Catatan Kondisi Pengembalian:</strong><br>
-            • Kondisi aset saat dikembalikan: <strong>{{ $ba->condition_percent ?? 100 }}%</strong><br>
-            • Seluruh kelengkapan aset telah diperiksa dan sesuai dengan kondisi saat diserahkan.
+
+            <strong>Catatan Kondisi Pengembalian:</strong>
+
+            <br>
+
+            • Kondisi aset saat dikembalikan:
+            <strong>{{ $ba->condition_percent ?? 100 }}%</strong>
+
+            <br>
+
+            • Seluruh kelengkapan aset telah diperiksa dan sesuai
+            dengan kondisi saat diserahkan.
+
             @if ($ba->notes)
-                <br>• Catatan: {{ $ba->notes }}
+                <br>
+
+                • Catatan:
+                {{ $ba->notes }}
             @endif
+
         </div>
+
     @endif
 
-    {{-- TANGGAL --}}
-    <div class="tanggal">
-        {{ $ba->tempat_ba }}, {{ $ba->tanggal_ba->translatedFormat('d F Y') }}
-    </div>
 
-    {{-- TANDA TANGAN --}}
+    {{-- =========================================================
+         TANGGAL
+         ========================================================= --}}
+
+    <div class="tanggal">
+        {{ $ba->tempat_ba }},
+        {{ $ba->tanggal_ba->translatedFormat('d F Y') }}
+    </div>
+    <!-- HAPUS TAG <br> DI SINI KARENA SUDAH ADA MARGIN -->
+
+
+    {{-- =========================================================
+         TANDA TANGAN
+         ========================================================= --}}
+
     <table class="ttd">
+
         <tr>
+
             @if ($ba->jenis === 'serah_terima')
+                {{-- BAST: Pihak Pertama = Yang Menyerahkan (admin), Pihak Kedua = Yang Menerima (user) --}}
                 <td>
-                    <div>Diserahkan Oleh,</div>
-                    <div class="ttd-jabatan">{{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}</div>
+                    <div>
+                        Diserahkan Oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}
+                    </div>
                 </td>
+
                 <td>
-                    <div>Diterima oleh,</div>
-                    <div class="ttd-jabatan">{{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}</div>
+                    <div>
+                        Diterima oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}
+                    </div>
                 </td>
             @else
+                {{-- BAP: Pihak Pertama = Yang Menerima Kembali (admin), Pihak Kedua = Yang Menyerahkan Kembali (user) --}}
                 <td>
-                    <div>Diterima Oleh,</div>
-                    <div class="ttd-jabatan">{{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}</div>
+                    <div>
+                        Diterima Oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}
+                    </div>
                 </td>
+
                 <td>
-                    <div>Diserahkan oleh,</div>
-                    <div class="ttd-jabatan">{{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}</div>
+                    <div>
+                        Diserahkan oleh,
+                    </div>
+                    <div class="ttd-jabatan">
+                        {{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}
+                    </div>
                 </td>
             @endif
+
         </tr>
+
+
         <tr>
+
             <td colspan="2">
                 <div class="ttd-space"></div>
             </td>
+
         </tr>
+
+
         <tr>
+
             <td>
-                <div class="ttd-name">( {{ $ba->pihakPertama->name ?? '-' }} )</div>
+
+                <div class="ttd-name">
+                    ( {{ $ba->pihakPertama->name ?? '-' }} )
+                </div>
+
             </td>
+
             <td>
-                <div class="ttd-name">( {{ $ba->pihakKedua->name ?? '-' }} )</div>
+
+                <div class="ttd-name">
+                    ( {{ $ba->pihakKedua->name ?? '-' }} )
+                </div>
+
             </td>
+
         </tr>
+
     </table>
 
 </body>
