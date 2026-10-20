@@ -3,12 +3,11 @@
 
 <head>
     <meta charset="utf-8">
-
     <title>{{ $ba->judul }}</title>
 
     <style>
         /* =========================================================
-           PAGE SETUP — margin di sini, bukan di body
+           PAGE & WRAPPER — tinggi fix A4, padding di sini
            ========================================================= */
         @page {
             size: A4 portrait;
@@ -29,22 +28,17 @@
 
         body {
             font-family: "Times New Roman", Times, serif;
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.35;
             color: #000;
-            background: #fff;
         }
 
-        /* =========================================================
-           WRAPPER 1 HALAMAN — tinggi fix A4, padding di sini
-           ========================================================= */
         .page {
             width: 210mm;
             height: 297mm;
             padding: 10mm 20mm 10mm 25mm;
             overflow: hidden;
             page-break-after: avoid;
-            page-break-inside: avoid;
         }
 
         /* =========================================================
@@ -67,12 +61,8 @@
             padding: 0;
         }
 
-        .logo-cell {
-            padding: 0;
-        }
-
         .logo {
-            width: 180px;
+            width: 200px;
             height: auto;
             display: block;
         }
@@ -83,10 +73,10 @@
         }
 
         .unit {
-            width: 180px;
+            width: 200px;
             text-align: center;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 9.5pt;
+            font-size: 10pt;
             font-weight: bold;
             line-height: 1.8;
         }
@@ -98,14 +88,14 @@
             text-align: center;
             margin-top: 3mm;
             margin-bottom: 1mm;
-            font-size: 11.5pt;
+            font-size: 12pt;
             font-weight: bold;
             line-height: 1.3;
         }
 
         .nomor-ba {
             text-align: center;
-            font-size: 9.5pt;
+            font-size: 10pt;
             margin-bottom: 3mm;
             color: #000;
         }
@@ -114,21 +104,17 @@
            PARAGRAF
            ========================================================= */
         .paragraf {
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.35;
             text-align: justify;
             margin-bottom: 1.5mm;
-        }
-
-        .paragraf:last-child {
-            margin-bottom: 0;
         }
 
         /* =========================================================
            PIHAK
            ========================================================= */
         .pihak {
-            margin-left: 12mm;
+            margin-left: 13mm;
             margin-bottom: 2.5mm;
         }
 
@@ -141,16 +127,16 @@
             border: none;
             padding: 0;
             vertical-align: top;
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.2;
         }
 
         .pihak-table .label {
-            width: 22mm;
+            width: 25mm;
         }
 
         .pihak-table .colon {
-            width: 3mm;
+            width: 4mm;
         }
 
         .pihak-table .value {
@@ -159,17 +145,17 @@
 
         .pihak-sebutan {
             margin-top: 1.5mm;
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.2;
         }
 
         /* =========================================================
-           NARASI BARANG
+           NARASI
            ========================================================= */
         .narasi {
             margin-top: 2.5mm;
             margin-bottom: 1.5mm;
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.35;
             text-align: justify;
         }
@@ -183,7 +169,8 @@
             table-layout: fixed;
             margin-top: 1mm;
             margin-bottom: 3mm;
-            font-size: 9.5pt;
+            font-size: 10pt;
+            page-break-inside: avoid;
         }
 
         .barang th,
@@ -248,7 +235,7 @@
            ========================================================= */
         .penutup,
         .kesepakatan {
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.35;
             text-align: justify;
             margin-bottom: 1mm;
@@ -264,7 +251,7 @@
         .tanggal {
             width: 100%;
             text-align: right;
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.35;
             margin-top: 4mm;
         }
@@ -276,6 +263,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 1mm;
+            page-break-inside: avoid;
         }
 
         .ttd td {
@@ -283,7 +271,7 @@
             border: none;
             text-align: center;
             vertical-align: top;
-            font-size: 9.5pt;
+            font-size: 10pt;
             line-height: 1.2;
         }
 
@@ -293,6 +281,7 @@
             margin-top: 0.5mm;
         }
 
+        /* 24mm → 16mm, tapi masih cukup untuk tanda tangan */
         .ttd-space {
             height: 16mm;
         }
@@ -312,52 +301,35 @@
 
     <div class="page">
 
-        {{-- =========================================================
-             KOP SURAT
-             ========================================================= --}}
+        {{-- ================= KOP SURAT ================= --}}
         <div class="kop">
             <table class="kop-table">
                 <tr>
                     <td class="logo-cell">
-
                         @php
                             $logoPath = public_path('images/plnip.png');
                             $logoSrc = null;
-
                             if (file_exists($logoPath) && is_readable($logoPath)) {
                                 $logoData = base64_encode(file_get_contents($logoPath));
                                 $logoSrc = 'data:image/png;base64,' . $logoData;
                             }
                         @endphp
-
                         @if ($logoSrc)
                             <img src="{{ $logoSrc }}" class="logo" alt="PLN Indonesia Power">
                         @endif
-
                     </td>
                 </tr>
-
                 <tr>
                     <td class="unit-cell">
-                        <div class="unit">
-                            UBP SURALAYA
-                        </div>
+                        <div class="unit">UBP SURALAYA</div>
                     </td>
                 </tr>
             </table>
         </div>
 
-
-        {{-- =========================================================
-             JUDUL
-             ========================================================= --}}
-        <div class="judul">
-            {{ \Illuminate\Support\Str::limit(strtoupper($ba->judul), 90) }}
-        </div>
-
-        <div class="nomor-ba">
-            Nomor: {{ $ba->nomor_ba }}
-        </div>
+        {{-- ================= JUDUL ================= --}}
+        <div class="judul">{{ strtoupper($ba->judul) }}</div>
+        <div class="nomor-ba">Nomor: {{ $ba->nomor_ba }}</div>
 
         <p class="paragraf">
             Pada hari Ini
@@ -367,10 +339,7 @@
             kami yang bertanda tangan dibawah ini :
         </p>
 
-
-        {{-- =========================================================
-             PIHAK PERTAMA
-             ========================================================= --}}
+        {{-- ================= PIHAK PERTAMA ================= --}}
         <div class="pihak">
             <table class="pihak-table">
                 <tr>
@@ -389,16 +358,12 @@
                     <td class="value">{{ $ba->pihak_pertama_jabatan ?? '-' }}</td>
                 </tr>
             </table>
-
             <div class="pihak-sebutan">
                 Selanjutnya disebut <strong>PIHAK PERTAMA</strong>
             </div>
         </div>
 
-
-        {{-- =========================================================
-             PIHAK KEDUA
-             ========================================================= --}}
+        {{-- ================= PIHAK KEDUA ================= --}}
         <div class="pihak">
             <table class="pihak-table">
                 <tr>
@@ -417,16 +382,12 @@
                     <td class="value">{{ $ba->pihak_kedua_jabatan ?? '-' }}</td>
                 </tr>
             </table>
-
             <div class="pihak-sebutan">
                 Selanjutnya disebut <strong>PIHAK KEDUA</strong>
             </div>
         </div>
 
-
-        {{-- =========================================================
-             NARASI
-             ========================================================= --}}
+        {{-- ================= NARASI ================= --}}
         <p class="narasi">
             @if ($ba->jenis === 'serah_terima')
                 PIHAK PERTAMA menyerahkan barang kepada PIHAK KEDUA,
@@ -439,43 +400,33 @@
             @endif
         </p>
 
-
-        {{-- =========================================================
-             DATA TABEL BARANG
-             ========================================================= --}}
+        {{-- ================= DATA TABEL ================= --}}
         @php
             $typeList = [];
-
             if ($ba->model) {
-                $typeList[] = strtoupper(\Illuminate\Support\Str::limit($ba->model, 40));
+                $typeList[] = strtoupper($ba->model);
             }
             if ($ba->hostname) {
-                $typeList[] = strtoupper(\Illuminate\Support\Str::limit($ba->hostname, 40));
+                $typeList[] = strtoupper($ba->hostname);
             }
             if ($ba->serial_number) {
-                $typeList[] = strtoupper(\Illuminate\Support\Str::limit($ba->serial_number, 40));
+                $typeList[] = strtoupper($ba->serial_number);
             }
 
             $lisensiText = '-';
-
             if (!empty($ba->detail_list)) {
                 $lisensi = $ba->detail_list['lisensi_office'] ?? null;
-
                 if ($lisensi) {
-                    $lisensiText = \Illuminate\Support\Str::limit($lisensi, 25);
+                    $lisensiText = $lisensi;
                 } else {
                     $firstDetail = reset($ba->detail_list);
                     if ($firstDetail) {
-                        $lisensiText = \Illuminate\Support\Str::limit($firstDetail, 25);
+                        $lisensiText = $firstDetail;
                     }
                 }
             }
         @endphp
 
-
-        {{-- =========================================================
-             TABEL
-             ========================================================= --}}
         <table class="barang">
             <colgroup>
                 <col class="col-jenis">
@@ -484,7 +435,6 @@
                 <col class="col-lisensi">
                 <col class="col-jumlah">
             </colgroup>
-
             <thead>
                 <tr>
                     <th>Jenis Peralatan</th>
@@ -494,7 +444,6 @@
                     <th>Jumlah</th>
                 </tr>
             </thead>
-
             <tbody>
                 <tr>
                     <td><strong>{{ $ba->kategori_aset }}</strong></td>
@@ -516,10 +465,7 @@
             </tbody>
         </table>
 
-
-        {{-- =========================================================
-             PENUTUP
-             ========================================================= --}}
+        {{-- ================= PENUTUP ================= --}}
         @if ($ba->jenis === 'serah_terima')
             <p class="penutup">
                 Demikianlah berita acara serah terima barang ini di
@@ -529,7 +475,6 @@
                 menjadi tanggung jawab PIHAK KEDUA.
                 <strong>Dengan Kesepakatan Penggunaan Peralatan:</strong>
             </p>
-
             <p class="kesepakatan">
                 Selama PIHAK KEDUA menggunakan fasilitas peralatan kerja
                 ini, PIHAK KEDUA akan mengikuti ketentuan dan aturan
@@ -553,81 +498,59 @@
                 tanggung jawab barang berpindah dari PIHAK KEDUA
                 kepada PIHAK PERTAMA.
             </p>
-
             <div class="kesepakatan">
                 <strong>Catatan Kondisi Pengembalian:</strong><br>
                 • Kondisi aset saat dikembalikan:
                 <strong>{{ $ba->condition_percent ?? 100 }}%</strong><br>
                 • Seluruh kelengkapan aset telah diperiksa dan sesuai
                 dengan kondisi saat diserahkan.
-
                 @if ($ba->notes)
                     <br>
-                    • Catatan: {{ \Illuminate\Support\Str::limit($ba->notes, 120) }}
+                    • Catatan: {{ $ba->notes }}
                 @endif
             </div>
         @endif
 
-
-        {{-- =========================================================
-             TANGGAL
-             ========================================================= --}}
+        {{-- ================= TANGGAL ================= --}}
         <div class="tanggal">
-            {{ \Illuminate\Support\Str::limit($ba->tempat_ba, 25) }},
+            {{ $ba->tempat_ba }},
             {{ $ba->tanggal_ba->translatedFormat('d F Y') }}
         </div>
 
-
-        {{-- =========================================================
-             TANDA TANGAN
-             ========================================================= --}}
+        {{-- ================= TANDA TANGAN ================= --}}
         <table class="ttd">
             <tr>
                 @if ($ba->jenis === 'serah_terima')
                     <td>
                         <div>Diserahkan Oleh,</div>
-                        <div class="ttd-jabatan">
-                            {{ \Illuminate\Support\Str::limit($ba->pihak_pertama_jabatan ?? 'PEJABAT', 30) }}
-                        </div>
+                        <div class="ttd-jabatan">{{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}</div>
                     </td>
                     <td>
                         <div>Diterima oleh,</div>
-                        <div class="ttd-jabatan">
-                            {{ \Illuminate\Support\Str::limit($ba->pihak_kedua_jabatan ?? 'PEGAWAI', 30) }}
-                        </div>
+                        <div class="ttd-jabatan">{{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}</div>
                     </td>
                 @else
                     <td>
                         <div>Diterima Oleh,</div>
-                        <div class="ttd-jabatan">
-                            {{ \Illuminate\Support\Str::limit($ba->pihak_pertama_jabatan ?? 'PEJABAT', 30) }}
-                        </div>
+                        <div class="ttd-jabatan">{{ $ba->pihak_pertama_jabatan ?? 'PEJABAT' }}</div>
                     </td>
                     <td>
                         <div>Diserahkan oleh,</div>
-                        <div class="ttd-jabatan">
-                            {{ \Illuminate\Support\Str::limit($ba->pihak_kedua_jabatan ?? 'PEGAWAI', 30) }}
-                        </div>
+                        <div class="ttd-jabatan">{{ $ba->pihak_kedua_jabatan ?? 'PEGAWAI' }}</div>
                     </td>
                 @endif
             </tr>
-
             <tr>
                 <td colspan="2">
                     <div class="ttd-space"></div>
                 </td>
             </tr>
-
             <tr>
                 <td>
-                    <div class="ttd-name">
-                        ( {{ $ba->pihakPertama->name ?? '-' }} )
-                    </div>
+                    <div class="ttd-name">( {{ $ba->pihakPertama->name ?? '-' }} )</div>
                 </td>
                 <td>
-                    <div class="ttd-name">
-                        ( {{ $ba->pihakKedua->name ?? '-' }} )
-                    </div>
+                    <div class="ttd-name">( {{ $ba->pihakKedua->name ?? '-' }} )</div>
                 </td>
             </tr>
         </table>
