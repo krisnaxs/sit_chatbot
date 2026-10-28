@@ -486,6 +486,10 @@
 
     @php
 
+        // ✅ FIX: simpan detail_list ke variabel lokal (array biasa)
+        // agar reset() tidak memicu "Indirect modification of overloaded property"
+        $detailList = $ba->detail_list ?? [];
+
         $typeList = [];
 
         if ($ba->model) {
@@ -502,13 +506,14 @@
 
         $lisensiText = '-';
 
-        if (!empty($ba->detail_list)) {
-            $lisensi = $ba->detail_list['lisensi_office'] ?? null;
+        if (!empty($detailList)) {
+            $lisensi = $detailList['lisensi_office'] ?? null;
 
             if ($lisensi) {
                 $lisensiText = $lisensi;
             } else {
-                $firstDetail = reset($ba->detail_list);
+                // ✅ aman: reset() dipanggil pada variabel lokal, bukan properti model
+                $firstDetail = reset($detailList);
 
                 if ($firstDetail) {
                     $lisensiText = $firstDetail;
