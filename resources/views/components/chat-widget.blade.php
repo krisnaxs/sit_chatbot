@@ -435,12 +435,17 @@
                     this.$nextTick(() => this.scrollToBottom());
 
                     try {
+                        const token = document.querySelector('meta[name="csrf-token"]')?.content ??
+                            '{{ csrf_token() }}';
+
                         const res = await fetch("{{ route('chat.send') }}", {
                             method: 'POST',
+                            credentials: 'same-origin',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Accept': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-CSRF-TOKEN': token,
+                                'X-Requested-With': 'XMLHttpRequest',
                             },
                             body: JSON.stringify({
                                 pesan: text
