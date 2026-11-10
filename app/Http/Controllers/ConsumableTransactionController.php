@@ -51,7 +51,15 @@ class ConsumableTransactionController extends Controller
             ->withQueryString();
 
         $consumables = Consumable::orderBy('name')->get();
+
+        // User aktif tetap di-load untuk fallback / kebutuhan lain,
+        // tapi tidak lagi dipakai sebagai dropdown di view.
         $users = User::active()->orderBy('name')->get();
+
+        // Untuk mengisi input search autocomplete setelah filter / reload.
+        $selectedUser = $request->filled('user_id')
+            ? User::find($request->get('user_id'))
+            : null;
 
         $stats = [
             'total_in' => ConsumableTransaction::in()->sum('quantity'),
@@ -63,6 +71,7 @@ class ConsumableTransactionController extends Controller
             'transactions',
             'consumables',
             'users',
+            'selectedUser',
             'stats'
         ));
     }
@@ -88,7 +97,7 @@ class ConsumableTransactionController extends Controller
             'users',
             'locations',
             'assets',
-            'defaultType'   //
+            'defaultType'
         ));
     }
 

@@ -83,7 +83,7 @@
 
             {{-- FILTER --}}
             <div class="bg-white rounded-lg shadow p-4">
-                <form method="GET" action="{{ route('siam.consumable-transactions.index') }}"
+                <form id="filterForm" method="GET" action="{{ route('siam.consumable-transactions.index') }}"
                     class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Item</label>
@@ -105,16 +105,64 @@
                             <option value="return" @selected(request('type') === 'return')>Kembali</option>
                         </select>
                     </div>
-                    <div>
+
+                    {{-- USER SEARCH AUTOCOMPLETE --}}
+                    <div class="relative" @click.away="showUserList = false">
                         <label class="block text-xs text-gray-500 mb-1">User</label>
-                        <select name="user_id" data-auto-submit class="w-full border rounded-lg px-3 py-2 text-sm">
-                            <option value="">Semua</option>
-                            @foreach ($users as $u)
-                                <option value="{{ $u->id }}" @selected(request('user_id') == $u->id)>{{ $u->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <input type="text" x-model="userSearch" @input.debounce.300ms="searchUsers()"
+                            @focus="if (userSearch.length >= 2) { showUserList = true; }" placeholder="Ketik nama user..."
+                            autocomplete="off" class="w-full border rounded-lg px-3 py-2 text-sm pr-8">
+
+                        {{-- Hidden input untuk nilai yang dikirim ke server --}}
+                        <input type="hidden" name="user_id" :value="selectedUserId">
+
+                        {{-- Clear button --}}
+                        <button type="button" x-show="userSearch.length > 0" @click="clearUser()"
+                            class="absolute right-2 top-8 text-gray-400 hover:text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        {{-- Dropdown hasil --}}
+                        <div x-show="showUserList && userResults.length > 0" x-cloak
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            <template x-for="user in userResults" :key="user.id">
+                                <div @click="selectUser(user)"
+                                    class="px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 shrink-0"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <span x-text="user.name"></span>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- No result --}}
+                        <div x-show="showUserList && !userLoading && userSearch.length >= 2 && userResults.length === 0"
+                            x-cloak
+                            class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-500">
+                            User tidak ditemukan
+                        </div>
+
+                        {{-- Loading indicator --}}
+                        <div x-show="userLoading" x-cloak class="absolute right-8 top-8">
+                            <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg"
+                                fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                        </div>
                     </div>
+
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Dari Tanggal</label>
                         <input type="date" name="date_from" value="{{ request('date_from') }}"
@@ -464,6 +512,50 @@
                 showModal: false,
                 showDeleteModal: false,
                 selected: null,
+
+                // === User autocomplete ===
+                userSearch: @json($selectedUser?->name ?? ''),
+                selectedUserId: @json((string) request('user_id', '')),
+                userResults: [],
+                showUserList: false,
+                userLoading: false,
+
+                async searchUsers() {
+                    if (this.userSearch.length < 2) {
+                        this.userResults = [];
+                        this.showUserList = false;
+                        return;
+                    }
+                    this.userLoading = true;
+                    try {
+                        const res = await fetch(
+                            `{{ route('siam.users.search') }}?q=${encodeURIComponent(this.userSearch)}`);
+                        const data = await res.json();
+                        this.userResults = data;
+                        this.showUserList = true;
+                    } catch (e) {
+                        console.error('Search user error:', e);
+                        this.userResults = [];
+                    } finally {
+                        this.userLoading = false;
+                    }
+                },
+
+                selectUser(user) {
+                    this.selectedUserId = String(user.id);
+                    this.userSearch = user.name;
+                    this.showUserList = false;
+                    this.$nextTick(() => {
+                        document.getElementById('filterForm').submit();
+                    });
+                },
+
+                clearUser() {
+                    this.userSearch = '';
+                    this.selectedUserId = '';
+                    this.userResults = [];
+                    this.showUserList = false;
+                },
 
                 openModal(data) {
                     this.selected = data;
