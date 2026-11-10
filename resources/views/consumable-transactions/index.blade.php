@@ -107,13 +107,13 @@
                     </div>
 
                     {{-- USER SEARCH AUTOCOMPLETE --}}
-                    <div class="relative" @click.away="showUserList = false">
+                    <div class="relative">
                         <label class="block text-xs text-gray-500 mb-1">User</label>
-                        <input type="text" x-model="userSearch" @input.debounce.300ms="searchUsers()"
-                            @focus="if (userSearch.length >= 2) { showUserList = true; }" placeholder="Ketik nama user..."
-                            autocomplete="off" class="w-full border rounded-lg px-3 py-2 text-sm pr-8">
+                        <input type="text" x-model="userSearch" @input="filterUsers()" @focus="showUserList = true"
+                            @click.away="showUserList = false" placeholder="Ketik nama user..." autocomplete="off"
+                            class="w-full border rounded-lg px-3 py-2 text-sm pr-8">
 
-                        {{-- Hidden input untuk nilai yang dikirim ke server --}}
+                        {{-- Hidden input: dikirim ke server saat submit --}}
                         <input type="hidden" name="user_id" :value="selectedUserId">
 
                         {{-- Clear button --}}
@@ -125,13 +125,13 @@
                             </svg>
                         </button>
 
-                        {{-- Dropdown hasil --}}
-                        <div x-show="showUserList && userResults.length > 0" x-cloak
+                        {{-- Dropdown hasil filter --}}
+                        <div x-show="showUserList && filteredUsers.length > 0" x-cloak
                             x-transition:enter="transition ease-out duration-150"
                             x-transition:enter-start="opacity-0 -translate-y-1"
                             x-transition:enter-end="opacity-100 translate-y-0"
                             class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                            <template x-for="user in userResults" :key="user.id">
+                            <template x-for="user in filteredUsers" :key="user.id">
                                 <div @click="selectUser(user)"
                                     class="px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 shrink-0"
@@ -145,21 +145,9 @@
                         </div>
 
                         {{-- No result --}}
-                        <div x-show="showUserList && !userLoading && userSearch.length >= 2 && userResults.length === 0"
-                            x-cloak
+                        <div x-show="showUserList && userSearch.length >= 1 && filteredUsers.length === 0" x-cloak
                             class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 text-sm text-gray-500">
                             User tidak ditemukan
-                        </div>
-
-                        {{-- Loading indicator --}}
-                        <div x-show="userLoading" x-cloak class="absolute right-8 top-8">
-                            <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg"
-                                fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
                         </div>
                     </div>
 
@@ -513,32 +501,26 @@
                 showDeleteModal: false,
                 selected: null,
 
-                // === User autocomplete ===
+                // === User autocomplete (client-side) ===
+                allUsers: @json($users),
                 userSearch: @json($selectedUser?->name ?? ''),
                 selectedUserId: @json((string) request('user_id', '')),
-                userResults: [],
                 showUserList: false,
-                userLoading: false,
 
-                async searchUsers() {
-                    if (this.userSearch.length < 2) {
-                        this.userResults = [];
-                        this.showUserList = false;
-                        return;
+                get filteredUsers() {
+                    const q = (this.userSearch || '').toLowerCase().trim();
+                    if (q === '') {
+                        return this.allUsers.slice(0, 20);
                     }
-                    this.userLoading = true;
-                    try {
-                        const res = await fetch(
-                            `{{ route('siam.users.search') }}?q=${encodeURIComponent(this.userSearch)}`);
-                        const data = await res.json();
-                        this.userResults = data;
-                        this.showUserList = true;
-                    } catch (e) {
-                        console.error('Search user error:', e);
-                        this.userResults = [];
-                    } finally {
-                        this.userLoading = false;
-                    }
+                    return this.allUsers
+                        .filter(u => u.name.toLowerCase().includes(q))
+                        .slice(0, 20);
+                },
+
+                filterUsers() {
+                    this.showUserList = true;
+                    // Kalau user mengetik ulang, reset pilihan sebelumnya
+                    this.selectedUserId = '';
                 },
 
                 selectUser(user) {
@@ -553,10 +535,13 @@
                 clearUser() {
                     this.userSearch = '';
                     this.selectedUserId = '';
-                    this.userResults = [];
                     this.showUserList = false;
+                    this.$nextTick(() => {
+                        document.getElementById('filterForm').submit();
+                    });
                 },
 
+                // === Modal transaksi ===
                 openModal(data) {
                     this.selected = data;
                     this.showModal = true;

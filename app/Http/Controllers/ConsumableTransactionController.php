@@ -52,13 +52,16 @@ class ConsumableTransactionController extends Controller
 
         $consumables = Consumable::orderBy('name')->get();
 
-        // User aktif tetap di-load untuk fallback / kebutuhan lain,
-        // tapi tidak lagi dipakai sebagai dropdown di view.
-        $users = User::active()->orderBy('name')->get();
+        // Data user untuk autocomplete (id + name saja, ringan)
+        $users = User::active()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($u) => ['id' => $u->id, 'name' => $u->name])
+            ->values();
 
-        // Untuk mengisi input search autocomplete setelah filter / reload.
+        // Nama user yang sedang dipilih (untuk isi input setelah filter)
         $selectedUser = $request->filled('user_id')
-            ? User::find($request->get('user_id'))
+            ? User::find($request->get('user_id'), ['id', 'name'])
             : null;
 
         $stats = [
